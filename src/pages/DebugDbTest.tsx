@@ -7,24 +7,19 @@ import { Badge } from "@/components/ui/badge";
 
 type TestStatus = "idle" | "running" | "success" | "error";
 
-interface TestState {
+interface TestResult {
+  id: string;
+  name: string;
   status: TestStatus;
   message?: string;
 }
 
-interface TestResults {
-  test1: TestState;
-  test2: TestState;
-  test3: TestState;
-  test4: TestState;
-}
-
-const initialState: TestResults = {
-  test1: { status: "idle" },
-  test2: { status: "idle" },
-  test3: { status: "idle" },
-  test4: { status: "idle" },
-};
+const initialTests: TestResult[] = [
+  { id: "test-room", name: "Test 1 – Create test room", status: "idle" },
+  { id: "test-guest", name: "Test 2 – Create test guest", status: "idle" },
+  { id: "test-reservation-valid", name: "Test 3 – Create valid reservation", status: "idle" },
+  { id: "test-reservation-invalid", name: "Test 4 – Invalid reservation must fail", status: "idle" },
+];
 
 const statusColors: Record<TestStatus, string> = {
   idle: "bg-muted text-muted-foreground",
@@ -34,19 +29,20 @@ const statusColors: Record<TestStatus, string> = {
 };
 
 export default function DebugDbTest() {
-  const [results, setResults] = useState<TestResults>(initialState);
+  const [tests, setTests] = useState<TestResult[]>(initialTests);
   const [isRunning, setIsRunning] = useState(false);
 
-  const updateTest = (
-    key: keyof TestResults,
-    state: TestState
-  ) => {
-    setResults((prev) => ({ ...prev, [key]: state }));
+  const updateTest = (id: string, updates: Partial<Omit<TestResult, "id" | "name">>) => {
+    setTests((prev) =>
+      prev.map((test) =>
+        test.id === id ? { ...test, ...updates } : test
+      )
+    );
   };
 
-  const runTest1 = async (): Promise<boolean> => {
-    updateTest("test1", { status: "running" });
-    
+  const runTestRoom = async (): Promise<boolean> => {
+    updateTest("test-room", { status: "running" });
+
     const { data, error } = await supabase
       .from("rooms")
       .insert({
@@ -59,19 +55,19 @@ export default function DebugDbTest() {
       .single();
 
     if (error) {
-      updateTest("test1", { status: "error", message: error.message });
+      updateTest("test-room", { status: "error", message: error.message });
       return false;
     }
-    
-    updateTest("test1", {
+
+    updateTest("test-room", {
       status: "success",
       message: `Room created with ID: ${data.id}`,
     });
     return true;
   };
 
-  const runTest2 = async (): Promise<boolean> => {
-    updateTest("test2", { status: "running" });
+  const runTestGuest = async (): Promise<boolean> => {
+    updateTest("test-guest", { status: "running" });
 
     const { data, error } = await supabase
       .from("guests")
@@ -83,19 +79,19 @@ export default function DebugDbTest() {
       .single();
 
     if (error) {
-      updateTest("test2", { status: "error", message: error.message });
+      updateTest("test-guest", { status: "error", message: error.message });
       return false;
     }
 
-    updateTest("test2", {
+    updateTest("test-guest", {
       status: "success",
       message: `Guest created with ID: ${data.id}`,
     });
     return true;
   };
 
-  const runTest3 = async (): Promise<boolean> => {
-    updateTest("test3", { status: "running" });
+  const runTestReservationValid = async (): Promise<boolean> => {
+    updateTest("test-reservation-valid", { status: "running" });
 
     // Fetch room
     const { data: room, error: roomError } = await supabase
@@ -105,9 +101,9 @@ export default function DebugDbTest() {
       .maybeSingle();
 
     if (roomError || !room) {
-      updateTest("test3", {
+      updateTest("test-reservation-valid", {
         status: "error",
-        message: "Run Test 1 and 2 first. Room TEST-101 not found.",
+        message: "Missing test room or test guest. Run Test 1 and 2 first.",
       });
       return false;
     }
@@ -120,9 +116,9 @@ export default function DebugDbTest() {
       .maybeSingle();
 
     if (guestError || !guest) {
-      updateTest("test3", {
+      updateTest("test-reservation-valid", {
         status: "error",
-        message: "Run Test 1 and 2 first. Guest 'Invitado Prueba' not found.",
+        message: "Missing test room or test guest. Run Test 1 and 2 first.",
       });
       return false;
     }
@@ -143,19 +139,19 @@ export default function DebugDbTest() {
       .single();
 
     if (error) {
-      updateTest("test3", { status: "error", message: error.message });
+      updateTest("test-reservation-valid", { status: "error", message: error.message });
       return false;
     }
 
-    updateTest("test3", {
+    updateTest("test-reservation-valid", {
       status: "success",
       message: `Reservation created with ID: ${data.id}`,
     });
     return true;
   };
 
-  const runTest4 = async (): Promise<boolean> => {
-    updateTest("test4", { status: "running" });
+  const runTestReservationInvalid = async (): Promise<boolean> => {
+    updateTest("test-reservation-invalid", { status: "running" });
 
     // Fetch room
     const { data: room } = await supabase
@@ -172,9 +168,9 @@ export default function DebugDbTest() {
       .maybeSingle();
 
     if (!room || !guest) {
-      updateTest("test4", {
+      updateTest("test-reservation-invalid", {
         status: "error",
-        message: "Run Test 1 and 2 first.",
+        message: "Missing test room or test guest. Run Test 1 and 2 first.",
       });
       return false;
     }
@@ -191,7 +187,7 @@ export default function DebugDbTest() {
     });
 
     if (!error) {
-      updateTest("test4", {
+      updateTest("test-reservation-invalid", {
         status: "error",
         message:
           "Expected error for invalid dates but insert was allowed. Check DB constraint.",
@@ -199,7 +195,7 @@ export default function DebugDbTest() {
       return false;
     }
 
-    updateTest("test4", {
+    updateTest("test-reservation-invalid", {
       status: "success",
       message: `Constraint working! Error: ${error.message}`,
     });
@@ -208,22 +204,15 @@ export default function DebugDbTest() {
 
   const runAllTests = async () => {
     setIsRunning(true);
-    setResults(initialState);
+    setTests(initialTests);
 
-    await runTest1();
-    await runTest2();
-    await runTest3();
-    await runTest4();
+    await runTestRoom();
+    await runTestGuest();
+    await runTestReservationValid();
+    await runTestReservationInvalid();
 
     setIsRunning(false);
   };
-
-  const tests = [
-    { key: "test1" as const, name: "Test 1 – Create test room" },
-    { key: "test2" as const, name: "Test 2 – Create test guest" },
-    { key: "test3" as const, name: "Test 3 – Create valid reservation" },
-    { key: "test4" as const, name: "Test 4 – Invalid reservation must fail" },
-  ];
 
   return (
     <div className="min-h-screen bg-background p-6 md:p-10">
@@ -238,28 +227,25 @@ export default function DebugDbTest() {
         </header>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          {tests.map(({ key, name }) => {
-            const { status, message } = results[key];
-            return (
-              <Card key={key} className="border">
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <CardTitle className="text-base font-medium">
-                      {name}
-                    </CardTitle>
-                    <Badge className={statusColors[status]}>
-                      {status.toUpperCase()}
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="min-h-[3rem] rounded bg-muted/50 p-2 text-sm text-muted-foreground">
-                    {message || "Waiting to run..."}
-                  </p>
-                </CardContent>
-              </Card>
-            );
-          })}
+          {tests.map((test) => (
+            <Card key={test.id} className="border">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between gap-2">
+                  <CardTitle className="text-base font-medium">
+                    {test.name}
+                  </CardTitle>
+                  <Badge className={statusColors[test.status]}>
+                    {test.status.toUpperCase()}
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <p className="min-h-[3rem] rounded bg-muted/50 p-2 text-sm text-muted-foreground">
+                  {test.message || "Waiting to run..."}
+                </p>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       </div>
     </div>
