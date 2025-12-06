@@ -2,13 +2,23 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 
+export const RESERVATION_STATUSES = [
+  "booked",
+  "checked_in",
+  "checked_out",
+  "cancelled",
+  "no_show",
+] as const;
+
+export type ReservationStatus = (typeof RESERVATION_STATUSES)[number];
+
 export interface TodayArrival {
-  id: string;
-  roomNumber: string;
+  reservationId: string;
   roomId: string;
+  roomNumber: string;
   guestName: string;
   checkInDate: string;
-  status: string;
+  status: ReservationStatus;
 }
 
 export interface UseTodayArrivalsResult {
@@ -19,17 +29,26 @@ export interface UseTodayArrivalsResult {
   checkIn: (reservationId: string, roomId: string) => Promise<void>;
 }
 
+function isValidReservationStatus(status: string): status is ReservationStatus {
+  return RESERVATION_STATUSES.includes(status as ReservationStatus);
+}
+
 function parseArrival(raw: Record<string, unknown>): TodayArrival {
   const rooms = raw.rooms as Record<string, unknown> | null;
   const guests = raw.guests as Record<string, unknown> | null;
 
+  const status =
+    typeof raw.status === "string" && isValidReservationStatus(raw.status)
+      ? raw.status
+      : "booked";
+
   return {
-    id: String(raw.id ?? ""),
-    roomNumber: (rooms?.number as string) ?? "",
+    reservationId: String(raw.id ?? ""),
     roomId: String(raw.room_id ?? ""),
+    roomNumber: (rooms?.number as string) ?? "",
     guestName: (guests?.name as string) ?? "",
     checkInDate: String(raw.check_in_date ?? ""),
-    status: String(raw.status ?? "booked"),
+    status,
   };
 }
 

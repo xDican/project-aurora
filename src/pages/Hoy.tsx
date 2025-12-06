@@ -11,29 +11,25 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { CalendarCheck, Loader2 } from "lucide-react";
 
 export default function Hoy() {
   const { arrivals, loading, error, checkIn, refresh } = useTodayArrivals();
-  const { toast } = useToast();
   const [processingId, setProcessingId] = useState<string | null>(null);
 
   const handleCheckIn = async (reservationId: string, roomId: string) => {
     setProcessingId(reservationId);
     try {
       await checkIn(reservationId, roomId);
-      toast({
-        title: es.todayPage.checkInSuccess,
+      toast.success(es.todayPage.checkInSuccess, {
         description: es.todayPage.checkInSuccessDescription,
       });
     } catch (err) {
       const message =
         err instanceof Error ? err.message : es.common.unexpectedError;
-      toast({
-        title: "Error",
+      toast.error("Error", {
         description: message,
-        variant: "destructive",
       });
     } finally {
       setProcessingId(null);
@@ -90,7 +86,7 @@ export default function Hoy() {
             </TableHeader>
             <TableBody>
               {arrivals.map((arrival) => (
-                <TableRow key={arrival.id}>
+                <TableRow key={arrival.reservationId}>
                   <TableCell className="font-medium">
                     {arrival.roomNumber}
                   </TableCell>
@@ -113,11 +109,11 @@ export default function Hoy() {
                       <Button
                         size="sm"
                         onClick={() =>
-                          handleCheckIn(arrival.id, arrival.roomId)
+                          handleCheckIn(arrival.reservationId, arrival.roomId)
                         }
-                        disabled={processingId === arrival.id}
+                        disabled={processingId === arrival.reservationId}
                       >
-                        {processingId === arrival.id ? (
+                        {processingId === arrival.reservationId ? (
                           <>
                             <Loader2 className="h-4 w-4 animate-spin mr-1" />
                             {es.todayPage.processing}
