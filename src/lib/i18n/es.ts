@@ -11,6 +11,7 @@ export const es = {
     loading: "Cargando...",
     noData: "Sin datos",
     required: "obligatorio",
+    unexpectedError: "Error inesperado",
   },
 
   // Status labels (DB values → Spanish labels)
@@ -60,6 +61,38 @@ export const es = {
       numberRequired: "El número de habitación es obligatorio",
       typeRequired: "El tipo de habitación es obligatorio",
       pricePositive: "El precio base debe ser 0 o mayor",
+    },
+  },
+
+  guestsPage: {
+    title: "Huéspedes",
+    addGuest: "Agregar huésped",
+    editGuest: "Editar huésped",
+    newGuest: "Nuevo huésped",
+    noGuests: "No hay huéspedes registrados todavía.",
+    addFirstGuest: "Agregar tu primer huésped",
+    guestCreated: "Huésped creado exitosamente",
+    guestUpdated: "Huésped actualizado exitosamente",
+    searchPlaceholder: "Buscar por nombre o documento",
+    columns: {
+      name: "Nombre",
+      document: "Documento",
+      phone: "Teléfono",
+      email: "Correo",
+    },
+    form: {
+      nameLabel: "Nombre",
+      namePlaceholder: "Nombre completo del huésped",
+      documentLabel: "Documento",
+      documentPlaceholder: "Número de documento (opcional)",
+      phoneLabel: "Teléfono",
+      phonePlaceholder: "Número de teléfono (opcional)",
+      emailLabel: "Correo electrónico",
+      emailPlaceholder: "correo@ejemplo.com (opcional)",
+    },
+    validation: {
+      nameRequired: "El nombre es obligatorio",
+      emailInvalid: "El formato del correo electrónico no es válido",
     },
   },
 
