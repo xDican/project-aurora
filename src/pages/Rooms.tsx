@@ -1,5 +1,4 @@
-import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -18,12 +17,10 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { RoomForm, type RoomFormData } from "@/components/rooms/RoomForm";
 import { toast } from "sonner";
-import type { Tables } from "@/integrations/supabase/types";
+import { useRooms, type Room, type RoomStatus } from "@/hooks/useRooms";
 import { Pencil, Plus, Loader2 } from "lucide-react";
 
-type Room = Tables<"rooms">;
-
-const statusColors: Record<string, string> = {
+const statusColors: Record<RoomStatus, string> = {
   available: "bg-green-500/10 text-green-700 border-green-500/20",
   occupied: "bg-blue-500/10 text-blue-700 border-blue-500/20",
   cleaning: "bg-yellow-500/10 text-yellow-700 border-yellow-500/20",
@@ -31,31 +28,11 @@ const statusColors: Record<string, string> = {
 };
 
 export default function Rooms() {
-  const [rooms, setRooms] = useState<Room[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { rooms, loading, error, createRoom, updateRoom } = useRooms();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
-
-  const fetchRooms = async () => {
-    setIsLoading(true);
-    const { data, error } = await supabase
-      .from("rooms")
-      .select("*")
-      .order("number", { ascending: true });
-
-    if (error) {
-      toast.error("Failed to load rooms: " + error.message);
-    } else {
-      setRooms(data || []);
-    }
-    setIsLoading(false);
-  };
-
-  useEffect(() => {
-    fetchRooms();
-  }, []);
 
   const openCreateModal = () => {
     setEditingRoom(null);
@@ -81,41 +58,30 @@ export default function Rooms() {
 
     try {
       if (editingRoom) {
-        // Update existing room
-        const { error } = await supabase
-          .from("rooms")
-          .update(data)
-          .eq("id", editingRoom.id);
-
-        if (error) {
-          setFormError(error.message);
-          return;
-        }
-
+        await updateRoom(editingRoom.id, data);
         toast.success("Room updated successfully");
       } else {
-        // Create new room
-        const { error } = await supabase.from("rooms").insert(data);
-
-        if (error) {
-          setFormError(error.message);
-          return;
-        }
-
+        await createRoom(data);
         toast.success("Room created successfully");
       }
-
       closeModal();
-      fetchRooms();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "An unexpected error occurred";
+      setFormError(message);
     } finally {
       setIsSaving(false);
     }
   };
 
-  const truncateText = (text: string | null, maxLength: number = 50) => {
+  const truncateText = (text: string | null | undefined, maxLength: number = 50) => {
     if (!text) return "—";
     return text.length > maxLength ? text.slice(0, maxLength) + "..." : text;
   };
+
+  // Show error toast if there's a fetch error
+  if (error) {
+    toast.error(error);
+  }
 
   return (
     <div className="min-h-screen bg-background p-6 md:p-10">
@@ -128,7 +94,7 @@ export default function Rooms() {
           </Button>
         </header>
 
-        {isLoading ? (
+        {loading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
@@ -162,7 +128,7 @@ export default function Rooms() {
                     <TableCell>
                       <Badge
                         variant="outline"
-                        className={statusColors[room.status] || ""}
+                        className={statusColors[room.status]}
                       >
                         {room.status.charAt(0).toUpperCase() + room.status.slice(1)}
                       </Badge>

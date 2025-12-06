@@ -10,9 +10,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { Tables } from "@/integrations/supabase/types";
-
-type Room = Tables<"rooms">;
+import {
+  type Room,
+  type RoomStatus,
+  ROOM_STATUSES,
+  ROOM_TYPES,
+} from "@/hooks/useRooms";
 
 interface RoomFormProps {
   room?: Room | null;
@@ -26,12 +29,9 @@ export interface RoomFormData {
   number: string;
   type: string;
   base_price: number;
-  status: string;
+  status: RoomStatus;
   notes: string | null;
 }
-
-const ROOM_STATUSES = ["available", "occupied", "cleaning", "maintenance"] as const;
-const ROOM_TYPES = ["single", "double", "suite", "deluxe"] as const;
 
 export function RoomForm({ room, onSubmit, onCancel, isLoading, error }: RoomFormProps) {
   const [formData, setFormData] = useState<RoomFormData>({
@@ -59,7 +59,6 @@ export function RoomForm({ room, onSubmit, onCancel, isLoading, error }: RoomFor
     e.preventDefault();
     setValidationError(null);
 
-    // Validation
     if (!formData.number.trim()) {
       setValidationError("Room number is required");
       return;
@@ -136,7 +135,7 @@ export function RoomForm({ room, onSubmit, onCancel, isLoading, error }: RoomFor
         <Label htmlFor="status">Status</Label>
         <Select
           value={formData.status}
-          onValueChange={(value) => setFormData((prev) => ({ ...prev, status: value }))}
+          onValueChange={(value: RoomStatus) => setFormData((prev) => ({ ...prev, status: value }))}
         >
           <SelectTrigger>
             <SelectValue placeholder="Select status" />
