@@ -8,6 +8,7 @@ import NotFound from "./pages/NotFound";
 import DebugDbTest from "./pages/DebugDbTest";
 import Rooms from "./pages/Rooms";
 import Guests from "./pages/Guests";
+import Reservas from "./pages/Reservas";
 
 const queryClient = new QueryClient();
 
@@ -21,6 +22,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/rooms" element={<Rooms />} />
           <Route path="/guests" element={<Guests />} />
+          <Route path="/reservas" element={<Reservas />} />
           <Route path="/debug/db-test" element={<DebugDbTest />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

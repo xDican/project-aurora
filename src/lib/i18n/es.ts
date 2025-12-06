@@ -96,6 +96,47 @@ export const es = {
     },
   },
 
+  // Reservation status labels (DB values → Spanish labels)
+  reservationStatusLabels: {
+    booked: "Reservada",
+    checked_in: "Check-in",
+    checked_out: "Check-out",
+    cancelled: "Cancelada",
+    no_show: "No show",
+  } as Record<string, string>,
+
+  reservationsPage: {
+    title: "Reservas",
+    newReservation: "Nueva reserva",
+    noReservations: "No hay reservas registradas todavía.",
+    reservationCreated: "Reserva creada exitosamente",
+    columns: {
+      room: "Habitación",
+      guest: "Huésped",
+      checkIn: "Ingreso",
+      checkOut: "Salida",
+      status: "Estado",
+      finalPrice: "Precio final",
+    },
+    form: {
+      guestLabel: "Huésped",
+      guestPlaceholder: "Seleccionar huésped",
+      roomLabel: "Habitación",
+      roomPlaceholder: "Seleccionar habitación",
+      checkInLabel: "Fecha de ingreso",
+      checkOutLabel: "Fecha de salida",
+      basePriceLabel: "Precio base",
+      finalPriceLabel: "Precio final",
+    },
+    validation: {
+      guestRequired: "Debe seleccionar un huésped",
+      roomRequired: "Debe seleccionar una habitación",
+      checkInRequired: "La fecha de ingreso es obligatoria",
+      checkOutRequired: "La fecha de salida es obligatoria",
+      checkOutAfterCheckIn: "La fecha de salida debe ser posterior a la de ingreso",
+    },
+  },
+
   debugPage: {
     title: "Debug BD – Pruebas de Hotel",
     runAllTests: "Ejecutar todas las pruebas",
