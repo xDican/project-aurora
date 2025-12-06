@@ -25,11 +25,11 @@ const { guestsPage, common } = es;
 
 export default function Guests() {
   const {
-    filteredGuests,
+    guests,
     loading,
     error,
-    searchQuery,
-    setSearchQuery,
+    search,
+    setSearch,
     createGuest,
     updateGuest,
   } = useGuests();
@@ -100,8 +100,8 @@ export default function Guests() {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder={guestsPage.searchPlaceholder}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
             className="pl-10"
           />
         </div>
@@ -110,12 +110,12 @@ export default function Guests() {
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
-        ) : filteredGuests.length === 0 ? (
+        ) : guests.length === 0 ? (
           <div className="rounded-lg border border-dashed p-12 text-center">
             <p className="text-muted-foreground">
-              {searchQuery ? `No se encontraron resultados para "${searchQuery}"` : guestsPage.noGuests}
+              {search ? `No se encontraron resultados para "${search}"` : guestsPage.noGuests}
             </p>
-            {!searchQuery && (
+            {!search && (
               <Button onClick={openCreateModal} variant="outline" className="mt-4">
                 <Plus className="mr-2 h-4 w-4" />
                 {guestsPage.addFirstGuest}
@@ -135,7 +135,7 @@ export default function Guests() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredGuests.map((guest) => (
+                {guests.map((guest) => (
                   <TableRow key={guest.id}>
                     <TableCell className="font-medium">{guest.name}</TableCell>
                     <TableCell>{displayValue(guest.document)}</TableCell>

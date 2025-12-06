@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export interface Guest {
@@ -7,19 +7,17 @@ export interface Guest {
   document?: string | null;
   phone?: string | null;
   email?: string | null;
-  created_at?: string;
 }
 
-export type CreateGuestPayload = Omit<Guest, "id" | "created_at">;
-export type UpdateGuestPayload = Partial<Omit<Guest, "id" | "created_at">>;
+export type CreateGuestPayload = Omit<Guest, "id">;
+export type UpdateGuestPayload = Partial<Omit<Guest, "id">>;
 
 export interface UseGuestsResult {
   guests: Guest[];
-  filteredGuests: Guest[];
   loading: boolean;
   error?: string;
-  searchQuery: string;
-  setSearchQuery: (query: string) => void;
+  search: string;
+  setSearch: (value: string) => void;
   refresh: () => Promise<void>;
   createGuest: (payload: CreateGuestPayload) => Promise<void>;
   updateGuest: (id: string, payload: UpdateGuestPayload) => Promise<void>;
@@ -32,7 +30,6 @@ function parseGuest(raw: Record<string, unknown>): Guest {
     document: raw.document as string | null | undefined,
     phone: raw.phone as string | null | undefined,
     email: raw.email as string | null | undefined,
-    created_at: raw.created_at as string | undefined,
   };
 }
 
@@ -40,17 +37,26 @@ export function useGuests(): UseGuestsResult {
   const [guests, setGuests] = useState<Guest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | undefined>(undefined);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [search, setSearch] = useState("");
 
   const refresh = useCallback(async () => {
     setLoading(true);
     setError(undefined);
 
     try {
-      const { data, error: fetchError } = await supabase
+      let query = supabase
         .from("guests")
         .select("*")
-        .order("name", { ascending: true });
+        .order("created_at", { ascending: false });
+
+      // Apply server-side search filter if search term exists
+      const searchTerm = search.trim();
+      if (searchTerm) {
+        // Use ilike for case-insensitive search on name and document
+        query = query.or(`name.ilike.%${searchTerm}%,document.ilike.%${searchTerm}%`);
+      }
+
+      const { data, error: fetchError } = await query;
 
       if (fetchError) {
         setError(`Error al cargar huéspedes: ${fetchError.message}`);
@@ -65,18 +71,7 @@ export function useGuests(): UseGuestsResult {
     } finally {
       setLoading(false);
     }
-  }, []);
-
-  const filteredGuests = useMemo(() => {
-    if (!searchQuery.trim()) return guests;
-
-    const query = searchQuery.toLowerCase().trim();
-    return guests.filter((guest) => {
-      const nameMatch = guest.name.toLowerCase().includes(query);
-      const documentMatch = guest.document?.toLowerCase().includes(query) ?? false;
-      return nameMatch || documentMatch;
-    });
-  }, [guests, searchQuery]);
+  }, [search]);
 
   const createGuest = useCallback(async (payload: CreateGuestPayload): Promise<void> => {
     const insertData = {
@@ -129,11 +124,10 @@ export function useGuests(): UseGuestsResult {
 
   return {
     guests,
-    filteredGuests,
     loading,
     error,
-    searchQuery,
-    setSearchQuery,
+    search,
+    setSearch,
     refresh,
     createGuest,
     updateGuest,
