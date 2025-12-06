@@ -16,6 +16,7 @@ import {
   ROOM_STATUSES,
   ROOM_TYPES,
 } from "@/hooks/useRooms";
+import { es } from "@/lib/i18n/es";
 
 interface RoomFormProps {
   room?: Room | null;
@@ -32,6 +33,8 @@ export interface RoomFormData {
   status: RoomStatus;
   notes: string | null;
 }
+
+const { roomsPage, common, statusLabels, roomTypeLabels } = es;
 
 export function RoomForm({ room, onSubmit, onCancel, isLoading, error }: RoomFormProps) {
   const [formData, setFormData] = useState<RoomFormData>({
@@ -60,15 +63,15 @@ export function RoomForm({ room, onSubmit, onCancel, isLoading, error }: RoomFor
     setValidationError(null);
 
     if (!formData.number.trim()) {
-      setValidationError("Room number is required");
+      setValidationError(roomsPage.validation.numberRequired);
       return;
     }
     if (!formData.type.trim()) {
-      setValidationError("Room type is required");
+      setValidationError(roomsPage.validation.typeRequired);
       return;
     }
     if (formData.base_price < 0) {
-      setValidationError("Base price must be 0 or greater");
+      setValidationError(roomsPage.validation.pricePositive);
       return;
     }
 
@@ -87,29 +90,29 @@ export function RoomForm({ room, onSubmit, onCancel, isLoading, error }: RoomFor
       )}
 
       <div className="space-y-2">
-        <Label htmlFor="number">Room Number *</Label>
+        <Label htmlFor="number">{roomsPage.form.numberLabel} *</Label>
         <Input
           id="number"
           value={formData.number}
           onChange={(e) => setFormData((prev) => ({ ...prev, number: e.target.value }))}
-          placeholder="e.g., 101, A-201"
+          placeholder={roomsPage.form.numberPlaceholder}
           required
         />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="type">Type *</Label>
+        <Label htmlFor="type">{roomsPage.form.typeLabel} *</Label>
         <Select
           value={formData.type}
           onValueChange={(value) => setFormData((prev) => ({ ...prev, type: value }))}
         >
           <SelectTrigger>
-            <SelectValue placeholder="Select type" />
+            <SelectValue placeholder={roomsPage.form.typePlaceholder} />
           </SelectTrigger>
           <SelectContent>
             {ROOM_TYPES.map((type) => (
               <SelectItem key={type} value={type}>
-                {type.charAt(0).toUpperCase() + type.slice(1)}
+                {roomTypeLabels[type] || type}
               </SelectItem>
             ))}
           </SelectContent>
@@ -117,7 +120,7 @@ export function RoomForm({ room, onSubmit, onCancel, isLoading, error }: RoomFor
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="base_price">Base Price *</Label>
+        <Label htmlFor="base_price">{roomsPage.form.basePriceLabel} *</Label>
         <Input
           id="base_price"
           type="number"
@@ -132,18 +135,18 @@ export function RoomForm({ room, onSubmit, onCancel, isLoading, error }: RoomFor
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="status">Status</Label>
+        <Label htmlFor="status">{roomsPage.form.statusLabel}</Label>
         <Select
           value={formData.status}
           onValueChange={(value: RoomStatus) => setFormData((prev) => ({ ...prev, status: value }))}
         >
           <SelectTrigger>
-            <SelectValue placeholder="Select status" />
+            <SelectValue placeholder={roomsPage.form.statusPlaceholder} />
           </SelectTrigger>
           <SelectContent>
             {ROOM_STATUSES.map((status) => (
               <SelectItem key={status} value={status}>
-                {status.charAt(0).toUpperCase() + status.slice(1)}
+                {statusLabels[status] || status}
               </SelectItem>
             ))}
           </SelectContent>
@@ -151,22 +154,22 @@ export function RoomForm({ room, onSubmit, onCancel, isLoading, error }: RoomFor
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="notes">Notes</Label>
+        <Label htmlFor="notes">{roomsPage.form.notesLabel}</Label>
         <Textarea
           id="notes"
           value={formData.notes || ""}
           onChange={(e) => setFormData((prev) => ({ ...prev, notes: e.target.value }))}
-          placeholder="Optional notes about this room"
+          placeholder={roomsPage.form.notesPlaceholder}
           rows={3}
         />
       </div>
 
       <div className="flex justify-end gap-2 pt-4">
         <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>
-          Cancel
+          {common.cancel}
         </Button>
         <Button type="submit" disabled={isLoading}>
-          {isLoading ? "Saving..." : "Save"}
+          {isLoading ? common.saving : common.save}
         </Button>
       </div>
     </form>
