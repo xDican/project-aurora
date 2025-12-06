@@ -57,6 +57,16 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        status: {
+          available: "hsl(var(--status-available))",
+          "available-foreground": "hsl(var(--status-available-foreground))",
+          occupied: "hsl(var(--status-occupied))",
+          "occupied-foreground": "hsl(var(--status-occupied-foreground))",
+          cleaning: "hsl(var(--status-cleaning))",
+          "cleaning-foreground": "hsl(var(--status-cleaning-foreground))",
+          maintenance: "hsl(var(--status-maintenance))",
+          "maintenance-foreground": "hsl(var(--status-maintenance-foreground))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",

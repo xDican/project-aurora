@@ -10,6 +10,7 @@ import Rooms from "./pages/Rooms";
 import Guests from "./pages/Guests";
 import Reservas from "./pages/Reservas";
 import Hoy from "./pages/Hoy";
+import Mapa from "./pages/Mapa";
 
 const queryClient = new QueryClient();
 
@@ -25,6 +26,7 @@ const App = () => (
           <Route path="/guests" element={<Guests />} />
           <Route path="/reservas" element={<Reservas />} />
           <Route path="/hoy" element={<Hoy />} />
+          <Route path="/mapa" element={<Mapa />} />
           <Route path="/debug/db-test" element={<DebugDbTest />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

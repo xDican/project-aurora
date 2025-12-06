@@ -154,6 +154,20 @@ export const es = {
     },
   },
 
+  roomMapPage: {
+    title: "Mapa de habitaciones",
+    noRooms: "No hay habitaciones registradas.",
+    roomDetails: "Detalles de habitación",
+    basePrice: "Precio base",
+    notes: "Notas",
+    noNotes: "Sin notas",
+    upcomingReservations: "Próximas reservas",
+    noUpcomingReservations: "No hay reservas próximas",
+    goToReservations: "Ir a reservas",
+    guest: "Huésped",
+    dates: "Fechas",
+  },
+
   debugPage: {
     title: "Debug BD – Pruebas de Hotel",
     runAllTests: "Ejecutar todas las pruebas",
