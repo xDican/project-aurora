@@ -16,20 +16,22 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Plus, CalendarDays } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { es } from "@/lib/i18n/es";
-import { useReservations } from "@/hooks/useReservations";
-import { useRooms, Room } from "@/hooks/useRooms";
-import { useGuests, Guest } from "@/hooks/useGuests";
-import { ReservationForm, ReservationFormData } from "@/components/reservations/ReservationForm";
+import {
+  useReservations,
+  type NewReservationInput,
+} from "@/hooks/useReservations";
+import { type Room } from "@/hooks/useRooms";
+import { type Guest } from "@/hooks/useGuests";
+import { ReservationForm } from "@/components/reservations/ReservationForm";
 import { supabase } from "@/integrations/supabase/client";
 
 export default function Reservas() {
   const t = es.reservationsPage;
-  const { toast } = useToast();
 
-  const { reservations, loading, error, refresh } = useReservations();
-  
+  const { reservations, loading, error, createReservation } = useReservations();
+
   // We need rooms and guests for the form selects
   const [rooms, setRooms] = useState<Room[]>([]);
   const [guests, setGuests] = useState<Guest[]>([]);
@@ -62,29 +64,10 @@ export default function Reservas() {
     loadDependencies();
   }, []);
 
-  const handleCreate = async (data: ReservationFormData) => {
-    const insertData = {
-      room_id: data.room_id,
-      guest_id: data.guest_id,
-      check_in_date: data.check_in_date,
-      check_out_date: data.check_out_date,
-      status: "booked",
-      base_price: data.base_price,
-      discount: 0,
-      final_price: data.final_price,
-    };
-
-    const { error: insertError } = await supabase.from("reservations").insert(insertData);
-
-    if (insertError) {
-      throw new Error(`Error al crear reserva: ${insertError.message}`);
-    }
-
-    await refresh();
+  const handleCreate = async (input: NewReservationInput) => {
+    await createReservation(input);
     setIsDialogOpen(false);
-    toast({
-      title: t.reservationCreated,
-    });
+    toast.success(t.reservationCreated);
   };
 
   const formatDate = (dateStr: string) => {
@@ -152,17 +135,20 @@ export default function Reservas() {
                 {reservations.map((reservation) => (
                   <TableRow key={reservation.id}>
                     <TableCell className="font-medium">
-                      {reservation.room_number || "-"}
+                      {reservation.roomNumber || "-"}
                     </TableCell>
-                    <TableCell>{reservation.guest_name || "-"}</TableCell>
-                    <TableCell>{formatDate(reservation.check_in_date)}</TableCell>
-                    <TableCell>{formatDate(reservation.check_out_date)}</TableCell>
+                    <TableCell>{reservation.guestName || "-"}</TableCell>
+                    <TableCell>{formatDate(reservation.checkInDate)}</TableCell>
+                    <TableCell>
+                      {formatDate(reservation.checkOutDate)}
+                    </TableCell>
                     <TableCell>
                       <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                        {es.reservationStatusLabels[reservation.status] || reservation.status}
+                        {es.reservationStatusLabels[reservation.status] ||
+                          reservation.status}
                       </span>
                     </TableCell>
-                    <TableCell>{formatPrice(reservation.final_price)}</TableCell>
+                    <TableCell>{formatPrice(reservation.finalPrice)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
