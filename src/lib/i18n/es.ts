@@ -137,6 +137,23 @@ export const es = {
     },
   },
 
+  todayPage: {
+    title: "Llegadas de hoy",
+    noArrivals: "No hay llegadas para hoy.",
+    checkInButton: "Check-in",
+    checkInSuccess: "Check-in realizado",
+    checkInSuccessDescription: "El huésped ha sido registrado exitosamente.",
+    alreadyCheckedIn: "Ya ingresó",
+    processing: "Procesando...",
+    refresh: "Actualizar",
+    columns: {
+      room: "Habitación",
+      guest: "Huésped",
+      checkIn: "Ingreso",
+      status: "Estado",
+    },
+  },
+
   debugPage: {
     title: "Debug BD – Pruebas de Hotel",
     runAllTests: "Ejecutar todas las pruebas",
