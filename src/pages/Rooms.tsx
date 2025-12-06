@@ -19,6 +19,9 @@ import { RoomForm, type RoomFormData } from "@/components/rooms/RoomForm";
 import { toast } from "sonner";
 import { useRooms, type Room, type RoomStatus } from "@/hooks/useRooms";
 import { Pencil, Plus, Loader2 } from "lucide-react";
+import { es } from "@/lib/i18n/es";
+
+const { roomsPage, statusLabels, common } = es;
 
 const statusColors: Record<RoomStatus, string> = {
   available: "bg-green-500/10 text-green-700 border-green-500/20",
@@ -59,14 +62,14 @@ export default function Rooms() {
     try {
       if (editingRoom) {
         await updateRoom(editingRoom.id, data);
-        toast.success("Room updated successfully");
+        toast.success(roomsPage.roomUpdated);
       } else {
         await createRoom(data);
-        toast.success("Room created successfully");
+        toast.success(roomsPage.roomCreated);
       }
       closeModal();
     } catch (err) {
-      const message = err instanceof Error ? err.message : "An unexpected error occurred";
+      const message = err instanceof Error ? err.message : "Error inesperado";
       setFormError(message);
     } finally {
       setIsSaving(false);
@@ -87,10 +90,10 @@ export default function Rooms() {
     <div className="min-h-screen bg-background p-6 md:p-10">
       <div className="mx-auto max-w-6xl">
         <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <h1 className="text-2xl font-bold text-foreground">Rooms</h1>
+          <h1 className="text-2xl font-bold text-foreground">{roomsPage.title}</h1>
           <Button onClick={openCreateModal}>
             <Plus className="mr-2 h-4 w-4" />
-            Add room
+            {roomsPage.addRoom}
           </Button>
         </header>
 
@@ -100,10 +103,10 @@ export default function Rooms() {
           </div>
         ) : rooms.length === 0 ? (
           <div className="rounded-lg border border-dashed p-12 text-center">
-            <p className="text-muted-foreground">No rooms yet.</p>
+            <p className="text-muted-foreground">{roomsPage.noRooms}</p>
             <Button onClick={openCreateModal} variant="outline" className="mt-4">
               <Plus className="mr-2 h-4 w-4" />
-              Add your first room
+              {roomsPage.addFirstRoom}
             </Button>
           </div>
         ) : (
@@ -111,26 +114,28 @@ export default function Rooms() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Number</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Base Price</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Notes</TableHead>
-                  <TableHead className="w-[80px]">Actions</TableHead>
+                  <TableHead>{roomsPage.columns.number}</TableHead>
+                  <TableHead>{roomsPage.columns.type}</TableHead>
+                  <TableHead>{roomsPage.columns.basePrice}</TableHead>
+                  <TableHead>{roomsPage.columns.status}</TableHead>
+                  <TableHead>{roomsPage.columns.notes}</TableHead>
+                  <TableHead className="w-[80px]">{common.actions}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {rooms.map((room) => (
                   <TableRow key={room.id}>
                     <TableCell className="font-medium">{room.number}</TableCell>
-                    <TableCell className="capitalize">{room.type}</TableCell>
+                    <TableCell className="capitalize">
+                      {es.roomTypeLabels[room.type] || room.type}
+                    </TableCell>
                     <TableCell>${room.base_price.toFixed(2)}</TableCell>
                     <TableCell>
                       <Badge
                         variant="outline"
                         className={statusColors[room.status]}
                       >
-                        {room.status.charAt(0).toUpperCase() + room.status.slice(1)}
+                        {statusLabels[room.status]}
                       </Badge>
                     </TableCell>
                     <TableCell className="max-w-[200px] text-muted-foreground">
@@ -156,7 +161,7 @@ export default function Rooms() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>
-                {editingRoom ? "Edit Room" : "Add New Room"}
+                {editingRoom ? roomsPage.editRoom : roomsPage.newRoom}
               </DialogTitle>
             </DialogHeader>
             <RoomForm

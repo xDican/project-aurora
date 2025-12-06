@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { es } from "@/lib/i18n/es";
 
 type TestStatus = "idle" | "running" | "success" | "error";
 
@@ -14,11 +15,13 @@ interface TestResult {
   message?: string;
 }
 
+const { debugPage } = es;
+
 const initialTests: TestResult[] = [
-  { id: "test-room", name: "Test 1 – Create test room", status: "idle" },
-  { id: "test-guest", name: "Test 2 – Create test guest", status: "idle" },
-  { id: "test-reservation-valid", name: "Test 3 – Create valid reservation", status: "idle" },
-  { id: "test-reservation-invalid", name: "Test 4 – Invalid reservation must fail", status: "idle" },
+  { id: "test-room", name: debugPage.tests.createRoom, status: "idle" },
+  { id: "test-guest", name: debugPage.tests.createGuest, status: "idle" },
+  { id: "test-reservation-valid", name: debugPage.tests.validReservation, status: "idle" },
+  { id: "test-reservation-invalid", name: debugPage.tests.invalidReservation, status: "idle" },
 ];
 
 const statusColors: Record<TestStatus, string> = {
@@ -61,7 +64,7 @@ export default function DebugDbTest() {
 
     updateTest("test-room", {
       status: "success",
-      message: `Room created with ID: ${data.id}`,
+      message: debugPage.messages.roomCreated(data.id),
     });
     return true;
   };
@@ -85,7 +88,7 @@ export default function DebugDbTest() {
 
     updateTest("test-guest", {
       status: "success",
-      message: `Guest created with ID: ${data.id}`,
+      message: debugPage.messages.guestCreated(data.id),
     });
     return true;
   };
@@ -103,7 +106,7 @@ export default function DebugDbTest() {
     if (roomError || !room) {
       updateTest("test-reservation-valid", {
         status: "error",
-        message: "Missing test room or test guest. Run Test 1 and 2 first.",
+        message: debugPage.messages.missingDependencies,
       });
       return false;
     }
@@ -118,7 +121,7 @@ export default function DebugDbTest() {
     if (guestError || !guest) {
       updateTest("test-reservation-valid", {
         status: "error",
-        message: "Missing test room or test guest. Run Test 1 and 2 first.",
+        message: debugPage.messages.missingDependencies,
       });
       return false;
     }
@@ -145,7 +148,7 @@ export default function DebugDbTest() {
 
     updateTest("test-reservation-valid", {
       status: "success",
-      message: `Reservation created with ID: ${data.id}`,
+      message: debugPage.messages.reservationCreated(data.id),
     });
     return true;
   };
@@ -170,7 +173,7 @@ export default function DebugDbTest() {
     if (!room || !guest) {
       updateTest("test-reservation-invalid", {
         status: "error",
-        message: "Missing test room or test guest. Run Test 1 and 2 first.",
+        message: debugPage.messages.missingDependencies,
       });
       return false;
     }
@@ -189,15 +192,14 @@ export default function DebugDbTest() {
     if (!error) {
       updateTest("test-reservation-invalid", {
         status: "error",
-        message:
-          "Expected error for invalid dates but insert was allowed. Check DB constraint.",
+        message: debugPage.messages.invalidDatesAllowed,
       });
       return false;
     }
 
     updateTest("test-reservation-invalid", {
       status: "success",
-      message: `Constraint working! Error: ${error.message}`,
+      message: debugPage.messages.constraintWorking(error.message),
     });
     return true;
   };
@@ -219,10 +221,10 @@ export default function DebugDbTest() {
       <div className="mx-auto max-w-4xl">
         <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <h1 className="text-2xl font-bold text-foreground">
-            Debug DB – Hotel Smoke Tests
+            {debugPage.title}
           </h1>
           <Button onClick={runAllTests} disabled={isRunning}>
-            {isRunning ? "Running..." : "Run all tests"}
+            {isRunning ? debugPage.running : debugPage.runAllTests}
           </Button>
         </header>
 
@@ -235,13 +237,13 @@ export default function DebugDbTest() {
                     {test.name}
                   </CardTitle>
                   <Badge className={statusColors[test.status]}>
-                    {test.status.toUpperCase()}
+                    {debugPage.statusLabels[test.status]}
                   </Badge>
                 </div>
               </CardHeader>
               <CardContent>
                 <p className="min-h-[3rem] rounded bg-muted/50 p-2 text-sm text-muted-foreground">
-                  {test.message || "Waiting to run..."}
+                  {test.message || debugPage.waitingToRun}
                 </p>
               </CardContent>
             </Card>

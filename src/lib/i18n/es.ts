@@ -1,0 +1,92 @@
+// Spanish translations for Project Aurora
+// Note: Database values (status, type) remain in English
+
+export const es = {
+  common: {
+    save: "Guardar",
+    saving: "Guardando...",
+    cancel: "Cancelar",
+    edit: "Editar",
+    actions: "Acciones",
+    loading: "Cargando...",
+    noData: "Sin datos",
+    required: "obligatorio",
+  },
+
+  // Status labels (DB values → Spanish labels)
+  statusLabels: {
+    available: "Disponible",
+    occupied: "Ocupada",
+    cleaning: "En limpieza",
+    maintenance: "En mantenimiento",
+  } as Record<string, string>,
+
+  // Room type labels (DB values → Spanish labels)
+  roomTypeLabels: {
+    single: "Sencilla",
+    double: "Doble",
+    suite: "Suite",
+    deluxe: "Deluxe",
+  } as Record<string, string>,
+
+  roomsPage: {
+    title: "Habitaciones",
+    addRoom: "Agregar habitación",
+    editRoom: "Editar habitación",
+    newRoom: "Nueva habitación",
+    noRooms: "Aún no hay habitaciones.",
+    addFirstRoom: "Agregar tu primera habitación",
+    roomCreated: "Habitación creada exitosamente",
+    roomUpdated: "Habitación actualizada exitosamente",
+    columns: {
+      number: "Número",
+      type: "Tipo",
+      basePrice: "Precio base",
+      status: "Estado",
+      notes: "Notas",
+    },
+    form: {
+      numberLabel: "Número de habitación",
+      numberPlaceholder: "ej., 101, A-201",
+      typeLabel: "Tipo",
+      typePlaceholder: "Seleccionar tipo",
+      basePriceLabel: "Precio base",
+      statusLabel: "Estado",
+      statusPlaceholder: "Seleccionar estado",
+      notesLabel: "Notas",
+      notesPlaceholder: "Notas opcionales sobre esta habitación",
+    },
+    validation: {
+      numberRequired: "El número de habitación es obligatorio",
+      typeRequired: "El tipo de habitación es obligatorio",
+      pricePositive: "El precio base debe ser 0 o mayor",
+    },
+  },
+
+  debugPage: {
+    title: "Debug BD – Pruebas de Hotel",
+    runAllTests: "Ejecutar todas las pruebas",
+    running: "Ejecutando...",
+    waitingToRun: "Esperando ejecución...",
+    tests: {
+      createRoom: "Prueba 1 – Crear habitación de prueba",
+      createGuest: "Prueba 2 – Crear huésped de prueba",
+      validReservation: "Prueba 3 – Crear reservación válida",
+      invalidReservation: "Prueba 4 – Reservación inválida debe fallar",
+    },
+    statusLabels: {
+      idle: "INACTIVO",
+      running: "EJECUTANDO",
+      success: "ÉXITO",
+      error: "ERROR",
+    } as Record<string, string>,
+    messages: {
+      roomCreated: (id: string) => `Habitación creada con ID: ${id}`,
+      guestCreated: (id: string) => `Huésped creado con ID: ${id}`,
+      reservationCreated: (id: string) => `Reservación creada con ID: ${id}`,
+      missingDependencies: "Falta la habitación o el huésped de prueba. Ejecuta las pruebas 1 y 2 primero.",
+      invalidDatesAllowed: "Se esperaba un error por fechas inválidas pero la inserción fue permitida. Verifica la restricción en la BD.",
+      constraintWorking: (error: string) => `¡Restricción funcionando! Error: ${error}`,
+    },
+  },
+} as const;
