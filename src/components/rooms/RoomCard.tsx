@@ -1,26 +1,26 @@
-import { Room, RoomStatus } from "@/hooks/useRooms";
+import { type RoomCard } from "@/hooks/useRoomMap";
 import { es } from "@/lib/i18n/es";
 import { cn } from "@/lib/utils";
 
-interface RoomCardProps {
-  room: Room;
+interface RoomCardComponentProps {
+  room: RoomCard;
   onClick: () => void;
 }
 
-const statusStyles: Record<RoomStatus, string> = {
+const statusStyles: Record<string, string> = {
   available: "bg-status-available text-status-available-foreground",
   occupied: "bg-status-occupied text-status-occupied-foreground",
   cleaning: "bg-status-cleaning text-status-cleaning-foreground",
   maintenance: "bg-status-maintenance text-status-maintenance-foreground",
 };
 
-export function RoomCard({ room, onClick }: RoomCardProps) {
+export function RoomCardComponent({ room, onClick }: RoomCardComponentProps) {
   return (
     <button
       onClick={onClick}
       className={cn(
         "w-full p-4 rounded-lg shadow-md transition-all hover:scale-105 hover:shadow-lg cursor-pointer text-left",
-        statusStyles[room.status]
+        statusStyles[room.status] ?? statusStyles.available
       )}
     >
       <div className="text-3xl font-bold mb-1">{room.number}</div>

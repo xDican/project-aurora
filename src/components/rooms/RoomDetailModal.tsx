@@ -1,9 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Room } from "@/hooks/useRooms";
-import { supabase } from "@/integrations/supabase/client";
+import { type RoomCard, type RoomReservation } from "@/hooks/useRoomMap";
 import { es } from "@/lib/i18n/es";
-import { format } from "date-fns";
 import {
   Dialog,
   DialogContent,
@@ -12,65 +10,63 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2 } from "lucide-react";
 
-interface RoomReservation {
-  id: string;
-  guestName: string;
-  checkInDate: string;
-  checkOutDate: string;
-  status: string;
-}
-
 interface RoomDetailModalProps {
-  room: Room | null;
+  room: RoomCard | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  getRoomReservations: (roomId: string) => Promise<RoomReservation[]>;
 }
 
-export function RoomDetailModal({ room, open, onOpenChange }: RoomDetailModalProps) {
+export function RoomDetailModal({
+  room,
+  open,
+  onOpenChange,
+  getRoomReservations,
+}: RoomDetailModalProps) {
   const navigate = useNavigate();
   const [reservations, setReservations] = useState<RoomReservation[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!room || !open) {
       setReservations([]);
+      setError(null);
       return;
     }
 
     async function fetchReservations() {
       setLoading(true);
-      const today = format(new Date(), "yyyy-MM-dd");
+      setError(null);
 
-      const { data, error } = await supabase
-        .from("reservations")
-        .select("id, check_in_date, check_out_date, status, guests(name)")
-        .eq("room_id", room!.id)
-        .gte("check_out_date", today)
-        .order("check_in_date", { ascending: true });
-
-      if (!error && data) {
-        const parsed = data.map((r) => ({
-          id: String(r.id),
-          guestName: (r.guests as { name: string } | null)?.name ?? "",
-          checkInDate: String(r.check_in_date),
-          checkOutDate: String(r.check_out_date),
-          status: String(r.status),
-        }));
-        setReservations(parsed);
+      try {
+        const data = await getRoomReservations(room!.id);
+        setReservations(data);
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : "Error al cargar reservas";
+        setError(message);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     }
 
     fetchReservations();
-  }, [room, open]);
+  }, [room, open, getRoomReservations]);
 
   if (!room) return null;
 
   const formatDate = (dateStr: string) => {
     try {
-      return format(new Date(dateStr + "T00:00:00"), "dd/MM/yyyy");
+      const date = new Date(dateStr + "T00:00:00");
+      return date.toLocaleDateString("es-ES", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      });
     } catch {
       return dateStr;
     }
@@ -99,7 +95,7 @@ export function RoomDetailModal({ room, open, onOpenChange }: RoomDetailModalPro
               {es.roomMapPage.basePrice}:
             </div>
             <div className="font-medium">
-              ${room.base_price.toLocaleString("es-CO")}
+              ${room.basePrice.toLocaleString("es-CO")}
             </div>
 
             <div className="text-muted-foreground">
@@ -111,9 +107,7 @@ export function RoomDetailModal({ room, open, onOpenChange }: RoomDetailModalPro
               </Badge>
             </div>
 
-            <div className="text-muted-foreground">
-              {es.roomMapPage.notes}:
-            </div>
+            <div className="text-muted-foreground">{es.roomMapPage.notes}:</div>
             <div className="font-medium">
               {room.notes ?? es.roomMapPage.noNotes}
             </div>
@@ -124,6 +118,13 @@ export function RoomDetailModal({ room, open, onOpenChange }: RoomDetailModalPro
             <h4 className="font-semibold mb-2">
               {es.roomMapPage.upcomingReservations}
             </h4>
+
+            {error && (
+              <Alert variant="destructive" className="mb-2">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+
             {loading ? (
               <div className="flex items-center justify-center py-4">
                 <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
@@ -146,7 +147,7 @@ export function RoomDetailModal({ room, open, onOpenChange }: RoomDetailModalPro
                       </Badge>
                     </div>
                     <div className="text-muted-foreground">
-                      {formatDate(res.checkInDate)} – {formatDate(res.checkOutDate)}
+                      {formatDate(res.checkIn)} – {formatDate(res.checkOut)}
                     </div>
                   </div>
                 ))}

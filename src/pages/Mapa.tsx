@@ -1,18 +1,18 @@
 import { useState } from "react";
-import { useRooms, Room } from "@/hooks/useRooms";
+import { useRoomMap, type RoomCard } from "@/hooks/useRoomMap";
 import { es } from "@/lib/i18n/es";
-import { RoomCard } from "@/components/rooms/RoomCard";
+import { RoomCardComponent } from "@/components/rooms/RoomCard";
 import { RoomDetailModal } from "@/components/rooms/RoomDetailModal";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Map } from "lucide-react";
 
 export default function Mapa() {
-  const { rooms, loading, error } = useRooms();
-  const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
+  const { rooms, loading, error, getRoomReservations } = useRoomMap();
+  const [selectedRoom, setSelectedRoom] = useState<RoomCard | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
 
-  const handleCardClick = (room: Room) => {
+  const handleCardClick = (room: RoomCard) => {
     setSelectedRoom(room);
     setModalOpen(true);
   };
@@ -44,7 +44,7 @@ export default function Mapa() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {rooms.map((room) => (
-                <RoomCard
+                <RoomCardComponent
                   key={room.id}
                   room={room}
                   onClick={() => handleCardClick(room)}
@@ -59,6 +59,7 @@ export default function Mapa() {
         room={selectedRoom}
         open={modalOpen}
         onOpenChange={setModalOpen}
+        getRoomReservations={getRoomReservations}
       />
     </div>
   );
