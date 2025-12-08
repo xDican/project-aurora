@@ -156,6 +156,14 @@ export function useReservations(): UseReservationsResult {
 
   const cancelReservation = useCallback(
     async (reservationId: string): Promise<void> => {
+      // Validación opcional: verificar que la reserva esté en estado booked
+      const currentReservation = reservations.find((r) => r.id === reservationId);
+      if (currentReservation && currentReservation.status !== "booked") {
+        throw new Error(
+          `No se puede cancelar: la reserva tiene estado "${currentReservation.status}"`
+        );
+      }
+
       const { error: updateError } = await supabase
         .from("reservations")
         .update({ status: "cancelled" })
@@ -167,7 +175,7 @@ export function useReservations(): UseReservationsResult {
 
       await refresh();
     },
-    [refresh]
+    [reservations, refresh]
   );
 
   useEffect(() => {
