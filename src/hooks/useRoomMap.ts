@@ -24,7 +24,7 @@ export interface UseRoomMapResult {
   error?: string;
   refresh: () => Promise<void>;
   getRoomReservations: (roomId: string) => Promise<RoomReservation[]>;
-  markAsClean: (roomId: string) => Promise<{ success: boolean; error?: string }>;
+  markAsClean: (roomId: string) => Promise<void>;
 }
 
 function parseRoom(raw: Record<string, unknown>): RoomCard {
@@ -135,23 +135,17 @@ export function useRoomMap(): UseRoomMapResult {
   );
 
   const markAsClean = useCallback(
-    async (roomId: string): Promise<{ success: boolean; error?: string }> => {
-      try {
-        const { error: updateError } = await supabase
-          .from("rooms")
-          .update({ status: "available" })
-          .eq("id", roomId);
+    async (roomId: string): Promise<void> => {
+      const { error: updateError } = await supabase
+        .from("rooms")
+        .update({ status: "available" })
+        .eq("id", roomId);
 
-        if (updateError) {
-          return { success: false, error: updateError.message };
-        }
-
-        await refresh();
-        return { success: true };
-      } catch (err) {
-        const message = err instanceof Error ? err.message : "Error inesperado";
-        return { success: false, error: message };
+      if (updateError) {
+        throw new Error(`Error al marcar habitación como limpia: ${updateError.message}`);
       }
+
+      await refresh();
     },
     [refresh]
   );
