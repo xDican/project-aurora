@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { useTodayArrivals, TodayArrival, TodayDeparture } from "@/hooks/useTodayArrivals";
+import { useTodayArrivals, TodayArrival } from "@/hooks/useTodayArrivals";
+import { useDepartures, DepartureItem } from "@/hooks/useDepartures";
 import { es } from "@/lib/i18n/es";
 import {
   Table,
@@ -15,9 +16,30 @@ import { toast } from "sonner";
 import { CalendarCheck, LogOut, Loader2 } from "lucide-react";
 
 export default function Hoy() {
-  const { arrivals, departures, loading, error, checkIn, checkOut, refresh } =
-    useTodayArrivals();
+  const {
+    arrivals,
+    loading: arrivalsLoading,
+    error: arrivalsError,
+    checkIn,
+    refresh: refreshArrivals,
+  } = useTodayArrivals();
+
+  const {
+    departures,
+    loading: departuresLoading,
+    error: departuresError,
+    checkOut,
+    refresh: refreshDepartures,
+  } = useDepartures();
+
   const [processingId, setProcessingId] = useState<string | null>(null);
+
+  const loading = arrivalsLoading || departuresLoading;
+  const error = arrivalsError || departuresError;
+
+  const refresh = async () => {
+    await Promise.all([refreshArrivals(), refreshDepartures()]);
+  };
 
   const handleCheckIn = async (reservationId: string, roomId: string) => {
     setProcessingId(reservationId);
@@ -80,7 +102,7 @@ export default function Hoy() {
     return <span className="text-sm text-muted-foreground">—</span>;
   };
 
-  const renderDepartureActions = (departure: TodayDeparture) => {
+  const renderDepartureActions = (departure: DepartureItem) => {
     if (departure.status === "checked_in") {
       return (
         <Button
