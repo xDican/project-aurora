@@ -15,6 +15,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Plus, CalendarDays } from "lucide-react";
 import { toast } from "sonner";
 import { es } from "@/lib/i18n/es";
@@ -30,7 +41,8 @@ import { supabase } from "@/integrations/supabase/client";
 export default function Reservas() {
   const t = es.reservationsPage;
 
-  const { reservations, loading, error, createReservation } = useReservations();
+  const { reservations, loading, error, createReservation, cancelReservation } =
+    useReservations();
 
   // We need rooms and guests for the form selects
   const [rooms, setRooms] = useState<Room[]>([]);
@@ -68,6 +80,16 @@ export default function Reservas() {
     await createReservation(input);
     setIsDialogOpen(false);
     toast.success(t.reservationCreated);
+  };
+
+  const handleCancel = async (reservationId: string) => {
+    try {
+      await cancelReservation(reservationId);
+      toast.success(t.cancel.success);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : t.cancel.error;
+      toast.error(message);
+    }
   };
 
   const formatDate = (dateStr: string) => {
@@ -129,6 +151,7 @@ export default function Reservas() {
                   <TableHead>{t.columns.checkOut}</TableHead>
                   <TableHead>{t.columns.status}</TableHead>
                   <TableHead>{t.columns.finalPrice}</TableHead>
+                  <TableHead>{t.columns.actions}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -149,6 +172,37 @@ export default function Reservas() {
                       </span>
                     </TableCell>
                     <TableCell>{formatPrice(reservation.finalPrice)}</TableCell>
+                    <TableCell>
+                      {reservation.status === "booked" && (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="destructive" size="sm">
+                              {t.cancel.button}
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>
+                                {t.cancel.dialogTitle}
+                              </AlertDialogTitle>
+                              <AlertDialogDescription>
+                                {t.cancel.dialogMessage}
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>
+                                {t.cancel.back}
+                              </AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleCancel(reservation.id)}
+                              >
+                                {t.cancel.confirm}
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      )}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

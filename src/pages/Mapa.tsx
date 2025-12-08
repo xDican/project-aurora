@@ -20,15 +20,15 @@ export default function Mapa() {
   };
 
   const handleMarkAsClean = async (roomId: string) => {
-    const result = await markAsClean(roomId);
-    if (result.success) {
+    try {
+      await markAsClean(roomId);
       toast({
         title: es.roomMapPage.markAsCleanSuccess,
       });
-    } else {
+    } catch (err) {
       toast({
         title: es.roomMapPage.markAsCleanError,
-        description: result.error,
+        description: err instanceof Error ? err.message : undefined,
         variant: "destructive",
       });
     }
