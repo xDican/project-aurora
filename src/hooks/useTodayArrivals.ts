@@ -21,12 +21,23 @@ export interface TodayArrival {
   status: ReservationStatus;
 }
 
+export interface TodayDeparture {
+  reservationId: string;
+  roomId: string;
+  roomNumber: string;
+  guestName: string;
+  checkOutDate: string;
+  status: ReservationStatus;
+}
+
 export interface UseTodayArrivalsResult {
   arrivals: TodayArrival[];
+  departures: TodayDeparture[];
   loading: boolean;
   error?: string;
   refresh: () => Promise<void>;
   checkIn: (reservationId: string, roomId: string) => Promise<void>;
+  checkOut: (reservationId: string, roomId: string) => Promise<void>;
 }
 
 function isValidReservationStatus(status: string): status is ReservationStatus {
@@ -52,8 +63,28 @@ function parseArrival(raw: Record<string, unknown>): TodayArrival {
   };
 }
 
+function parseDeparture(raw: Record<string, unknown>): TodayDeparture {
+  const rooms = raw.rooms as Record<string, unknown> | null;
+  const guests = raw.guests as Record<string, unknown> | null;
+
+  const status =
+    typeof raw.status === "string" && isValidReservationStatus(raw.status)
+      ? raw.status
+      : "booked";
+
+  return {
+    reservationId: String(raw.id ?? ""),
+    roomId: String(raw.room_id ?? ""),
+    roomNumber: (rooms?.number as string) ?? "",
+    guestName: (guests?.name as string) ?? "",
+    checkOutDate: String(raw.check_out_date ?? ""),
+    status,
+  };
+}
+
 export function useTodayArrivals(): UseTodayArrivalsResult {
   const [arrivals, setArrivals] = useState<TodayArrival[]>([]);
+  const [departures, setDepartures] = useState<TodayDeparture[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | undefined>(undefined);
 
@@ -64,7 +95,8 @@ export function useTodayArrivals(): UseTodayArrivalsResult {
     try {
       const today = format(new Date(), "yyyy-MM-dd");
 
-      const { data, error: fetchError } = await supabase
+      // Fetch arrivals
+      const { data: arrivalsData, error: arrivalsError } = await supabase
         .from("reservations")
         .select(
           `
@@ -79,18 +111,45 @@ export function useTodayArrivals(): UseTodayArrivalsResult {
         .eq("check_in_date", today)
         .order("check_in_date", { ascending: true });
 
-      if (fetchError) {
-        setError(`Error al cargar llegadas: ${fetchError.message}`);
+      if (arrivalsError) {
+        setError(`Error al cargar llegadas: ${arrivalsError.message}`);
         return;
       }
 
-      const parsed = (data ?? []).map((row) =>
-        parseArrival(row as Record<string, unknown>)
+      // Fetch departures
+      const { data: departuresData, error: departuresError } = await supabase
+        .from("reservations")
+        .select(
+          `
+          id,
+          room_id,
+          check_out_date,
+          status,
+          rooms:room_id(number),
+          guests:guest_id(name)
+        `
+        )
+        .eq("check_out_date", today)
+        .order("check_out_date", { ascending: true });
+
+      if (departuresError) {
+        setError(`Error al cargar salidas: ${departuresError.message}`);
+        return;
+      }
+
+      setArrivals(
+        (arrivalsData ?? []).map((row) =>
+          parseArrival(row as Record<string, unknown>)
+        )
       );
-      setArrivals(parsed);
+      setDepartures(
+        (departuresData ?? []).map((row) =>
+          parseDeparture(row as Record<string, unknown>)
+        )
+      );
     } catch (err) {
       const message = err instanceof Error ? err.message : "Error inesperado";
-      setError(`Error al cargar llegadas: ${message}`);
+      setError(`Error al cargar datos: ${message}`);
     } finally {
       setLoading(false);
     }
@@ -98,7 +157,6 @@ export function useTodayArrivals(): UseTodayArrivalsResult {
 
   const checkIn = useCallback(
     async (reservationId: string, roomId: string): Promise<void> => {
-      // Update reservation status to checked_in
       const { error: reservationError } = await supabase
         .from("reservations")
         .update({ status: "checked_in" })
@@ -110,10 +168,38 @@ export function useTodayArrivals(): UseTodayArrivalsResult {
         );
       }
 
-      // Update room status to occupied
       const { error: roomError } = await supabase
         .from("rooms")
         .update({ status: "occupied" })
+        .eq("id", roomId);
+
+      if (roomError) {
+        throw new Error(
+          `Error al actualizar habitación: ${roomError.message}`
+        );
+      }
+
+      await refresh();
+    },
+    [refresh]
+  );
+
+  const checkOut = useCallback(
+    async (reservationId: string, roomId: string): Promise<void> => {
+      const { error: reservationError } = await supabase
+        .from("reservations")
+        .update({ status: "checked_out" })
+        .eq("id", reservationId);
+
+      if (reservationError) {
+        throw new Error(
+          `Error al actualizar reserva: ${reservationError.message}`
+        );
+      }
+
+      const { error: roomError } = await supabase
+        .from("rooms")
+        .update({ status: "cleaning" })
         .eq("id", roomId);
 
       if (roomError) {
@@ -133,9 +219,11 @@ export function useTodayArrivals(): UseTodayArrivalsResult {
 
   return {
     arrivals,
+    departures,
     loading,
     error,
     refresh,
     checkIn,
+    checkOut,
   };
 }
