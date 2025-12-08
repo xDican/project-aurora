@@ -34,6 +34,7 @@ export interface UseReservationsResult {
   error?: string;
   refresh: () => Promise<void>;
   createReservation: (input: NewReservationInput) => Promise<void>;
+  cancelReservation: (reservationId: string) => Promise<void>;
 }
 
 function isValidReservationStatus(status: string): status is ReservationStatus {
@@ -153,6 +154,22 @@ export function useReservations(): UseReservationsResult {
     [refresh]
   );
 
+  const cancelReservation = useCallback(
+    async (reservationId: string): Promise<void> => {
+      const { error: updateError } = await supabase
+        .from("reservations")
+        .update({ status: "cancelled" })
+        .eq("id", reservationId);
+
+      if (updateError) {
+        throw new Error(`Error al cancelar reserva: ${updateError.message}`);
+      }
+
+      await refresh();
+    },
+    [refresh]
+  );
+
   useEffect(() => {
     refresh();
   }, [refresh]);
@@ -163,5 +180,6 @@ export function useReservations(): UseReservationsResult {
     error,
     refresh,
     createReservation,
+    cancelReservation,
   };
 }

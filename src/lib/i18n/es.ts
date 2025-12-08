@@ -117,6 +117,7 @@ export const es = {
       checkOut: "Salida",
       status: "Estado",
       finalPrice: "Precio final",
+      actions: "Acciones",
     },
     form: {
       guestLabel: "Huésped",
@@ -134,6 +135,15 @@ export const es = {
       checkInRequired: "La fecha de ingreso es obligatoria",
       checkOutRequired: "La fecha de salida es obligatoria",
       checkOutAfterCheckIn: "La fecha de salida debe ser posterior a la de ingreso",
+    },
+    cancel: {
+      button: "Cancelar",
+      dialogTitle: "Cancelar reserva",
+      dialogMessage: "¿Estás seguro de que quieres cancelar esta reserva?",
+      confirm: "Confirmar",
+      back: "Volver",
+      success: "Reserva cancelada correctamente",
+      error: "No se pudo cancelar la reserva. Intenta de nuevo.",
     },
   },
 
