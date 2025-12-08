@@ -1,10 +1,12 @@
 import { type RoomCard } from "@/hooks/useRoomMap";
 import { es } from "@/lib/i18n/es";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 interface RoomCardComponentProps {
   room: RoomCard;
   onClick: () => void;
+  onMarkAsClean?: (roomId: string) => void;
 }
 
 const statusStyles: Record<string, string> = {
@@ -14,7 +16,12 @@ const statusStyles: Record<string, string> = {
   maintenance: "bg-status-maintenance text-status-maintenance-foreground",
 };
 
-export function RoomCardComponent({ room, onClick }: RoomCardComponentProps) {
+export function RoomCardComponent({ room, onClick, onMarkAsClean }: RoomCardComponentProps) {
+  const handleMarkAsClean = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onMarkAsClean?.(room.id);
+  };
+
   return (
     <button
       onClick={onClick}
@@ -30,6 +37,19 @@ export function RoomCardComponent({ room, onClick }: RoomCardComponentProps) {
       <div className="mt-2 text-xs font-medium px-2 py-1 rounded bg-black/10 inline-block">
         {es.statusLabels[room.status] ?? room.status}
       </div>
+      
+      {room.status === "cleaning" && onMarkAsClean && (
+        <div className="mt-3">
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={handleMarkAsClean}
+            className="w-full bg-white/90 hover:bg-white text-foreground"
+          >
+            {es.roomMapPage.markAsClean}
+          </Button>
+        </div>
+      )}
     </button>
   );
 }

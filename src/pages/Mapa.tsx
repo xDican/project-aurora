@@ -6,15 +6,32 @@ import { RoomDetailModal } from "@/components/rooms/RoomDetailModal";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Map } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Mapa() {
-  const { rooms, loading, error, getRoomReservations } = useRoomMap();
+  const { rooms, loading, error, getRoomReservations, markAsClean } = useRoomMap();
   const [selectedRoom, setSelectedRoom] = useState<RoomCard | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const { toast } = useToast();
 
   const handleCardClick = (room: RoomCard) => {
     setSelectedRoom(room);
     setModalOpen(true);
+  };
+
+  const handleMarkAsClean = async (roomId: string) => {
+    const result = await markAsClean(roomId);
+    if (result.success) {
+      toast({
+        title: es.roomMapPage.markAsCleanSuccess,
+      });
+    } else {
+      toast({
+        title: es.roomMapPage.markAsCleanError,
+        description: result.error,
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -48,6 +65,7 @@ export default function Mapa() {
                   key={room.id}
                   room={room}
                   onClick={() => handleCardClick(room)}
+                  onMarkAsClean={handleMarkAsClean}
                 />
               ))}
             </div>
