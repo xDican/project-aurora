@@ -173,6 +173,9 @@ export const es = {
     goToReservations: "Ir a reservas",
     guest: "Huésped",
     dates: "Fechas",
+    markAsClean: "Marcar como limpia",
+    markAsCleanSuccess: "Habitación marcada como disponible",
+    markAsCleanError: "No se pudo actualizar el estado de la habitación",
   },
 
   debugPage: {
