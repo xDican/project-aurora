@@ -72,12 +72,12 @@ export function useDepartures(): UseDeparturesResult {
           room_id,
           check_out_date,
           status,
-          rooms:room_id(number),
-          guests:guest_id(name)
+          rooms:rooms!reservations_room_fk(number),
+          guests:guests!reservations_guest_fk(name)
         `
         )
         .eq("check_out_date", today)
-        .order("rooms(number)", { ascending: true });
+        .order("check_out_date", { ascending: true });
 
       if (queryError) {
         setError(`Error al cargar salidas: ${queryError.message}`);

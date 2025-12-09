@@ -105,8 +105,8 @@ export function useTodayArrivals(): UseTodayArrivalsResult {
           room_id,
           check_in_date,
           status,
-          rooms:room_id(number),
-          guests:guest_id(name)
+          rooms:rooms!reservations_room_fk(number),
+          guests:guests!reservations_guest_fk(name)
         `
         )
         .eq("check_in_date", today)
@@ -126,8 +126,8 @@ export function useTodayArrivals(): UseTodayArrivalsResult {
           room_id,
           check_out_date,
           status,
-          rooms:room_id(number),
-          guests:guest_id(name)
+          rooms:rooms!reservations_room_fk(number),
+          guests:guests!reservations_guest_fk(name)
         `
         )
         .eq("check_out_date", today)

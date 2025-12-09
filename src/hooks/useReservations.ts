@@ -80,8 +80,8 @@ export function useReservations(): UseReservationsResult {
           check_out_date,
           status,
           final_price,
-          rooms:room_id(number),
-          guests:guest_id(name)
+          rooms:rooms!reservations_room_fk(number),
+          guests:guests!reservations_guest_fk(name)
         `
         )
         .order("check_in_date", { ascending: false });
