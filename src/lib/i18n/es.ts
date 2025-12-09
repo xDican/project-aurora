@@ -104,6 +104,16 @@ export const es = {
       nameRequired: "El nombre es obligatorio",
       emailInvalid: "El formato del correo electrónico no es válido",
     },
+    archive: {
+      button: "Archivar",
+      dialogTitle: "Archivar huésped",
+      dialogMessage: "Este huésped no se podrá usar en nuevas reservas, pero se mantendrá en el historial. ¿Deseas continuar?",
+      confirm: "Confirmar",
+      back: "Volver",
+      success: "Huésped archivado correctamente",
+      error: "No se pudo archivar el huésped. Intenta de nuevo.",
+      hasActiveReservations: "No se puede archivar el huésped porque tiene reservas futuras activas.",
+    },
   },
 
   // Reservation status labels (DB values → Spanish labels)

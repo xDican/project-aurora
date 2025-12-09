@@ -21,6 +21,7 @@ export interface UseGuestsResult {
   refresh: () => Promise<void>;
   createGuest: (payload: CreateGuestPayload) => Promise<void>;
   updateGuest: (id: string, payload: UpdateGuestPayload) => Promise<void>;
+  archiveGuest: (id: string) => Promise<void>;
 }
 
 function parseGuest(raw: Record<string, unknown>): Guest {
@@ -119,6 +120,46 @@ export function useGuests(): UseGuestsResult {
     await refresh();
   }, [refresh]);
 
+  const archiveGuest = useCallback(async (id: string): Promise<void> => {
+    if (!id) {
+      throw new Error("Guest ID is required for archive");
+    }
+
+    // Get today's date in YYYY-MM-DD format
+    const today = new Date().toISOString().split("T")[0];
+
+    // Check for active future reservations
+    const { data: activeReservations, error: checkError } = await supabase
+      .from("reservations")
+      .select("id")
+      .eq("guest_id", id)
+      .gte("check_out_date", today)
+      .in("status", ["booked", "checked_in"]);
+
+    if (checkError) {
+      throw new Error(`Error al verificar reservas: ${checkError.message}`);
+    }
+
+    if (activeReservations && activeReservations.length > 0) {
+      throw new Error("HAS_ACTIVE_RESERVATIONS");
+    }
+
+    // Archive the guest
+    const { error: updateError } = await supabase
+      .from("guests")
+      .update({
+        is_active: false,
+        archived_at: new Date().toISOString(),
+      })
+      .eq("id", id);
+
+    if (updateError) {
+      throw new Error(`Error al archivar huésped: ${updateError.message}`);
+    }
+
+    await refresh();
+  }, [refresh]);
+
   useEffect(() => {
     refresh();
   }, [refresh]);
@@ -132,5 +173,6 @@ export function useGuests(): UseGuestsResult {
     refresh,
     createGuest,
     updateGuest,
+    archiveGuest,
   };
 }
