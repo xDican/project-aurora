@@ -96,21 +96,7 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "reservations_guest_id_fkey"
-            columns: ["guest_id"]
-            isOneToOne: false
-            referencedRelation: "guests"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "reservations_room_fk"
-            columns: ["room_id"]
-            isOneToOne: false
-            referencedRelation: "rooms"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "reservations_room_id_fkey"
             columns: ["room_id"]
             isOneToOne: false
             referencedRelation: "rooms"
