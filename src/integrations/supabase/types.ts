@@ -16,26 +16,32 @@ export type Database = {
     Tables: {
       guests: {
         Row: {
+          archived_at: string | null
           created_at: string
           document: string | null
           email: string | null
           id: string
+          is_active: boolean
           name: string
           phone: string | null
         }
         Insert: {
+          archived_at?: string | null
           created_at?: string
           document?: string | null
           email?: string | null
           id?: string
+          is_active?: boolean
           name: string
           phone?: string | null
         }
         Update: {
+          archived_at?: string | null
           created_at?: string
           document?: string | null
           email?: string | null
           id?: string
+          is_active?: boolean
           name?: string
           phone?: string | null
         }
@@ -83,10 +89,24 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "reservations_guest_fk"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "reservations_guest_id_fkey"
             columns: ["guest_id"]
             isOneToOne: false
             referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reservations_room_fk"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
             referencedColumns: ["id"]
           },
           {
@@ -100,27 +120,33 @@ export type Database = {
       }
       rooms: {
         Row: {
+          archived_at: string | null
           base_price: number
           created_at: string
           id: string
+          is_active: boolean
           notes: string | null
           number: string
           status: string
           type: string
         }
         Insert: {
+          archived_at?: string | null
           base_price: number
           created_at?: string
           id?: string
+          is_active?: boolean
           notes?: string | null
           number: string
           status?: string
           type: string
         }
         Update: {
+          archived_at?: string | null
           base_price?: number
           created_at?: string
           id?: string
+          is_active?: boolean
           notes?: string | null
           number?: string
           status?: string

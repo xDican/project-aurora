@@ -47,6 +47,7 @@ export function useGuests(): UseGuestsResult {
       let query = supabase
         .from("guests")
         .select("*")
+        .eq("is_active", true)
         .order("created_at", { ascending: false });
 
       // Apply server-side search filter if search term exists
