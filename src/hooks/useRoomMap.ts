@@ -51,6 +51,7 @@ export function useRoomMap(): UseRoomMapResult {
       const { data, error: fetchError } = await supabase
         .from("rooms")
         .select("id, number, type, status, base_price, notes")
+        .eq("is_active", true)
         .order("number", { ascending: true });
 
       if (fetchError) {

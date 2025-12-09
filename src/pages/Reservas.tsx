@@ -57,8 +57,8 @@ export default function Reservas() {
       setLoadingDeps(true);
       try {
         const [roomsRes, guestsRes] = await Promise.all([
-          supabase.from("rooms").select("*").order("number"),
-          supabase.from("guests").select("*").order("name"),
+          supabase.from("rooms").select("*").eq("is_active", true).order("number"),
+          supabase.from("guests").select("*").eq("is_active", true).order("name"),
         ]);
 
         if (roomsRes.data) {

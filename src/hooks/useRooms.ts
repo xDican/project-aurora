@@ -67,6 +67,7 @@ export function useRooms(): UseRoomsResult {
       const { data, error: fetchError } = await supabase
         .from("rooms")
         .select("*")
+        .eq("is_active", true)
         .order("number", { ascending: true });
 
       if (fetchError) {
