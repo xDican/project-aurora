@@ -62,6 +62,16 @@ export const es = {
       typeRequired: "El tipo de habitación es obligatorio",
       pricePositive: "El precio base debe ser 0 o mayor",
     },
+    archive: {
+      button: "Archivar",
+      dialogTitle: "Archivar habitación",
+      dialogMessage: "Esta habitación se desactivará para futuras reservas. ¿Deseas continuar?",
+      confirm: "Confirmar",
+      back: "Volver",
+      success: "Habitación archivada correctamente",
+      error: "No se pudo archivar la habitación. Intenta de nuevo.",
+      hasActiveReservations: "No se puede archivar la habitación porque tiene reservas futuras activas.",
+    },
   },
 
   guestsPage: {

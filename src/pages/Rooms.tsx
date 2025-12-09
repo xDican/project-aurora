@@ -14,11 +14,22 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { RoomForm, type RoomFormData } from "@/components/rooms/RoomForm";
 import { toast } from "sonner";
 import { useRooms, type Room, type RoomStatus } from "@/hooks/useRooms";
-import { Pencil, Plus, Loader2 } from "lucide-react";
+import { Pencil, Plus, Loader2, Archive } from "lucide-react";
 import { es } from "@/lib/i18n/es";
 
 const { roomsPage, statusLabels, common } = es;
@@ -31,7 +42,7 @@ const statusColors: Record<RoomStatus, string> = {
 };
 
 export default function Rooms() {
-  const { rooms, loading, error, createRoom, updateRoom } = useRooms();
+  const { rooms, loading, error, createRoom, updateRoom, archiveRoom } = useRooms();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -73,6 +84,19 @@ export default function Rooms() {
       setFormError(message);
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleArchive = async (roomId: string) => {
+    try {
+      await archiveRoom(roomId);
+      toast.success(roomsPage.archive.success);
+    } catch (err) {
+      if (err instanceof Error && err.message === "HAS_ACTIVE_RESERVATIONS") {
+        toast.error(roomsPage.archive.hasActiveReservations);
+      } else {
+        toast.error(roomsPage.archive.error);
+      }
     }
   };
 
@@ -142,13 +166,42 @@ export default function Rooms() {
                       {truncateText(room.notes)}
                     </TableCell>
                     <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => openEditModal(room)}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => openEditModal(room)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <Archive className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>
+                                {roomsPage.archive.dialogTitle}
+                              </AlertDialogTitle>
+                              <AlertDialogDescription>
+                                {roomsPage.archive.dialogMessage}
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>
+                                {roomsPage.archive.back}
+                              </AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleArchive(room.id)}
+                              >
+                                {roomsPage.archive.confirm}
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

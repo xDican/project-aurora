@@ -32,6 +32,7 @@ export interface UseRoomsResult {
   refresh: () => Promise<void>;
   createRoom: (payload: CreateRoomPayload) => Promise<void>;
   updateRoom: (id: string, payload: UpdateRoomPayload) => Promise<void>;
+  archiveRoom: (id: string) => Promise<void>;
 }
 
 function isValidRoomStatus(status: string): status is RoomStatus {
@@ -132,6 +133,46 @@ export function useRooms(): UseRoomsResult {
     await refresh();
   }, [refresh]);
 
+  const archiveRoom = useCallback(async (id: string): Promise<void> => {
+    if (!id) {
+      throw new Error("Room ID is required for archive");
+    }
+
+    // Get today's date in YYYY-MM-DD format
+    const today = new Date().toISOString().split("T")[0];
+
+    // Check for active future reservations
+    const { data: activeReservations, error: checkError } = await supabase
+      .from("reservations")
+      .select("id")
+      .eq("room_id", id)
+      .gte("check_out_date", today)
+      .in("status", ["booked", "checked_in"]);
+
+    if (checkError) {
+      throw new Error(`Error al verificar reservas: ${checkError.message}`);
+    }
+
+    if (activeReservations && activeReservations.length > 0) {
+      throw new Error("HAS_ACTIVE_RESERVATIONS");
+    }
+
+    // Archive the room
+    const { error: updateError } = await supabase
+      .from("rooms")
+      .update({
+        is_active: false,
+        archived_at: new Date().toISOString(),
+      })
+      .eq("id", id);
+
+    if (updateError) {
+      throw new Error(`Error al archivar habitación: ${updateError.message}`);
+    }
+
+    await refresh();
+  }, [refresh]);
+
   useEffect(() => {
     refresh();
   }, [refresh]);
@@ -143,5 +184,6 @@ export function useRooms(): UseRoomsResult {
     refresh,
     createRoom,
     updateRoom,
+    archiveRoom,
   };
 }
