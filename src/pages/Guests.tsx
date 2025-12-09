@@ -15,10 +15,21 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { GuestForm, type GuestFormData } from "@/components/guests/GuestForm";
 import { toast } from "sonner";
 import { useGuests, type Guest } from "@/hooks/useGuests";
-import { Pencil, Plus, Loader2, Search } from "lucide-react";
+import { Pencil, Plus, Loader2, Search, Archive } from "lucide-react";
 import { es } from "@/lib/i18n/es";
 
 const { guestsPage, common } = es;
@@ -32,6 +43,7 @@ export default function Guests() {
     setSearch,
     createGuest,
     updateGuest,
+    archiveGuest,
   } = useGuests();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingGuest, setEditingGuest] = useState<Guest | null>(null);
@@ -74,6 +86,19 @@ export default function Guests() {
       setFormError(message);
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleArchive = async (guestId: string) => {
+    try {
+      await archiveGuest(guestId);
+      toast.success(guestsPage.archive.success);
+    } catch (err) {
+      if (err instanceof Error && err.message === "HAS_ACTIVE_RESERVATIONS") {
+        toast.error(guestsPage.archive.hasActiveReservations);
+      } else {
+        toast.error(guestsPage.archive.error);
+      }
     }
   };
 
@@ -142,13 +167,42 @@ export default function Guests() {
                     <TableCell>{displayValue(guest.phone)}</TableCell>
                     <TableCell>{displayValue(guest.email)}</TableCell>
                     <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => openEditModal(guest)}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => openEditModal(guest)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <Archive className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>
+                                {guestsPage.archive.dialogTitle}
+                              </AlertDialogTitle>
+                              <AlertDialogDescription>
+                                {guestsPage.archive.dialogMessage}
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>
+                                {guestsPage.archive.back}
+                              </AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleArchive(guest.id)}
+                              >
+                                {guestsPage.archive.confirm}
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
