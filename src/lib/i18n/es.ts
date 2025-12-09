@@ -169,6 +169,16 @@ export const es = {
       checkOut: "Salida",
       status: "Estado",
     },
+    noShow: {
+      button: "No-show",
+      dialogTitle: "Marcar como No-show",
+      dialogMessage: "Este huésped no se presentó. ¿Confirmas marcar la reserva como No-show?",
+      confirm: "Confirmar",
+      back: "Volver",
+      success: "Reserva marcada como No-show",
+      error: "No se pudo marcar como No-show. Intenta de nuevo.",
+      label: "No-show",
+    },
   },
 
   roomMapPage: {
