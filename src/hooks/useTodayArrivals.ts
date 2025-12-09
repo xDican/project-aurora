@@ -38,6 +38,7 @@ export interface UseTodayArrivalsResult {
   refresh: () => Promise<void>;
   checkIn: (reservationId: string, roomId: string) => Promise<void>;
   checkOut: (reservationId: string, roomId: string) => Promise<void>;
+  markNoShow: (reservationId: string) => Promise<void>;
 }
 
 function isValidReservationStatus(status: string): status is ReservationStatus {
@@ -213,6 +214,24 @@ export function useTodayArrivals(): UseTodayArrivalsResult {
     [refresh]
   );
 
+  const markNoShow = useCallback(
+    async (reservationId: string): Promise<void> => {
+      const { error: updateError } = await supabase
+        .from("reservations")
+        .update({ status: "no_show" })
+        .eq("id", reservationId);
+
+      if (updateError) {
+        throw new Error(
+          `Error al marcar como no-show: ${updateError.message}`
+        );
+      }
+
+      await refresh();
+    },
+    [refresh]
+  );
+
   useEffect(() => {
     refresh();
   }, [refresh]);
@@ -225,5 +244,6 @@ export function useTodayArrivals(): UseTodayArrivalsResult {
     refresh,
     checkIn,
     checkOut,
+    markNoShow,
   };
 }

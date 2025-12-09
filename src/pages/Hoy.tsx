@@ -12,6 +12,17 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { CalendarCheck, LogOut, Loader2 } from "lucide-react";
 
@@ -21,6 +32,7 @@ export default function Hoy() {
     loading: arrivalsLoading,
     error: arrivalsError,
     checkIn,
+    markNoShow,
     refresh: refreshArrivals,
   } = useTodayArrivals();
 
@@ -73,29 +85,82 @@ export default function Hoy() {
     }
   };
 
+  const handleNoShow = async (reservationId: string) => {
+    setProcessingId(reservationId);
+    try {
+      await markNoShow(reservationId);
+      toast.success(es.todayPage.noShow.success);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : es.todayPage.noShow.error;
+      toast.error("Error", { description: message });
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
   const renderArrivalActions = (arrival: TodayArrival) => {
+    const isProcessing = processingId === arrival.reservationId;
+
     if (arrival.status === "booked") {
       return (
-        <Button
-          size="sm"
-          onClick={() => handleCheckIn(arrival.reservationId, arrival.roomId)}
-          disabled={processingId === arrival.reservationId}
-        >
-          {processingId === arrival.reservationId ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin mr-1" />
-              {es.todayPage.processing}
-            </>
-          ) : (
-            es.todayPage.checkInButton
-          )}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            onClick={() => handleCheckIn(arrival.reservationId, arrival.roomId)}
+            disabled={isProcessing}
+          >
+            {isProcessing ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                {es.todayPage.processing}
+              </>
+            ) : (
+              es.todayPage.checkInButton
+            )}
+          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button size="sm" variant="destructive" disabled={isProcessing}>
+                {es.todayPage.noShow.button}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>{es.todayPage.noShow.dialogTitle}</AlertDialogTitle>
+                <AlertDialogDescription>
+                  {es.todayPage.noShow.dialogMessage}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>{es.todayPage.noShow.back}</AlertDialogCancel>
+                <AlertDialogAction onClick={() => handleNoShow(arrival.reservationId)}>
+                  {es.todayPage.noShow.confirm}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
       );
     }
     if (arrival.status === "checked_in") {
       return (
         <span className="text-sm text-muted-foreground">
           {es.todayPage.alreadyCheckedIn}
+        </span>
+      );
+    }
+    if (arrival.status === "no_show") {
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+          {es.todayPage.noShow.label}
+        </span>
+      );
+    }
+    if (arrival.status === "cancelled") {
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+          {es.reservationStatusLabels.cancelled}
         </span>
       );
     }
