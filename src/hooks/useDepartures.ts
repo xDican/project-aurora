@@ -33,21 +33,42 @@ function isValidReservationStatus(status: string): status is ReservationStatus {
   return RESERVATION_STATUSES.includes(status as ReservationStatus);
 }
 
-function parseDeparture(raw: Record<string, unknown>): DepartureItem {
-  const rooms = raw.rooms as Record<string, unknown> | null;
-  const guests = raw.guests as Record<string, unknown> | null;
+interface RawReservation {
+  id: string;
+  room_id: string;
+  guest_id: string;
+  check_out_date: string;
+  status: string;
+}
 
-  const status =
-    typeof raw.status === "string" && isValidReservationStatus(raw.status)
-      ? raw.status
-      : "booked";
+interface RawRoom {
+  id: string;
+  number: string;
+}
+
+interface RawGuest {
+  id: string;
+  name: string;
+}
+
+function buildDepartureItem(
+  reservation: RawReservation,
+  roomMap: Map<string, RawRoom>,
+  guestMap: Map<string, RawGuest>
+): DepartureItem {
+  const status = isValidReservationStatus(reservation.status)
+    ? reservation.status
+    : "booked";
+
+  const room = roomMap.get(reservation.room_id);
+  const guest = guestMap.get(reservation.guest_id);
 
   return {
-    reservationId: String(raw.id ?? ""),
-    roomId: String(raw.room_id ?? ""),
-    roomNumber: (rooms?.number as string) ?? "",
-    guestName: (guests?.name as string) ?? "",
-    checkOutDate: String(raw.check_out_date ?? ""),
+    reservationId: reservation.id,
+    roomId: reservation.room_id,
+    roomNumber: room?.number ?? "",
+    guestName: guest?.name ?? "",
+    checkOutDate: reservation.check_out_date,
     status,
   };
 }
@@ -64,29 +85,52 @@ export function useDepartures(): UseDeparturesResult {
     try {
       const today = format(new Date(), "yyyy-MM-dd");
 
-      const { data, error: queryError } = await supabase
+      // 1. Cargar reservaciones sin embeds
+      const { data: reservationsData, error: reservationsError } = await supabase
         .from("reservations")
-        .select(
-          `
-          id,
-          room_id,
-          check_out_date,
-          status,
-          rooms:rooms!reservations_room_fk(number),
-          guests:guests!reservations_guest_fk(name)
-        `
-        )
+        .select("id, room_id, guest_id, check_out_date, status")
         .eq("check_out_date", today)
         .order("check_out_date", { ascending: true });
 
-      if (queryError) {
-        setError(`Error al cargar salidas: ${queryError.message}`);
+      if (reservationsError) {
+        setError(`Error al cargar salidas: ${reservationsError.message}`);
         return;
       }
 
+      // 2. Cargar rooms activos
+      const { data: roomsData, error: roomsError } = await supabase
+        .from("rooms")
+        .select("id, number")
+        .eq("is_active", true);
+
+      if (roomsError) {
+        setError(`Error al cargar habitaciones: ${roomsError.message}`);
+        return;
+      }
+
+      // 3. Cargar guests activos
+      const { data: guestsData, error: guestsError } = await supabase
+        .from("guests")
+        .select("id, name")
+        .eq("is_active", true);
+
+      if (guestsError) {
+        setError(`Error al cargar huéspedes: ${guestsError.message}`);
+        return;
+      }
+
+      // 4. Construir mapas para lookup rápido
+      const roomMap = new Map<string, RawRoom>(
+        (roomsData ?? []).map((r) => [r.id, r as RawRoom])
+      );
+      const guestMap = new Map<string, RawGuest>(
+        (guestsData ?? []).map((g) => [g.id, g as RawGuest])
+      );
+
+      // 5. Enriquecer departures con room y guest
       setDepartures(
-        (data ?? []).map((row) =>
-          parseDeparture(row as Record<string, unknown>)
+        (reservationsData ?? []).map((r) =>
+          buildDepartureItem(r as RawReservation, roomMap, guestMap)
         )
       );
     } catch (err) {

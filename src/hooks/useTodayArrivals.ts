@@ -45,40 +45,65 @@ function isValidReservationStatus(status: string): status is ReservationStatus {
   return RESERVATION_STATUSES.includes(status as ReservationStatus);
 }
 
-function parseArrival(raw: Record<string, unknown>): TodayArrival {
-  const rooms = raw.rooms as Record<string, unknown> | null;
-  const guests = raw.guests as Record<string, unknown> | null;
+interface RawReservation {
+  id: string;
+  room_id: string;
+  guest_id: string;
+  check_in_date: string;
+  check_out_date: string;
+  status: string;
+}
 
-  const status =
-    typeof raw.status === "string" && isValidReservationStatus(raw.status)
-      ? raw.status
-      : "booked";
+interface RawRoom {
+  id: string;
+  number: string;
+}
+
+interface RawGuest {
+  id: string;
+  name: string;
+}
+
+function buildArrival(
+  reservation: RawReservation,
+  roomMap: Map<string, RawRoom>,
+  guestMap: Map<string, RawGuest>
+): TodayArrival {
+  const status = isValidReservationStatus(reservation.status)
+    ? reservation.status
+    : "booked";
+
+  const room = roomMap.get(reservation.room_id);
+  const guest = guestMap.get(reservation.guest_id);
 
   return {
-    reservationId: String(raw.id ?? ""),
-    roomId: String(raw.room_id ?? ""),
-    roomNumber: (rooms?.number as string) ?? "",
-    guestName: (guests?.name as string) ?? "",
-    checkInDate: String(raw.check_in_date ?? ""),
+    reservationId: reservation.id,
+    roomId: reservation.room_id,
+    roomNumber: room?.number ?? "",
+    guestName: guest?.name ?? "",
+    checkInDate: reservation.check_in_date,
     status,
   };
 }
 
-function parseDeparture(raw: Record<string, unknown>): TodayDeparture {
-  const rooms = raw.rooms as Record<string, unknown> | null;
-  const guests = raw.guests as Record<string, unknown> | null;
+function buildDeparture(
+  reservation: RawReservation,
+  roomMap: Map<string, RawRoom>,
+  guestMap: Map<string, RawGuest>
+): TodayDeparture {
+  const status = isValidReservationStatus(reservation.status)
+    ? reservation.status
+    : "booked";
 
-  const status =
-    typeof raw.status === "string" && isValidReservationStatus(raw.status)
-      ? raw.status
-      : "booked";
+  const room = roomMap.get(reservation.room_id);
+  const guest = guestMap.get(reservation.guest_id);
 
   return {
-    reservationId: String(raw.id ?? ""),
-    roomId: String(raw.room_id ?? ""),
-    roomNumber: (rooms?.number as string) ?? "",
-    guestName: (guests?.name as string) ?? "",
-    checkOutDate: String(raw.check_out_date ?? ""),
+    reservationId: reservation.id,
+    roomId: reservation.room_id,
+    roomNumber: room?.number ?? "",
+    guestName: guest?.name ?? "",
+    checkOutDate: reservation.check_out_date,
     status,
   };
 }
@@ -96,19 +121,10 @@ export function useTodayArrivals(): UseTodayArrivalsResult {
     try {
       const today = format(new Date(), "yyyy-MM-dd");
 
-      // Fetch arrivals
+      // 1. Cargar llegadas (arrivals) sin embeds
       const { data: arrivalsData, error: arrivalsError } = await supabase
         .from("reservations")
-        .select(
-          `
-          id,
-          room_id,
-          check_in_date,
-          status,
-          rooms:rooms!reservations_room_fk(number),
-          guests:guests!reservations_guest_fk(name)
-        `
-        )
+        .select("id, room_id, guest_id, check_in_date, check_out_date, status")
         .eq("check_in_date", today)
         .order("check_in_date", { ascending: true });
 
@@ -117,19 +133,10 @@ export function useTodayArrivals(): UseTodayArrivalsResult {
         return;
       }
 
-      // Fetch departures
+      // 2. Cargar salidas (departures) sin embeds
       const { data: departuresData, error: departuresError } = await supabase
         .from("reservations")
-        .select(
-          `
-          id,
-          room_id,
-          check_out_date,
-          status,
-          rooms:rooms!reservations_room_fk(number),
-          guests:guests!reservations_guest_fk(name)
-        `
-        )
+        .select("id, room_id, guest_id, check_in_date, check_out_date, status")
         .eq("check_out_date", today)
         .order("check_out_date", { ascending: true });
 
@@ -138,14 +145,45 @@ export function useTodayArrivals(): UseTodayArrivalsResult {
         return;
       }
 
+      // 3. Cargar rooms activos
+      const { data: roomsData, error: roomsError } = await supabase
+        .from("rooms")
+        .select("id, number")
+        .eq("is_active", true);
+
+      if (roomsError) {
+        setError(`Error al cargar habitaciones: ${roomsError.message}`);
+        return;
+      }
+
+      // 4. Cargar guests activos
+      const { data: guestsData, error: guestsError } = await supabase
+        .from("guests")
+        .select("id, name")
+        .eq("is_active", true);
+
+      if (guestsError) {
+        setError(`Error al cargar huéspedes: ${guestsError.message}`);
+        return;
+      }
+
+      // 5. Construir mapas para lookup rápido
+      const roomMap = new Map<string, RawRoom>(
+        (roomsData ?? []).map((r) => [r.id, r as RawRoom])
+      );
+      const guestMap = new Map<string, RawGuest>(
+        (guestsData ?? []).map((g) => [g.id, g as RawGuest])
+      );
+
+      // 6. Enriquecer arrivals y departures
       setArrivals(
-        (arrivalsData ?? []).map((row) =>
-          parseArrival(row as Record<string, unknown>)
+        (arrivalsData ?? []).map((r) =>
+          buildArrival(r as RawReservation, roomMap, guestMap)
         )
       );
       setDepartures(
-        (departuresData ?? []).map((row) =>
-          parseDeparture(row as Record<string, unknown>)
+        (departuresData ?? []).map((r) =>
+          buildDeparture(r as RawReservation, roomMap, guestMap)
         )
       );
     } catch (err) {
