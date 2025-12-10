@@ -244,4 +244,21 @@ export const es = {
       constraintWorking: (error: string) => `¡Restricción funcionando! Error: ${error}`,
     },
   },
+
+  auth: {
+    loginTitle: "Iniciar sesión",
+    emailLabel: "Correo electrónico",
+    emailPlaceholder: "tu@email.com",
+    passwordLabel: "Contraseña",
+    passwordPlaceholder: "Tu contraseña",
+    loginButton: "Iniciar sesión",
+    loggingIn: "Iniciando sesión...",
+    invalidCredentials: "Credenciales incorrectas",
+    genericError: "Error al iniciar sesión. Intenta de nuevo.",
+    logout: "Cerrar sesión",
+    roles: {
+      admin: "Admin",
+      receptionist: "Recepcionista",
+    },
+  },
 } as const;
