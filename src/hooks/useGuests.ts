@@ -7,7 +7,6 @@ export interface Guest {
   document?: string | null;
   phone?: string | null;
   email?: string | null;
-  notes?: string | null;
   created_at: string;
 }
 
@@ -33,7 +32,6 @@ function parseGuest(raw: Record<string, unknown>): Guest {
     document: raw.document as string | null | undefined,
     phone: raw.phone as string | null | undefined,
     email: raw.email as string | null | undefined,
-    notes: raw.notes as string | null | undefined,
     created_at: String(raw.created_at ?? ""),
   };
 }
@@ -109,7 +107,6 @@ export function useGuests(): UseGuestsResult {
       p_name: payload.name ?? currentGuest?.name ?? "",
       p_phone: payload.phone ?? currentGuest?.phone ?? null,
       p_email: payload.email ?? currentGuest?.email ?? null,
-      p_notes: payload.notes ?? currentGuest?.notes ?? null,
     });
 
     if (error) {
