@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { type OccupancyType } from "@/hooks/useRoomRates";
 
 // Strict types for room status
 export const ROOM_STATUSES = ["available", "occupied", "cleaning", "maintenance"] as const;
 export type RoomStatus = (typeof ROOM_STATUSES)[number];
 
-// Strict types for room type
+// Keep for backwards compatibility but not used in UI
 export const ROOM_TYPES = ["single", "double", "suite", "deluxe"] as const;
 export type RoomType = (typeof ROOM_TYPES)[number];
 
@@ -19,11 +20,25 @@ export interface Room {
   created_at?: string;
 }
 
-export type CreateRoomPayload = Omit<Room, "id" | "status" | "created_at"> & {
-  status?: RoomStatus;
-};
+export interface RateConfig {
+  occupancy: OccupancyType;
+  enabled: boolean;
+  price: number;
+}
 
-export type UpdateRoomPayload = Partial<Omit<Room, "id" | "created_at">>;
+export interface CreateRoomPayload {
+  number: string;
+  status?: RoomStatus;
+  notes?: string | null;
+  rates: RateConfig[];
+}
+
+export interface UpdateRoomPayload {
+  number?: string;
+  status?: RoomStatus;
+  notes?: string | null;
+  rates?: RateConfig[];
+}
 
 export interface UseRoomsResult {
   rooms: Room[];
@@ -88,18 +103,41 @@ export function useRooms(): UseRoomsResult {
   }, []);
 
   const createRoom = useCallback(async (payload: CreateRoomPayload): Promise<void> => {
-    const insertData = {
-      number: payload.number,
-      type: payload.type,
-      base_price: payload.base_price,
-      status: payload.status ?? "available",
-      notes: payload.notes ?? null,
-    };
-
-    const { error: insertError } = await supabase.from("rooms").insert(insertData);
+    // 1. Insert room with default type/base_price (legacy fields)
+    const { data: newRoom, error: insertError } = await supabase
+      .from("rooms")
+      .insert({
+        number: payload.number,
+        type: "standard", // Default value (legacy)
+        base_price: 0,    // Default value (legacy)
+        status: payload.status ?? "available",
+        notes: payload.notes ?? null,
+      })
+      .select("id")
+      .single();
 
     if (insertError) {
       throw new Error(`Failed to create room: ${insertError.message}`);
+    }
+
+    // 2. Create room_rates for each enabled configuration
+    const ratesToInsert = payload.rates
+      .filter((r) => r.enabled && r.price > 0)
+      .map((r) => ({
+        room_id: newRoom.id,
+        occupancy: r.occupancy,
+        price: r.price,
+        is_active: true,
+      }));
+
+    if (ratesToInsert.length > 0) {
+      const { error: ratesError } = await supabase
+        .from("room_rates")
+        .insert(ratesToInsert);
+
+      if (ratesError) {
+        throw new Error(`Failed to create room rates: ${ratesError.message}`);
+      }
     }
 
     await refresh();
@@ -114,16 +152,9 @@ export function useRooms(): UseRoomsResult {
     const updateData: Record<string, unknown> = {};
 
     if (payload.number !== undefined) updateData.number = payload.number;
-    if (payload.type !== undefined) updateData.type = payload.type;
-    if (payload.base_price !== undefined) updateData.base_price = payload.base_price;
     if (payload.notes !== undefined) updateData.notes = payload.notes;
-    // Status is handled via setRoomStatus RPC
 
-    if (Object.keys(updateData).length === 0 && payload.status === undefined) {
-      return; // Nothing to update
-    }
-
-    // If there are non-status fields to update, do direct update (admin only)
+    // If there are fields to update, do direct update (admin only)
     if (Object.keys(updateData).length > 0) {
       const { error: updateError } = await supabase
         .from("rooms")
@@ -145,6 +176,45 @@ export function useRooms(): UseRoomsResult {
 
       if (rpcError) {
         throw new Error(`Error al cambiar estado: ${rpcError.message}`);
+      }
+    }
+
+    // Handle rates sync if provided
+    if (payload.rates) {
+      // Fetch existing rates
+      const { data: existingRates } = await supabase
+        .from("room_rates")
+        .select("id, occupancy, is_active")
+        .eq("room_id", id);
+
+      const existingMap = new Map(existingRates?.map((r) => [r.occupancy, r]) ?? []);
+
+      for (const rate of payload.rates) {
+        const existing = existingMap.get(rate.occupancy);
+
+        if (rate.enabled && rate.price > 0) {
+          if (existing) {
+            // Update existing rate
+            await supabase
+              .from("room_rates")
+              .update({ price: rate.price, is_active: true })
+              .eq("id", existing.id);
+          } else {
+            // Create new rate
+            await supabase.from("room_rates").insert({
+              room_id: id,
+              occupancy: rate.occupancy,
+              price: rate.price,
+              is_active: true,
+            });
+          }
+        } else if (existing) {
+          // Deactivate existing rate
+          await supabase
+            .from("room_rates")
+            .update({ is_active: false })
+            .eq("id", existing.id);
+        }
       }
     }
 

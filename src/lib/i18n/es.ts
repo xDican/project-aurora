@@ -63,11 +63,15 @@ export const es = {
       statusPlaceholder: "Seleccionar estado",
       notesLabel: "Notas",
       notesPlaceholder: "Notas opcionales sobre esta habitación",
+      ratesSection: "Configuraciones y precios",
+      ratesHint: "Al menos una configuración debe tener precio",
     },
     validation: {
       numberRequired: "El número de habitación es obligatorio",
       typeRequired: "El tipo de habitación es obligatorio",
       pricePositive: "El precio base debe ser 0 o mayor",
+      atLeastOneRate: "Debe configurar al menos una ocupación",
+      ratePriceRequired: "Cada ocupación habilitada debe tener un precio mayor a 0",
     },
     archive: {
       button: "Archivar",
