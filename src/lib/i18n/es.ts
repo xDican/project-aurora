@@ -84,6 +84,9 @@ export const es = {
     guestCreated: "Huésped creado exitosamente",
     guestUpdated: "Huésped actualizado exitosamente",
     searchPlaceholder: "Buscar por nombre o documento",
+    editWindowExpired: "Ya pasó la ventana de edición. Pide a un admin que lo edite.",
+    editDisabledTooltip: "Solo admin puede editar huéspedes antiguos",
+    notAllowed: "No tienes permisos para esta acción.",
     columns: {
       name: "Nombre",
       document: "Documento",
@@ -99,6 +102,8 @@ export const es = {
       phonePlaceholder: "Número de teléfono (opcional)",
       emailLabel: "Correo electrónico",
       emailPlaceholder: "correo@ejemplo.com (opcional)",
+      notesLabel: "Notas",
+      notesPlaceholder: "Notas adicionales (opcional)",
     },
     validation: {
       nameRequired: "El nombre es obligatorio",
@@ -113,6 +118,7 @@ export const es = {
       success: "Huésped archivado correctamente",
       error: "No se pudo archivar el huésped. Intenta de nuevo.",
       hasActiveReservations: "No se puede archivar el huésped porque tiene reservas futuras activas.",
+      notAllowed: "No tienes permisos para archivar huéspedes.",
     },
   },
 

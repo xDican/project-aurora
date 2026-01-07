@@ -18,6 +18,7 @@ export interface GuestFormData {
   document: string | null;
   phone: string | null;
   email: string | null;
+  notes: string | null;
 }
 
 const { guestsPage, common } = es;
@@ -30,6 +31,7 @@ export function GuestForm({ guest, onSubmit, onCancel, isLoading, error }: Guest
     document: "",
     phone: "",
     email: "",
+    notes: "",
   });
   const [validationError, setValidationError] = useState<string | null>(null);
 
@@ -40,6 +42,7 @@ export function GuestForm({ guest, onSubmit, onCancel, isLoading, error }: Guest
         document: guest.document || "",
         phone: guest.phone || "",
         email: guest.email || "",
+        notes: guest.notes || "",
       });
     }
   }, [guest]);
@@ -64,6 +67,7 @@ export function GuestForm({ guest, onSubmit, onCancel, isLoading, error }: Guest
       document: formData.document?.trim() || null,
       phone: formData.phone?.trim() || null,
       email: emailValue || null,
+      notes: formData.notes?.trim() || null,
     });
   };
 
@@ -115,6 +119,16 @@ export function GuestForm({ guest, onSubmit, onCancel, isLoading, error }: Guest
           value={formData.email || ""}
           onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
           placeholder={guestsPage.form.emailPlaceholder}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="notes">{guestsPage.form.notesLabel}</Label>
+        <Input
+          id="notes"
+          value={formData.notes || ""}
+          onChange={(e) => setFormData((prev) => ({ ...prev, notes: e.target.value }))}
+          placeholder={guestsPage.form.notesPlaceholder}
         />
       </div>
 
