@@ -102,8 +102,6 @@ export const es = {
       phonePlaceholder: "Número de teléfono (opcional)",
       emailLabel: "Correo electrónico",
       emailPlaceholder: "correo@ejemplo.com (opcional)",
-      notesLabel: "Notas",
-      notesPlaceholder: "Notas adicionales (opcional)",
     },
     validation: {
       nameRequired: "El nombre es obligatorio",
