@@ -59,6 +59,7 @@ export type Database = {
           id: string
           notes: string | null
           room_id: string
+          room_rate_id: string | null
           status: string
         }
         Insert: {
@@ -72,6 +73,7 @@ export type Database = {
           id?: string
           notes?: string | null
           room_id: string
+          room_rate_id?: string | null
           status?: string
         }
         Update: {
@@ -85,6 +87,7 @@ export type Database = {
           id?: string
           notes?: string | null
           room_id?: string
+          room_rate_id?: string | null
           status?: string
         }
         Relationships: [
@@ -97,6 +100,48 @@ export type Database = {
           },
           {
             foreignKeyName: "reservations_room_fk"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reservations_room_rate_id_fkey"
+            columns: ["room_rate_id"]
+            isOneToOne: false
+            referencedRelation: "room_rates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      room_rates: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          occupancy: Database["public"]["Enums"]["room_occupancy"]
+          price: number
+          room_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          occupancy: Database["public"]["Enums"]["room_occupancy"]
+          price: number
+          room_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          occupancy?: Database["public"]["Enums"]["room_occupancy"]
+          price?: number
+          room_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_rates_room_id_fkey"
             columns: ["room_id"]
             isOneToOne: false
             referencedRelation: "rooms"
@@ -203,6 +248,7 @@ export type Database = {
           }
     }
     Enums: {
+      room_occupancy: "sencilla" | "doble" | "triple"
       user_role: "admin" | "receptionist"
     }
     CompositeTypes: {
@@ -331,6 +377,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      room_occupancy: ["sencilla", "doble", "triple"],
       user_role: ["admin", "receptionist"],
     },
   },

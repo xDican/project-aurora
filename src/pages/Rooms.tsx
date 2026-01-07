@@ -1,5 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import {
   Table,
   TableBody,
@@ -25,15 +28,23 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { RoomForm, type RoomFormData } from "@/components/rooms/RoomForm";
 import { toast } from "sonner";
 import { useRooms, type Room, type RoomStatus } from "@/hooks/useRooms";
-import { Pencil, Plus, Loader2, Archive } from "lucide-react";
+import { useRoomRates, type RoomRate, type OccupancyType } from "@/hooks/useRoomRates";
+import { Pencil, Plus, Loader2, Archive, DollarSign } from "lucide-react";
 import { es } from "@/lib/i18n/es";
 import { useAuth } from "@/contexts/AuthContext";
 
-const { roomsPage, statusLabels, common } = es;
+const { roomsPage, common, roomRates: ratesT } = es;
 
 const statusColors: Record<RoomStatus, string> = {
   available: "bg-green-500/10 text-green-700 border-green-500/20",
@@ -42,14 +53,27 @@ const statusColors: Record<RoomStatus, string> = {
   maintenance: "bg-red-500/10 text-red-700 border-red-500/20",
 };
 
+const OCCUPANCY_OPTIONS: OccupancyType[] = ["sencilla", "doble", "triple"];
+
 export default function Rooms() {
   const { role } = useAuth();
   const isAdmin = role === "admin";
   const { rooms, loading, error, createRoom, updateRoom, archiveRoom } = useRooms();
+  const { fetchRatesForRoom, createRate, updateRatePrice, toggleRateActive } = useRoomRates();
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+
+  // Rates modal state
+  const [isRatesModalOpen, setIsRatesModalOpen] = useState(false);
+  const [selectedRoomForRates, setSelectedRoomForRates] = useState<Room | null>(null);
+  const [roomRates, setRoomRates] = useState<RoomRate[]>([]);
+  const [loadingRates, setLoadingRates] = useState(false);
+  const [editedPrices, setEditedPrices] = useState<Record<string, string>>({});
+  const [newOccupancy, setNewOccupancy] = useState<OccupancyType | "">("");
+  const [newPrice, setNewPrice] = useState("");
 
   const openCreateModal = () => {
     setEditingRoom(null);
@@ -67,6 +91,26 @@ export default function Rooms() {
     setIsModalOpen(false);
     setEditingRoom(null);
     setFormError(null);
+  };
+
+  const openRatesModal = async (room: Room) => {
+    setSelectedRoomForRates(room);
+    setIsRatesModalOpen(true);
+    setLoadingRates(true);
+    setEditedPrices({});
+    setNewOccupancy("");
+    setNewPrice("");
+
+    const rates = await fetchRatesForRoom(room.id, false);
+    setRoomRates(rates);
+    setLoadingRates(false);
+  };
+
+  const closeRatesModal = () => {
+    setIsRatesModalOpen(false);
+    setSelectedRoomForRates(null);
+    setRoomRates([]);
+    setEditedPrices({});
   };
 
   const handleSubmit = async (data: RoomFormData) => {
@@ -103,10 +147,83 @@ export default function Rooms() {
     }
   };
 
+  const handlePriceChange = (rateId: string, value: string) => {
+    setEditedPrices((prev) => ({ ...prev, [rateId]: value }));
+  };
+
+  const handleSavePrice = async (rate: RoomRate) => {
+    const newPriceValue = editedPrices[rate.id];
+    if (newPriceValue === undefined) return;
+
+    const price = parseFloat(newPriceValue);
+    if (isNaN(price) || price < 0) {
+      toast.error("Precio inválido");
+      return;
+    }
+
+    try {
+      await updateRatePrice(rate.id, price);
+      toast.success(ratesT.rateUpdated);
+      // Refresh rates
+      if (selectedRoomForRates) {
+        const rates = await fetchRatesForRoom(selectedRoomForRates.id, false);
+        setRoomRates(rates);
+      }
+      setEditedPrices((prev) => {
+        const copy = { ...prev };
+        delete copy[rate.id];
+        return copy;
+      });
+    } catch {
+      toast.error("Error al guardar precio");
+    }
+  };
+
+  const handleToggleActive = async (rate: RoomRate) => {
+    try {
+      await toggleRateActive(rate.id, !rate.is_active);
+      toast.success(ratesT.rateToggled);
+      // Refresh rates
+      if (selectedRoomForRates) {
+        const rates = await fetchRatesForRoom(selectedRoomForRates.id, false);
+        setRoomRates(rates);
+      }
+    } catch {
+      toast.error("Error al cambiar estado");
+    }
+  };
+
+  const handleCreateRate = async () => {
+    if (!newOccupancy || !newPrice || !selectedRoomForRates) return;
+
+    const price = parseFloat(newPrice);
+    if (isNaN(price) || price < 0) {
+      toast.error("Precio inválido");
+      return;
+    }
+
+    try {
+      await createRate(selectedRoomForRates.id, newOccupancy, price);
+      toast.success(ratesT.rateCreated);
+      // Refresh rates
+      const rates = await fetchRatesForRoom(selectedRoomForRates.id, false);
+      setRoomRates(rates);
+      setNewOccupancy("");
+      setNewPrice("");
+    } catch {
+      toast.error("Error al crear configuración");
+    }
+  };
+
   const truncateText = (text: string | null | undefined, maxLength: number = 50) => {
     if (!text) return "—";
     return text.length > maxLength ? text.slice(0, maxLength) + "..." : text;
   };
+
+  // Get occupancies that are not yet configured for this room
+  const availableOccupancies = OCCUPANCY_OPTIONS.filter(
+    (occ) => !roomRates.some((r) => r.occupancy === occ)
+  );
 
   // Show error toast if there's a fetch error
   if (error) {
@@ -150,7 +267,7 @@ export default function Rooms() {
                   <TableHead>{roomsPage.columns.basePrice}</TableHead>
                   <TableHead>{roomsPage.columns.status}</TableHead>
                   <TableHead>{roomsPage.columns.notes}</TableHead>
-                  <TableHead className="w-[80px]">{common.actions}</TableHead>
+                  <TableHead className="w-[120px]">{common.actions}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -166,7 +283,7 @@ export default function Rooms() {
                         variant="outline"
                         className={statusColors[room.status]}
                       >
-                        {statusLabels[room.status]}
+                        {es.statusLabels[room.status]}
                       </Badge>
                     </TableCell>
                     <TableCell className="max-w-[200px] text-muted-foreground">
@@ -175,13 +292,23 @@ export default function Rooms() {
                     <TableCell>
                       <div className="flex items-center gap-1">
                         {isAdmin && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => openEditModal(room)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => openRatesModal(room)}
+                              title={ratesT.configButton}
+                            >
+                              <DollarSign className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => openEditModal(room)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          </>
                         )}
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
@@ -219,6 +346,7 @@ export default function Rooms() {
           </div>
         )}
 
+        {/* Room Edit/Create Modal */}
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
           <DialogContent>
             <DialogHeader>
@@ -233,6 +361,124 @@ export default function Rooms() {
               isLoading={isSaving}
               error={formError}
             />
+          </DialogContent>
+        </Dialog>
+
+        {/* Room Rates Modal (Admin only) */}
+        <Dialog open={isRatesModalOpen} onOpenChange={setIsRatesModalOpen}>
+          <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+              <DialogTitle>
+                {ratesT.title} - {ratesT.room} {selectedRoomForRates?.number}
+              </DialogTitle>
+            </DialogHeader>
+
+            {loadingRates ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {/* Existing rates table */}
+                {roomRates.length > 0 ? (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>{ratesT.occupancy}</TableHead>
+                        <TableHead>{ratesT.price}</TableHead>
+                        <TableHead>{ratesT.active}</TableHead>
+                        <TableHead>{common.actions}</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {roomRates.map((rate) => (
+                        <TableRow key={rate.id}>
+                          <TableCell className="font-medium">
+                            {es.occupancyLabels[rate.occupancy]}
+                          </TableCell>
+                          <TableCell>
+                            <Input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={
+                                editedPrices[rate.id] !== undefined
+                                  ? editedPrices[rate.id]
+                                  : rate.price.toString()
+                              }
+                              onChange={(e) => handlePriceChange(rate.id, e.target.value)}
+                              className="w-24"
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Switch
+                              checked={rate.is_active}
+                              onCheckedChange={() => handleToggleActive(rate)}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            {editedPrices[rate.id] !== undefined && (
+                              <Button
+                                size="sm"
+                                onClick={() => handleSavePrice(rate)}
+                              >
+                                {common.save}
+                              </Button>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    {ratesT.noRates}
+                  </p>
+                )}
+
+                {/* Add new rate */}
+                {availableOccupancies.length > 0 && (
+                  <div className="border-t pt-4">
+                    <Label className="text-sm font-medium mb-2 block">
+                      {ratesT.addRate}
+                    </Label>
+                    <div className="flex gap-2">
+                      <Select
+                        value={newOccupancy}
+                        onValueChange={(v) => setNewOccupancy(v as OccupancyType)}
+                      >
+                        <SelectTrigger className="w-[140px]">
+                          <SelectValue placeholder={ratesT.selectOccupancy} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableOccupancies.map((occ) => (
+                            <SelectItem key={occ} value={occ}>
+                              {es.occupancyLabels[occ]}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        placeholder="Precio"
+                        value={newPrice}
+                        onChange={(e) => setNewPrice(e.target.value)}
+                        className="w-24"
+                      />
+                      <Button
+                        onClick={handleCreateRate}
+                        disabled={!newOccupancy || !newPrice}
+                      >
+                        <Plus className="h-4 w-4 mr-1" />
+                        {ratesT.add}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </DialogContent>
         </Dialog>
       </div>

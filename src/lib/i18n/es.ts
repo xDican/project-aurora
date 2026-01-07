@@ -30,6 +30,13 @@ export const es = {
     deluxe: "Deluxe",
   } as Record<string, string>,
 
+  // Occupancy labels (DB values → Spanish labels)
+  occupancyLabels: {
+    sencilla: "Sencilla",
+    doble: "Doble",
+    triple: "Triple",
+  } as Record<string, string>,
+
   roomsPage: {
     title: "Habitaciones",
     addRoom: "Agregar habitación",
@@ -72,6 +79,24 @@ export const es = {
       error: "No se pudo archivar la habitación. Intenta de nuevo.",
       hasActiveReservations: "No se puede archivar la habitación porque tiene reservas futuras activas.",
     },
+  },
+
+  // Room rates translations
+  roomRates: {
+    title: "Configuraciones y precios",
+    room: "Habitación",
+    occupancy: "Ocupación",
+    price: "Precio",
+    active: "Activo",
+    addRate: "Agregar configuración",
+    add: "Agregar",
+    noRates: "No hay configuraciones para esta habitación.",
+    noRatesWarning: "Esta habitación no tiene configuraciones activas. Pide a un admin configurarla.",
+    selectOccupancy: "Seleccionar ocupación",
+    rateCreated: "Configuración creada",
+    rateUpdated: "Precio actualizado",
+    rateToggled: "Estado actualizado",
+    configButton: "Configurar precios",
   },
 
   guestsPage: {
@@ -134,8 +159,10 @@ export const es = {
     newReservation: "Nueva reserva",
     noReservations: "No hay reservas registradas todavía.",
     reservationCreated: "Reserva creada exitosamente",
+    noRatesWarning: "Esta habitación no tiene configuraciones activas. Pide a un admin configurarla.",
     columns: {
       room: "Habitación",
+      occupancy: "Tipo",
       guest: "Huésped",
       checkIn: "Ingreso",
       checkOut: "Salida",
@@ -148,6 +175,8 @@ export const es = {
       guestPlaceholder: "Seleccionar huésped",
       roomLabel: "Habitación",
       roomPlaceholder: "Seleccionar habitación",
+      occupancyLabel: "Tipo / Ocupación",
+      occupancyPlaceholder: "Seleccionar ocupación",
       checkInLabel: "Fecha de ingreso",
       checkOutLabel: "Fecha de salida",
       basePriceLabel: "Precio base",
@@ -156,6 +185,7 @@ export const es = {
     validation: {
       guestRequired: "Debe seleccionar un huésped",
       roomRequired: "Debe seleccionar una habitación",
+      occupancyRequired: "Debe seleccionar una ocupación",
       checkInRequired: "La fecha de ingreso es obligatoria",
       checkOutRequired: "La fecha de salida es obligatoria",
       checkOutAfterCheckIn: "La fecha de salida debe ser posterior a la de ingreso",

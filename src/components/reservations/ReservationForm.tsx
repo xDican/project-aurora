@@ -10,12 +10,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle, AlertTriangle } from "lucide-react";
+import { AlertCircle, AlertTriangle, Loader2 } from "lucide-react";
 import { es } from "@/lib/i18n/es";
 import { type Room } from "@/hooks/useRooms";
 import { type Guest } from "@/hooks/useGuests";
 import { type NewReservationInput } from "@/hooks/useReservations";
 import { supabase } from "@/integrations/supabase/client";
+import { type RoomRate, type OccupancyType } from "@/hooks/useRoomRates";
 
 interface ReservationFormProps {
   rooms: Room[];
@@ -43,13 +44,51 @@ export function ReservationForm({
   const [checkInDate, setCheckInDate] = useState(prefillCheckInDate || "");
   const [checkOutDate, setCheckOutDate] = useState(prefillCheckOutDate || "");
 
+  // Room rates state
+  const [availableRates, setAvailableRates] = useState<RoomRate[]>([]);
+  const [selectedRateId, setSelectedRateId] = useState("");
+  const [loadingRates, setLoadingRates] = useState(false);
+
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [conflictWarning, setConflictWarning] = useState<string | null>(null);
 
-  // Get selected room for displaying price info
-  const selectedRoom = rooms.find((r) => r.id === roomId);
+  // Get selected rate for displaying price info
+  const selectedRate = availableRates.find((r) => r.id === selectedRateId);
+
+  // Load rates when room changes
+  useEffect(() => {
+    if (!roomId) {
+      setAvailableRates([]);
+      setSelectedRateId("");
+      return;
+    }
+
+    setLoadingRates(true);
+    supabase
+      .from("room_rates")
+      .select("id, room_id, occupancy, price, is_active, created_at")
+      .eq("room_id", roomId)
+      .eq("is_active", true)
+      .order("occupancy", { ascending: true })
+      .then(({ data, error }) => {
+        if (!error && data) {
+          const rates = data as RoomRate[];
+          setAvailableRates(rates);
+          // Auto-select if only one rate
+          if (rates.length === 1) {
+            setSelectedRateId(rates[0].id);
+          } else {
+            setSelectedRateId("");
+          }
+        } else {
+          setAvailableRates([]);
+          setSelectedRateId("");
+        }
+        setLoadingRates(false);
+      });
+  }, [roomId]);
 
   // Check availability when room/dates change
   const checkAvailability = useCallback(async () => {
@@ -87,6 +126,9 @@ export function ReservationForm({
     if (!roomId) {
       newErrors.roomId = t.validation.roomRequired;
     }
+    if (!selectedRateId) {
+      newErrors.rateId = t.validation.occupancyRequired;
+    }
     if (!checkInDate) {
       newErrors.checkInDate = t.validation.checkInRequired;
     }
@@ -115,6 +157,8 @@ export function ReservationForm({
         roomId,
         checkInDate,
         checkOutDate,
+        roomRateId: selectedRateId,
+        basePrice: selectedRate?.price ?? 0,
       });
     } catch (err) {
       const message =
@@ -124,6 +168,9 @@ export function ReservationForm({
       setIsSubmitting(false);
     }
   };
+
+  const noActiveRates = roomId && !loadingRates && availableRates.length === 0;
+  const canSubmit = !isSubmitting && !conflictWarning && !noActiveRates && selectedRateId;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -170,8 +217,7 @@ export function ReservationForm({
           <SelectContent>
             {rooms.map((room) => (
               <SelectItem key={room.id} value={room.id}>
-                {room.number} - {es.roomTypeLabels[room.type] || room.type} ($
-                {room.base_price})
+                {room.number}
               </SelectItem>
             ))}
           </SelectContent>
@@ -180,6 +226,43 @@ export function ReservationForm({
           <p className="text-sm text-destructive">{errors.roomId}</p>
         )}
       </div>
+
+      {/* Occupancy / Rate Select */}
+      {roomId && (
+        <div className="space-y-2">
+          <Label htmlFor="rate">{t.form.occupancyLabel} *</Label>
+          {loadingRates ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              {es.common.loading}
+            </div>
+          ) : noActiveRates ? (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{t.noRatesWarning}</AlertDescription>
+            </Alert>
+          ) : (
+            <Select value={selectedRateId} onValueChange={setSelectedRateId}>
+              <SelectTrigger
+                id="rate"
+                className={errors.rateId ? "border-destructive" : ""}
+              >
+                <SelectValue placeholder={t.form.occupancyPlaceholder} />
+              </SelectTrigger>
+              <SelectContent>
+                {availableRates.map((rate) => (
+                  <SelectItem key={rate.id} value={rate.id}>
+                    {es.occupancyLabels[rate.occupancy]} - ${rate.price.toFixed(2)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          {errors.rateId && (
+            <p className="text-sm text-destructive">{errors.rateId}</p>
+          )}
+        </div>
+      )}
 
       {/* Check-in Date */}
       <div className="space-y-2">
@@ -219,16 +302,16 @@ export function ReservationForm({
         </Alert>
       )}
 
-      {/* Price Info (read-only, shows when room is selected) */}
-      {selectedRoom && !conflictWarning && (
+      {/* Price Info (shows when rate is selected) */}
+      {selectedRate && !conflictWarning && (
         <div className="rounded-md bg-muted p-3 text-sm">
           <p>
             <strong>{t.form.basePriceLabel}:</strong> $
-            {selectedRoom.base_price.toFixed(2)}
+            {selectedRate.price.toFixed(2)}
           </p>
           <p>
             <strong>{t.form.finalPriceLabel}:</strong> $
-            {selectedRoom.base_price.toFixed(2)}
+            {selectedRate.price.toFixed(2)}
           </p>
         </div>
       )}
@@ -243,7 +326,7 @@ export function ReservationForm({
         >
           {es.common.cancel}
         </Button>
-        <Button type="submit" disabled={isSubmitting || !!conflictWarning}>
+        <Button type="submit" disabled={!canSubmit}>
           {isSubmitting ? es.common.saving : es.common.save}
         </Button>
       </div>

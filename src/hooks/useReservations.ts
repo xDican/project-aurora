@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { type OccupancyType } from "@/hooks/useRoomRates";
 
 export const RESERVATION_STATUSES = [
   "booked",
@@ -19,6 +20,7 @@ export interface ReservationListItem {
   checkOutDate: string;
   status: ReservationStatus;
   finalPrice: number;
+  occupancy?: OccupancyType;
 }
 
 export interface NewReservationInput {
@@ -26,6 +28,8 @@ export interface NewReservationInput {
   guestId: string;
   checkInDate: string;
   checkOutDate: string;
+  roomRateId: string;
+  basePrice: number;
 }
 
 export interface UseReservationsResult {
@@ -45,6 +49,7 @@ interface RawReservation {
   id: string;
   room_id: string;
   guest_id: string;
+  room_rate_id: string | null;
   check_in_date: string;
   check_out_date: string;
   status: string;
@@ -61,10 +66,16 @@ interface RawGuest {
   name: string;
 }
 
+interface RawRoomRate {
+  id: string;
+  occupancy: OccupancyType;
+}
+
 function buildReservationListItem(
   reservation: RawReservation,
   roomMap: Map<string, RawRoom>,
-  guestMap: Map<string, RawGuest>
+  guestMap: Map<string, RawGuest>,
+  rateMap: Map<string, RawRoomRate>
 ): ReservationListItem {
   const status = isValidReservationStatus(reservation.status)
     ? reservation.status
@@ -72,6 +83,7 @@ function buildReservationListItem(
 
   const room = roomMap.get(reservation.room_id);
   const guest = guestMap.get(reservation.guest_id);
+  const rate = reservation.room_rate_id ? rateMap.get(reservation.room_rate_id) : null;
 
   return {
     id: reservation.id,
@@ -81,6 +93,7 @@ function buildReservationListItem(
     checkOutDate: reservation.check_out_date,
     status,
     finalPrice: reservation.final_price ?? 0,
+    occupancy: rate?.occupancy,
   };
 }
 
@@ -94,10 +107,10 @@ export function useReservations(): UseReservationsResult {
     setError(undefined);
 
     try {
-      // 1. Cargar reservaciones sin embeds
+      // 1. Cargar reservaciones
       const { data: reservationsData, error: reservationsError } = await supabase
         .from("reservations")
-        .select("id, room_id, guest_id, check_in_date, check_out_date, status, final_price")
+        .select("id, room_id, guest_id, room_rate_id, check_in_date, check_out_date, status, final_price")
         .order("check_in_date", { ascending: false });
 
       if (reservationsError) {
@@ -127,17 +140,30 @@ export function useReservations(): UseReservationsResult {
         return;
       }
 
-      // 4. Construir mapas para lookup rápido
+      // 4. Cargar room_rates para obtener ocupación
+      const { data: ratesData, error: ratesError } = await supabase
+        .from("room_rates")
+        .select("id, occupancy");
+
+      if (ratesError) {
+        setError(`Error al cargar configuraciones: ${ratesError.message}`);
+        return;
+      }
+
+      // 5. Construir mapas para lookup rápido
       const roomMap = new Map<string, RawRoom>(
         (roomsData ?? []).map((r) => [r.id, r as RawRoom])
       );
       const guestMap = new Map<string, RawGuest>(
         (guestsData ?? []).map((g) => [g.id, g as RawGuest])
       );
+      const rateMap = new Map<string, RawRoomRate>(
+        (ratesData ?? []).map((r) => [r.id, r as RawRoomRate])
+      );
 
-      // 5. Enriquecer reservations con room y guest
+      // 6. Enriquecer reservations con room, guest y occupancy
       const parsedReservations = (reservationsData ?? []).map((r) =>
-        buildReservationListItem(r as RawReservation, roomMap, guestMap)
+        buildReservationListItem(r as RawReservation, roomMap, guestMap, rateMap)
       );
       setReservations(parsedReservations);
     } catch (err) {
@@ -157,33 +183,17 @@ export function useReservations(): UseReservationsResult {
         );
       }
 
-      // Fetch room to get base_price
-      const { data: roomData, error: roomError } = await supabase
-        .from("rooms")
-        .select("base_price")
-        .eq("id", input.roomId)
-        .single();
-
-      if (roomError) {
-        throw new Error(`Error al obtener habitación: ${roomError.message}`);
-      }
-
-      if (!roomData) {
-        throw new Error("Habitación no encontrada");
-      }
-
-      const basePrice = roomData.base_price;
-
-      // Insert reservation
+      // Insert reservation with room_rate_id
       const insertData = {
         room_id: input.roomId,
         guest_id: input.guestId,
         check_in_date: input.checkInDate,
         check_out_date: input.checkOutDate,
-        status: "booked" as ReservationStatus,
-        base_price: basePrice,
+        room_rate_id: input.roomRateId,
+        base_price: input.basePrice,
         discount: 0,
-        final_price: basePrice,
+        final_price: input.basePrice,
+        status: "booked" as ReservationStatus,
       };
 
       const { error: insertError } = await supabase
