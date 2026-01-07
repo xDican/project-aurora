@@ -16,7 +16,9 @@ import { type Room } from "@/hooks/useRooms";
 import { type Guest } from "@/hooks/useGuests";
 import { type NewReservationInput } from "@/hooks/useReservations";
 import { supabase } from "@/integrations/supabase/client";
-import { type RoomRate, type OccupancyType } from "@/hooks/useRoomRates";
+import { type RoomRate } from "@/hooks/useRoomRates";
+import { GuestCombobox } from "./GuestCombobox";
+import { type GuestFormData } from "@/components/guests/GuestForm";
 
 interface ReservationFormProps {
   rooms: Room[];
@@ -44,6 +46,11 @@ export function ReservationForm({
   const [checkInDate, setCheckInDate] = useState(prefillCheckInDate || "");
   const [checkOutDate, setCheckOutDate] = useState(prefillCheckOutDate || "");
 
+  // Guest search state
+  const [guestSearchQuery, setGuestSearchQuery] = useState("");
+  const [filteredGuests, setFilteredGuests] = useState<Guest[]>(guests);
+  const [isSearchingGuests, setIsSearchingGuests] = useState(false);
+
   // Room rates state
   const [availableRates, setAvailableRates] = useState<RoomRate[]>([]);
   const [selectedRateId, setSelectedRateId] = useState("");
@@ -56,6 +63,51 @@ export function ReservationForm({
 
   // Get selected rate for displaying price info
   const selectedRate = availableRates.find((r) => r.id === selectedRateId);
+
+  // Search guests with debounce
+  useEffect(() => {
+    if (!guestSearchQuery.trim()) {
+      setFilteredGuests(guests);
+      setIsSearchingGuests(false);
+      return;
+    }
+
+    setIsSearchingGuests(true);
+    const timeout = setTimeout(async () => {
+      const query = guestSearchQuery.trim();
+      const { data } = await supabase
+        .from("guests")
+        .select("*")
+        .eq("is_active", true)
+        .or(`name.ilike.%${query}%,document.ilike.%${query}%,phone.ilike.%${query}%`)
+        .limit(20);
+
+      setFilteredGuests((data as Guest[]) || []);
+      setIsSearchingGuests(false);
+    }, 300);
+
+    return () => clearTimeout(timeout);
+  }, [guestSearchQuery, guests]);
+
+  // Handler for inline guest creation
+  const handleCreateGuestInline = async (data: GuestFormData): Promise<Guest> => {
+    const { data: newGuest, error } = await supabase
+      .from("guests")
+      .insert({
+        name: data.name,
+        document: data.document,
+        phone: data.phone,
+        email: data.email,
+      })
+      .select()
+      .single();
+
+    if (error) throw new Error(error.message);
+
+    // Add to filtered guests so it shows immediately
+    setFilteredGuests((prev) => [newGuest as Guest, ...prev]);
+    return newGuest as Guest;
+  };
 
   // Load rates when room changes
   useEffect(() => {
@@ -181,27 +233,19 @@ export function ReservationForm({
         </Alert>
       )}
 
-      {/* Guest Select */}
+      {/* Guest Search Combobox */}
       <div className="space-y-2">
-        <Label htmlFor="guest">{t.form.guestLabel} *</Label>
-        <Select value={guestId} onValueChange={setGuestId}>
-          <SelectTrigger
-            id="guest"
-            className={errors.guestId ? "border-destructive" : ""}
-          >
-            <SelectValue placeholder={t.form.guestPlaceholder} />
-          </SelectTrigger>
-          <SelectContent>
-            {guests.map((guest) => (
-              <SelectItem key={guest.id} value={guest.id}>
-                {guest.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {errors.guestId && (
-          <p className="text-sm text-destructive">{errors.guestId}</p>
-        )}
+        <Label>{t.form.guestLabel} *</Label>
+        <GuestCombobox
+          guests={filteredGuests}
+          selectedGuestId={guestId}
+          onSelect={setGuestId}
+          onCreateGuest={handleCreateGuestInline}
+          searchQuery={guestSearchQuery}
+          onSearchChange={setGuestSearchQuery}
+          isSearching={isSearchingGuests}
+          error={errors.guestId}
+        />
       </div>
 
       {/* Room Select */}

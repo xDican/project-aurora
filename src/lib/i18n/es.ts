@@ -103,6 +103,15 @@ export const es = {
     configButton: "Configurar precios",
   },
 
+  guestCombobox: {
+    placeholder: "Buscar huésped...",
+    searchPlaceholder: "Buscar por nombre, documento o teléfono...",
+    noResults: "No se encontraron huéspedes",
+    createNew: "Crear nuevo huésped",
+    creatingNew: "Nuevo huésped",
+    saveGuest: "Guardar huésped",
+  },
+
   guestsPage: {
     title: "Huéspedes",
     addGuest: "Agregar huésped",
