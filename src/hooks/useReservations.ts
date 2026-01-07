@@ -191,7 +191,15 @@ export function useReservations(): UseReservationsResult {
         .insert(insertData);
 
       if (insertError) {
-        throw new Error(`Error al crear reserva: ${insertError.message}`);
+        const msg = insertError.message || "";
+        // Detectar constraint de solapamiento
+        if (
+          msg.includes("reservations_no_overlap_per_room") ||
+          msg.includes("no_overlap_per_room")
+        ) {
+          throw new Error("ROOM_OVERLAP");
+        }
+        throw new Error(`Error al crear reserva: ${msg}`);
       }
 
       await refresh();

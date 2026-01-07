@@ -169,6 +169,13 @@ export const es = {
       success: "Reserva cancelada correctamente",
       error: "No se pudo cancelar la reserva. Intenta de nuevo.",
     },
+    errors: {
+      roomOverlap: "Esa habitación ya está reservada para esas fechas. Elegí otra habitación o ajustá el rango.",
+      createError: "No se pudo crear la reserva",
+    },
+    warnings: {
+      conflictDetected: "Conflicto: esa habitación ya tiene una reserva en ese rango.",
+    },
   },
 
   todayPage: {

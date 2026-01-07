@@ -77,9 +77,19 @@ export default function Reservas() {
   }, []);
 
   const handleCreate = async (input: NewReservationInput) => {
-    await createReservation(input);
-    setIsDialogOpen(false);
-    toast.success(t.reservationCreated);
+    try {
+      await createReservation(input);
+      setIsDialogOpen(false);
+      toast.success(t.reservationCreated);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : es.common.unexpectedError;
+      if (message === "ROOM_OVERLAP") {
+        toast.error(t.errors.roomOverlap);
+      } else {
+        toast.error(message);
+      }
+      // NO cerrar el dialog - usuario debe corregir
+    }
   };
 
   const handleCancel = async (reservationId: string) => {
