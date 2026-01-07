@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -10,11 +10,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, AlertTriangle } from "lucide-react";
 import { es } from "@/lib/i18n/es";
 import { type Room } from "@/hooks/useRooms";
 import { type Guest } from "@/hooks/useGuests";
 import { type NewReservationInput } from "@/hooks/useReservations";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ReservationFormProps {
   rooms: Room[];
@@ -39,9 +40,37 @@ export function ReservationForm({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [conflictWarning, setConflictWarning] = useState<string | null>(null);
 
   // Get selected room for displaying price info
   const selectedRoom = rooms.find((r) => r.id === roomId);
+
+  // Check availability when room/dates change
+  const checkAvailability = useCallback(async () => {
+    if (!roomId || !checkInDate || !checkOutDate || checkOutDate <= checkInDate) {
+      setConflictWarning(null);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("reservations")
+      .select("id")
+      .eq("room_id", roomId)
+      .in("status", ["booked", "checked_in"])
+      .lt("check_in_date", checkOutDate)
+      .gt("check_out_date", checkInDate);
+
+    if (!error && data && data.length > 0) {
+      setConflictWarning(t.warnings.conflictDetected);
+    } else {
+      setConflictWarning(null);
+    }
+  }, [roomId, checkInDate, checkOutDate, t.warnings.conflictDetected]);
+
+  useEffect(() => {
+    const timeout = setTimeout(checkAvailability, 300);
+    return () => clearTimeout(timeout);
+  }, [checkAvailability]);
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -176,8 +205,16 @@ export function ReservationForm({
         )}
       </div>
 
+      {/* Conflict Warning */}
+      {conflictWarning && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>{conflictWarning}</AlertDescription>
+        </Alert>
+      )}
+
       {/* Price Info (read-only, shows when room is selected) */}
-      {selectedRoom && (
+      {selectedRoom && !conflictWarning && (
         <div className="rounded-md bg-muted p-3 text-sm">
           <p>
             <strong>{t.form.basePriceLabel}:</strong> $
@@ -200,7 +237,7 @@ export function ReservationForm({
         >
           {es.common.cancel}
         </Button>
-        <Button type="submit" disabled={isSubmitting}>
+        <Button type="submit" disabled={isSubmitting || !!conflictWarning}>
           {isSubmitting ? es.common.saving : es.common.save}
         </Button>
       </div>
