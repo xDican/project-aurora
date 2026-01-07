@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { differenceInDays } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -68,6 +69,16 @@ export function ReservationForm({
 
   // Get selected rate for displaying price info
   const selectedRate = availableRates.find((r) => r.id === selectedRateId);
+
+  // Calculate number of nights and total price
+  const { nights, totalPrice } = useMemo(() => {
+    if (!checkInDate || !checkOutDate || !selectedRate) {
+      return { nights: 0, totalPrice: 0 };
+    }
+    const numNights = differenceInDays(new Date(checkOutDate), new Date(checkInDate));
+    if (numNights <= 0) return { nights: 0, totalPrice: 0 };
+    return { nights: numNights, totalPrice: numNights * selectedRate.price };
+  }, [checkInDate, checkOutDate, selectedRate]);
 
   // Search guests with debounce - only when there's a query
   useEffect(() => {
@@ -203,6 +214,7 @@ export function ReservationForm({
         checkOutDate,
         roomRateId: selectedRateId,
         basePrice: selectedRate?.price ?? 0,
+        finalPrice: totalPrice,
       });
     } catch (err) {
       const message =
@@ -214,7 +226,7 @@ export function ReservationForm({
   };
 
   const noActiveRates = roomId && !loadingRates && availableRates.length === 0;
-  const canSubmit = !isSubmitting && !conflictWarning && !noActiveRates && selectedRateId;
+  const canSubmit = !isSubmitting && !conflictWarning && !noActiveRates && selectedRateId && nights > 0;
 
   return (
     <>
@@ -340,16 +352,19 @@ export function ReservationForm({
           </Alert>
         )}
 
-        {/* Price Info (shows when rate is selected) */}
-        {selectedRate && !conflictWarning && (
-          <div className="rounded-md bg-muted p-3 text-sm">
+        {/* Price Info (shows when rate is selected and dates are valid) */}
+        {selectedRate && nights > 0 && !conflictWarning && (
+          <div className="rounded-md bg-muted p-3 text-sm space-y-1">
             <p>
               <strong>{t.form.basePriceLabel}:</strong> $
-              {selectedRate.price.toFixed(2)}
+              {selectedRate.price.toFixed(2)} / noche
             </p>
-            <p>
+            <p className="text-muted-foreground">
+              {nights} {nights === 1 ? "noche" : "noches"}
+            </p>
+            <p className="text-lg font-semibold">
               <strong>{t.form.finalPriceLabel}:</strong> $
-              {selectedRate.price.toFixed(2)}
+              {totalPrice.toFixed(2)}
             </p>
           </div>
         )}

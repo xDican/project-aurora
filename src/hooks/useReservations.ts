@@ -30,6 +30,7 @@ export interface NewReservationInput {
   checkOutDate: string;
   roomRateId: string;
   basePrice: number;
+  finalPrice: number;
 }
 
 export interface UseReservationsResult {
@@ -192,7 +193,7 @@ export function useReservations(): UseReservationsResult {
         room_rate_id: input.roomRateId,
         base_price: input.basePrice,
         discount: 0,
-        final_price: input.basePrice,
+        final_price: input.finalPrice,
         status: "booked" as ReservationStatus,
       };
 
