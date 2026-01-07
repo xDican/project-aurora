@@ -22,6 +22,9 @@ interface ReservationFormProps {
   guests: Guest[];
   onSubmit: (input: NewReservationInput) => Promise<void>;
   onCancel: () => void;
+  prefillRoomId?: string;
+  prefillCheckInDate?: string;
+  prefillCheckOutDate?: string;
 }
 
 export function ReservationForm({
@@ -29,13 +32,16 @@ export function ReservationForm({
   guests,
   onSubmit,
   onCancel,
+  prefillRoomId,
+  prefillCheckInDate,
+  prefillCheckOutDate,
 }: ReservationFormProps) {
   const t = es.reservationsPage;
 
   const [guestId, setGuestId] = useState("");
-  const [roomId, setRoomId] = useState("");
-  const [checkInDate, setCheckInDate] = useState("");
-  const [checkOutDate, setCheckOutDate] = useState("");
+  const [roomId, setRoomId] = useState(prefillRoomId || "");
+  const [checkInDate, setCheckInDate] = useState(prefillCheckInDate || "");
+  const [checkOutDate, setCheckOutDate] = useState(prefillCheckOutDate || "");
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitError, setSubmitError] = useState<string | null>(null);

@@ -229,6 +229,41 @@ export const es = {
     markAsCleanError: "No se pudo actualizar el estado de la habitación",
   },
 
+  availabilityPage: {
+    title: "Disponibilidad de habitaciones",
+    checkInLabel: "Fecha de ingreso",
+    checkOutLabel: "Fecha de salida",
+    showOnlyAvailable: "Solo disponibles",
+    searchButton: "Buscar",
+    selectDatesToSearch: "Selecciona un rango de fechas para consultar disponibilidad",
+    noResults: "No hay habitaciones que mostrar",
+
+    columns: {
+      room: "Habitación",
+      type: "Tipo",
+      roomStatus: "Estado actual",
+      availability: "Disponibilidad",
+      conflictInfo: "Información",
+      actions: "Acciones",
+    },
+
+    available: "Disponible",
+    notAvailable: "No disponible",
+    reserveButton: "Reservar",
+    occupiedFrom: "Ocupada del",
+    to: "al",
+
+    shortcuts: {
+      today: "Hoy",
+      tomorrow: "Mañana",
+      nextWeek: "Próximos 7 días",
+    },
+
+    validation: {
+      datesRequired: "Debes seleccionar ambas fechas",
+    },
+  },
+
   debugPage: {
     title: "Debug BD – Pruebas de Hotel",
     runAllTests: "Ejecutar todas las pruebas",

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Calendar,
+  CalendarCheck,
   BedDouble,
   Users,
   BookOpen,
@@ -27,6 +28,7 @@ const navItems: Array<{
   roles?: UserRole[];
 }> = [
   { path: "/hoy", label: "Hoy", icon: Calendar },
+  { path: "/disponibilidad", label: "Disponibilidad", icon: CalendarCheck },
   { path: "/rooms", label: "Habitaciones", icon: BedDouble, roles: ["admin"] },
   { path: "/guests", label: "Huéspedes", icon: Users },
   { path: "/reservas", label: "Reservas", icon: BookOpen },
