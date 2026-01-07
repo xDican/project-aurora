@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { format, addDays } from "date-fns";
+import { format, addDays, subDays, parseISO } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,10 +37,53 @@ interface ConflictingReservation {
   status: string;
 }
 
+interface MergedRange {
+  start: Date;
+  end: Date;
+}
+
 interface RoomAvailability {
   room: Room;
   available: boolean;
-  conflict?: ConflictingReservation;
+  conflicts: ConflictingReservation[];
+  mergedRanges: MergedRange[];
+}
+
+/**
+ * Consolidates contiguous or overlapping reservations into unified ranges.
+ * Rule: merge if next.check_in_date <= current_end (overlap or contiguous)
+ */
+function mergeReservationRanges(reservations: ConflictingReservation[]): MergedRange[] {
+  if (reservations.length === 0) return [];
+
+  const sorted = [...reservations].sort(
+    (a, b) => new Date(a.check_in_date).getTime() - new Date(b.check_in_date).getTime()
+  );
+
+  const merged: MergedRange[] = [];
+
+  for (const r of sorted) {
+    const start = new Date(r.check_in_date);
+    const end = new Date(r.check_out_date);
+
+    if (merged.length === 0) {
+      merged.push({ start, end });
+      continue;
+    }
+
+    const last = merged[merged.length - 1];
+
+    // Merge if overlapping or contiguous (start <= last.end)
+    if (start <= last.end) {
+      if (end > last.end) {
+        last.end = end;
+      }
+    } else {
+      merged.push({ start, end });
+    }
+  }
+
+  return merged;
 }
 
 export default function Disponibilidad() {
@@ -96,30 +139,47 @@ export default function Disponibilidad() {
       const parsedRooms = (roomsData ?? []) as Room[];
       setRooms(parsedRooms);
 
-      // 2. Get blocking reservations
+      // 2. Get blocking reservations with extended window to capture contiguous chains
+      const selectedStart = parseISO(checkInDate);
+      const selectedEnd = parseISO(checkOutDate);
+      const windowStart = format(subDays(selectedStart, 30), "yyyy-MM-dd");
+      const windowEnd = format(addDays(selectedEnd, 30), "yyyy-MM-dd");
+
       const { data: reservations, error: resError } = await supabase
         .from("reservations")
         .select("id, room_id, check_in_date, check_out_date, status")
         .in("status", ["booked", "checked_in"])
-        .lt("check_in_date", checkOutDate)
-        .gt("check_out_date", checkInDate);
+        .lt("check_in_date", windowEnd)
+        .gt("check_out_date", windowStart);
 
       if (resError) throw resError;
 
-      // 3. Create conflicts map by room_id
-      const conflictsByRoomId: Record<string, ConflictingReservation> = {};
+      // 3. Create conflicts map by room_id - store ALL reservations
+      const conflictsByRoomId: Record<string, ConflictingReservation[]> = {};
       (reservations ?? []).forEach((res) => {
-        if (!conflictsByRoomId[res.room_id]) {
-          conflictsByRoomId[res.room_id] = res as ConflictingReservation;
+        const roomId = res.room_id;
+        if (!conflictsByRoomId[roomId]) {
+          conflictsByRoomId[roomId] = [];
         }
+        conflictsByRoomId[roomId].push(res as ConflictingReservation);
       });
 
-      // 4. Calculate availability
-      const availability: RoomAvailability[] = parsedRooms.map((room) => ({
-        room,
-        available: !conflictsByRoomId[room.id],
-        conflict: conflictsByRoomId[room.id],
-      }));
+      // 4. Calculate availability - check against SELECTED range only
+      const availability: RoomAvailability[] = parsedRooms.map((room) => {
+        const conflicts = conflictsByRoomId[room.id] || [];
+        const hasConflictInSelectedRange = conflicts.some((c) => {
+          const cStart = new Date(c.check_in_date);
+          const cEnd = new Date(c.check_out_date);
+          return cStart < selectedEnd && cEnd > selectedStart;
+        });
+
+        return {
+          room,
+          available: !hasConflictInSelectedRange,
+          conflicts,
+          mergedRanges: mergeReservationRanges(conflicts),
+        };
+      });
 
       setRoomAvailability(availability);
 
@@ -189,8 +249,17 @@ export default function Disponibilidad() {
     setCheckOutDate(format(end, "yyyy-MM-dd"));
   };
 
-  const formatDate = (dateStr: string) => {
-    return format(new Date(dateStr), "dd/MM/yyyy");
+  const formatMergedRanges = (ranges: MergedRange[]): string => {
+    if (ranges.length === 0) return "";
+
+    if (ranges.length === 1) {
+      return `${t.occupiedFrom} ${format(ranges[0].start, "dd/MM/yyyy")} ${t.to} ${format(ranges[0].end, "dd/MM/yyyy")}`;
+    }
+
+    const rangeStrings = ranges.map(
+      (r) => `${format(r.start, "dd/MM")}→${format(r.end, "dd/MM")}`
+    );
+    return `${t.occupied}: ${rangeStrings.join(", ")}`;
   };
 
   // Filter results based on toggle
@@ -292,7 +361,7 @@ export default function Disponibilidad() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredResults.map(({ room, available, conflict }) => (
+                  {filteredResults.map(({ room, available, mergedRanges }) => (
                     <TableRow key={room.id}>
                       <TableCell className="font-medium">{room.number}</TableCell>
                       <TableCell>
@@ -324,10 +393,9 @@ export default function Disponibilidad() {
                         )}
                       </TableCell>
                       <TableCell>
-                        {conflict && (
+                        {mergedRanges.length > 0 && (
                           <span className="text-sm text-muted-foreground">
-                            {t.occupiedFrom} {formatDate(conflict.check_in_date)}{" "}
-                            {t.to} {formatDate(conflict.check_out_date)}
+                            {formatMergedRanges(mergedRanges)}
                           </span>
                         )}
                       </TableCell>

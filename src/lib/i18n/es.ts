@@ -250,6 +250,7 @@ export const es = {
     available: "Disponible",
     notAvailable: "No disponible",
     reserveButton: "Reservar",
+    occupied: "Ocupada",
     occupiedFrom: "Ocupada del",
     to: "al",
 
