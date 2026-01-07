@@ -217,163 +217,165 @@ export function ReservationForm({
   const canSubmit = !isSubmitting && !conflictWarning && !noActiveRates && selectedRateId;
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {submitError && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{submitError}</AlertDescription>
-        </Alert>
-      )}
+    <>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {submitError && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{submitError}</AlertDescription>
+          </Alert>
+        )}
 
-      {/* Guest Search Combobox */}
-      <div className="space-y-2">
-        <Label>{t.form.guestLabel} *</Label>
-        <GuestCombobox
-          guests={filteredGuests}
-          selectedGuestId={guestId}
-          selectedGuest={selectedGuest}
-          onSelect={setGuestId}
-          onOpenCreateModal={() => setIsCreateGuestModalOpen(true)}
-          searchQuery={guestSearchQuery}
-          onSearchChange={setGuestSearchQuery}
-          isSearching={isSearchingGuests}
-          error={errors.guestId}
-        />
-      </div>
+        {/* Guest Search Combobox */}
+        <div className="space-y-2">
+          <Label>{t.form.guestLabel} *</Label>
+          <GuestCombobox
+            guests={filteredGuests}
+            selectedGuestId={guestId}
+            selectedGuest={selectedGuest}
+            onSelect={setGuestId}
+            onOpenCreateModal={() => setIsCreateGuestModalOpen(true)}
+            searchQuery={guestSearchQuery}
+            onSearchChange={setGuestSearchQuery}
+            isSearching={isSearchingGuests}
+            error={errors.guestId}
+          />
+        </div>
 
-      {/* Create Guest Modal */}
+        {/* Room Select */}
+        <div className="space-y-2">
+          <Label htmlFor="room">{t.form.roomLabel} *</Label>
+          <Select value={roomId} onValueChange={setRoomId}>
+            <SelectTrigger
+              id="room"
+              className={errors.roomId ? "border-destructive" : ""}
+            >
+              <SelectValue placeholder={t.form.roomPlaceholder} />
+            </SelectTrigger>
+            <SelectContent>
+              {rooms.map((room) => (
+                <SelectItem key={room.id} value={room.id}>
+                  {room.number}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {errors.roomId && (
+            <p className="text-sm text-destructive">{errors.roomId}</p>
+          )}
+        </div>
+
+        {/* Occupancy / Rate Select */}
+        {roomId && (
+          <div className="space-y-2">
+            <Label htmlFor="rate">{t.form.occupancyLabel} *</Label>
+            {loadingRates ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                {es.common.loading}
+              </div>
+            ) : noActiveRates ? (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{t.noRatesWarning}</AlertDescription>
+              </Alert>
+            ) : (
+              <Select value={selectedRateId} onValueChange={setSelectedRateId}>
+                <SelectTrigger
+                  id="rate"
+                  className={errors.rateId ? "border-destructive" : ""}
+                >
+                  <SelectValue placeholder={t.form.occupancyPlaceholder} />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableRates.map((rate) => (
+                    <SelectItem key={rate.id} value={rate.id}>
+                      {es.occupancyLabels[rate.occupancy]} - ${rate.price.toFixed(2)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            {errors.rateId && (
+              <p className="text-sm text-destructive">{errors.rateId}</p>
+            )}
+          </div>
+        )}
+
+        {/* Check-in Date */}
+        <div className="space-y-2">
+          <Label htmlFor="checkInDate">{t.form.checkInLabel} *</Label>
+          <Input
+            id="checkInDate"
+            type="date"
+            value={checkInDate}
+            onChange={(e) => setCheckInDate(e.target.value)}
+            className={errors.checkInDate ? "border-destructive" : ""}
+          />
+          {errors.checkInDate && (
+            <p className="text-sm text-destructive">{errors.checkInDate}</p>
+          )}
+        </div>
+
+        {/* Check-out Date */}
+        <div className="space-y-2">
+          <Label htmlFor="checkOutDate">{t.form.checkOutLabel} *</Label>
+          <Input
+            id="checkOutDate"
+            type="date"
+            value={checkOutDate}
+            onChange={(e) => setCheckOutDate(e.target.value)}
+            className={errors.checkOutDate ? "border-destructive" : ""}
+          />
+          {errors.checkOutDate && (
+            <p className="text-sm text-destructive">{errors.checkOutDate}</p>
+          )}
+        </div>
+
+        {/* Conflict Warning */}
+        {conflictWarning && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>{conflictWarning}</AlertDescription>
+          </Alert>
+        )}
+
+        {/* Price Info (shows when rate is selected) */}
+        {selectedRate && !conflictWarning && (
+          <div className="rounded-md bg-muted p-3 text-sm">
+            <p>
+              <strong>{t.form.basePriceLabel}:</strong> $
+              {selectedRate.price.toFixed(2)}
+            </p>
+            <p>
+              <strong>{t.form.finalPriceLabel}:</strong> $
+              {selectedRate.price.toFixed(2)}
+            </p>
+          </div>
+        )}
+
+        {/* Buttons */}
+        <div className="flex justify-end gap-2 pt-4">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onCancel}
+            disabled={isSubmitting}
+          >
+            {es.common.cancel}
+          </Button>
+          <Button type="submit" disabled={!canSubmit}>
+            {isSubmitting ? es.common.saving : es.common.save}
+          </Button>
+        </div>
+      </form>
+
+      {/* Create Guest Modal - Outside form to prevent event propagation issues */}
       <CreateGuestModal
         open={isCreateGuestModalOpen}
         onOpenChange={setIsCreateGuestModalOpen}
         onGuestCreated={handleGuestCreated}
       />
-
-      {/* Room Select */}
-      <div className="space-y-2">
-        <Label htmlFor="room">{t.form.roomLabel} *</Label>
-        <Select value={roomId} onValueChange={setRoomId}>
-          <SelectTrigger
-            id="room"
-            className={errors.roomId ? "border-destructive" : ""}
-          >
-            <SelectValue placeholder={t.form.roomPlaceholder} />
-          </SelectTrigger>
-          <SelectContent>
-            {rooms.map((room) => (
-              <SelectItem key={room.id} value={room.id}>
-                {room.number}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {errors.roomId && (
-          <p className="text-sm text-destructive">{errors.roomId}</p>
-        )}
-      </div>
-
-      {/* Occupancy / Rate Select */}
-      {roomId && (
-        <div className="space-y-2">
-          <Label htmlFor="rate">{t.form.occupancyLabel} *</Label>
-          {loadingRates ? (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              {es.common.loading}
-            </div>
-          ) : noActiveRates ? (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{t.noRatesWarning}</AlertDescription>
-            </Alert>
-          ) : (
-            <Select value={selectedRateId} onValueChange={setSelectedRateId}>
-              <SelectTrigger
-                id="rate"
-                className={errors.rateId ? "border-destructive" : ""}
-              >
-                <SelectValue placeholder={t.form.occupancyPlaceholder} />
-              </SelectTrigger>
-              <SelectContent>
-                {availableRates.map((rate) => (
-                  <SelectItem key={rate.id} value={rate.id}>
-                    {es.occupancyLabels[rate.occupancy]} - ${rate.price.toFixed(2)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-          {errors.rateId && (
-            <p className="text-sm text-destructive">{errors.rateId}</p>
-          )}
-        </div>
-      )}
-
-      {/* Check-in Date */}
-      <div className="space-y-2">
-        <Label htmlFor="checkInDate">{t.form.checkInLabel} *</Label>
-        <Input
-          id="checkInDate"
-          type="date"
-          value={checkInDate}
-          onChange={(e) => setCheckInDate(e.target.value)}
-          className={errors.checkInDate ? "border-destructive" : ""}
-        />
-        {errors.checkInDate && (
-          <p className="text-sm text-destructive">{errors.checkInDate}</p>
-        )}
-      </div>
-
-      {/* Check-out Date */}
-      <div className="space-y-2">
-        <Label htmlFor="checkOutDate">{t.form.checkOutLabel} *</Label>
-        <Input
-          id="checkOutDate"
-          type="date"
-          value={checkOutDate}
-          onChange={(e) => setCheckOutDate(e.target.value)}
-          className={errors.checkOutDate ? "border-destructive" : ""}
-        />
-        {errors.checkOutDate && (
-          <p className="text-sm text-destructive">{errors.checkOutDate}</p>
-        )}
-      </div>
-
-      {/* Conflict Warning */}
-      {conflictWarning && (
-        <Alert variant="destructive">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>{conflictWarning}</AlertDescription>
-        </Alert>
-      )}
-
-      {/* Price Info (shows when rate is selected) */}
-      {selectedRate && !conflictWarning && (
-        <div className="rounded-md bg-muted p-3 text-sm">
-          <p>
-            <strong>{t.form.basePriceLabel}:</strong> $
-            {selectedRate.price.toFixed(2)}
-          </p>
-          <p>
-            <strong>{t.form.finalPriceLabel}:</strong> $
-            {selectedRate.price.toFixed(2)}
-          </p>
-        </div>
-      )}
-
-      {/* Buttons */}
-      <div className="flex justify-end gap-2 pt-4">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={onCancel}
-          disabled={isSubmitting}
-        >
-          {es.common.cancel}
-        </Button>
-        <Button type="submit" disabled={!canSubmit}>
-          {isSubmitting ? es.common.saving : es.common.save}
-        </Button>
-      </div>
-    </form>
+    </>
   );
 }
