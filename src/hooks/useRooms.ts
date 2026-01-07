@@ -32,6 +32,7 @@ export interface UseRoomsResult {
   refresh: () => Promise<void>;
   createRoom: (payload: CreateRoomPayload) => Promise<void>;
   updateRoom: (id: string, payload: UpdateRoomPayload) => Promise<void>;
+  setRoomStatus: (id: string, status: string, notes?: string | null) => Promise<void>;
   archiveRoom: (id: string) => Promise<void>;
 }
 
@@ -104,6 +105,7 @@ export function useRooms(): UseRoomsResult {
     await refresh();
   }, [refresh]);
 
+  // Update room - for admins only (direct update)
   const updateRoom = useCallback(async (id: string, payload: UpdateRoomPayload): Promise<void> => {
     if (!id) {
       throw new Error("Room ID is required for update");
@@ -114,25 +116,69 @@ export function useRooms(): UseRoomsResult {
     if (payload.number !== undefined) updateData.number = payload.number;
     if (payload.type !== undefined) updateData.type = payload.type;
     if (payload.base_price !== undefined) updateData.base_price = payload.base_price;
-    if (payload.status !== undefined) updateData.status = payload.status;
     if (payload.notes !== undefined) updateData.notes = payload.notes;
+    // Status is handled via setRoomStatus RPC
 
-    if (Object.keys(updateData).length === 0) {
+    if (Object.keys(updateData).length === 0 && payload.status === undefined) {
       return; // Nothing to update
     }
 
-    const { error: updateError } = await supabase
-      .from("rooms")
-      .update(updateData)
-      .eq("id", id);
+    // If there are non-status fields to update, do direct update (admin only)
+    if (Object.keys(updateData).length > 0) {
+      const { error: updateError } = await supabase
+        .from("rooms")
+        .update(updateData)
+        .eq("id", id);
 
-    if (updateError) {
-      throw new Error(`Failed to update room: ${updateError.message}`);
+      if (updateError) {
+        throw new Error(`Error al actualizar habitación: ${updateError.message}`);
+      }
+    }
+
+    // If status is being updated, use RPC (works for both admin and receptionist)
+    if (payload.status !== undefined) {
+      const { error: rpcError } = await supabase.rpc("set_room_status", {
+        p_room_id: id,
+        p_status: payload.status,
+        p_notes: payload.notes ?? null,
+      });
+
+      if (rpcError) {
+        throw new Error(`Error al cambiar estado: ${rpcError.message}`);
+      }
     }
 
     await refresh();
   }, [refresh]);
 
+  // Set room status via RPC (works for admin and receptionist)
+  const setRoomStatus = useCallback(async (id: string, status: string, notes?: string | null): Promise<void> => {
+    if (!id) {
+      throw new Error("Room ID is required");
+    }
+
+    const { error: rpcError } = await supabase.rpc("set_room_status", {
+      p_room_id: id,
+      p_status: status,
+      p_notes: notes ?? null,
+    });
+
+    if (rpcError) {
+      throw new Error(`Error al cambiar estado: ${rpcError.message}`);
+    }
+
+    // Debug: verify change
+    const { data: roomAfter } = await supabase
+      .from("rooms")
+      .select("id, is_active, status")
+      .eq("id", id)
+      .single();
+    console.log("room after setRoomStatus RPC:", roomAfter);
+
+    await refresh();
+  }, [refresh]);
+
+  // Archive room via RPC (works for admin and receptionist)
   const archiveRoom = useCallback(async (id: string): Promise<void> => {
     if (!id) {
       throw new Error("Room ID is required for archive");
@@ -157,18 +203,22 @@ export function useRooms(): UseRoomsResult {
       throw new Error("HAS_ACTIVE_RESERVATIONS");
     }
 
-    // Archive the room
-    const { error: updateError } = await supabase
-      .from("rooms")
-      .update({
-        is_active: false,
-        archived_at: new Date().toISOString(),
-      })
-      .eq("id", id);
+    // Archive the room via RPC
+    const { error: rpcError } = await supabase.rpc("archive_room", {
+      p_room_id: id,
+    });
 
-    if (updateError) {
-      throw new Error(`Error al archivar habitación: ${updateError.message}`);
+    if (rpcError) {
+      throw new Error(`Error al archivar habitación: ${rpcError.message}`);
     }
+
+    // Debug: verify archive
+    const { data: roomAfter } = await supabase
+      .from("rooms")
+      .select("id, is_active, archived_at, status")
+      .eq("id", id)
+      .single();
+    console.log("room after archive RPC:", roomAfter);
 
     await refresh();
   }, [refresh]);
@@ -184,6 +234,7 @@ export function useRooms(): UseRoomsResult {
     refresh,
     createRoom,
     updateRoom,
+    setRoomStatus,
     archiveRoom,
   };
 }

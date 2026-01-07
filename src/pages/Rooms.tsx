@@ -31,6 +31,7 @@ import { toast } from "sonner";
 import { useRooms, type Room, type RoomStatus } from "@/hooks/useRooms";
 import { Pencil, Plus, Loader2, Archive } from "lucide-react";
 import { es } from "@/lib/i18n/es";
+import { useAuth } from "@/contexts/AuthContext";
 
 const { roomsPage, statusLabels, common } = es;
 
@@ -42,6 +43,8 @@ const statusColors: Record<RoomStatus, string> = {
 };
 
 export default function Rooms() {
+  const { role } = useAuth();
+  const isAdmin = role === "admin";
   const { rooms, loading, error, createRoom, updateRoom, archiveRoom } = useRooms();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
@@ -115,10 +118,12 @@ export default function Rooms() {
       <div className="mx-auto max-w-6xl">
         <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <h1 className="text-2xl font-bold text-foreground">{roomsPage.title}</h1>
-          <Button onClick={openCreateModal}>
-            <Plus className="mr-2 h-4 w-4" />
-            {roomsPage.addRoom}
-          </Button>
+          {isAdmin && (
+            <Button onClick={openCreateModal}>
+              <Plus className="mr-2 h-4 w-4" />
+              {roomsPage.addRoom}
+            </Button>
+          )}
         </header>
 
         {loading ? (
@@ -128,10 +133,12 @@ export default function Rooms() {
         ) : rooms.length === 0 ? (
           <div className="rounded-lg border border-dashed p-12 text-center">
             <p className="text-muted-foreground">{roomsPage.noRooms}</p>
-            <Button onClick={openCreateModal} variant="outline" className="mt-4">
-              <Plus className="mr-2 h-4 w-4" />
-              {roomsPage.addFirstRoom}
-            </Button>
+            {isAdmin && (
+              <Button onClick={openCreateModal} variant="outline" className="mt-4">
+                <Plus className="mr-2 h-4 w-4" />
+                {roomsPage.addFirstRoom}
+              </Button>
+            )}
           </div>
         ) : (
           <div className="rounded-lg border">
@@ -167,13 +174,15 @@ export default function Rooms() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => openEditModal(room)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
+                        {isAdmin && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openEditModal(room)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        )}
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
                             <Button variant="ghost" size="sm">
