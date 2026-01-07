@@ -156,6 +156,7 @@ export default function Reservas() {
               <TableHeader>
                 <TableRow>
                   <TableHead>{t.columns.room}</TableHead>
+                  <TableHead>{t.columns.occupancy}</TableHead>
                   <TableHead>{t.columns.guest}</TableHead>
                   <TableHead>{t.columns.checkIn}</TableHead>
                   <TableHead>{t.columns.checkOut}</TableHead>
@@ -169,6 +170,11 @@ export default function Reservas() {
                   <TableRow key={reservation.id}>
                     <TableCell className="font-medium">
                       {reservation.roomNumber || "-"}
+                    </TableCell>
+                    <TableCell>
+                      {reservation.occupancy
+                        ? es.occupancyLabels[reservation.occupancy]
+                        : "-"}
                     </TableCell>
                     <TableCell>{reservation.guestName || "-"}</TableCell>
                     <TableCell>{formatDate(reservation.checkInDate)}</TableCell>
