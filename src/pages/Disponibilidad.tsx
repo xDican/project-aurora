@@ -57,14 +57,14 @@ function mergeReservationRanges(reservations: ConflictingReservation[]): MergedR
   if (reservations.length === 0) return [];
 
   const sorted = [...reservations].sort(
-    (a, b) => new Date(a.check_in_date).getTime() - new Date(b.check_in_date).getTime()
+    (a, b) => parseISO(a.check_in_date).getTime() - parseISO(b.check_in_date).getTime()
   );
 
   const merged: MergedRange[] = [];
 
   for (const r of sorted) {
-    const start = new Date(r.check_in_date);
-    const end = new Date(r.check_out_date);
+    const start = parseISO(r.check_in_date);
+    const end = parseISO(r.check_out_date);
 
     if (merged.length === 0) {
       merged.push({ start, end });
@@ -250,13 +250,18 @@ export default function Disponibilidad() {
   };
 
   const formatMergedRanges = (ranges: MergedRange[]): string => {
-    if (ranges.length === 0) return "";
+    // Filter out ranges that ended before today
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const relevantRanges = ranges.filter(r => r.end > today);
 
-    if (ranges.length === 1) {
-      return `${t.occupiedFrom} ${format(ranges[0].start, "dd/MM/yyyy")} ${t.to} ${format(ranges[0].end, "dd/MM/yyyy")}`;
+    if (relevantRanges.length === 0) return "";
+
+    if (relevantRanges.length === 1) {
+      return `${t.occupiedFrom} ${format(relevantRanges[0].start, "dd/MM/yyyy")} ${t.to} ${format(relevantRanges[0].end, "dd/MM/yyyy")}`;
     }
 
-    const rangeStrings = ranges.map(
+    const rangeStrings = relevantRanges.map(
       (r) => `${format(r.start, "dd/MM")}→${format(r.end, "dd/MM")}`
     );
     return `${t.occupied}: ${rangeStrings.join(", ")}`;
