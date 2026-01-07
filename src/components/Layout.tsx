@@ -11,6 +11,7 @@ import {
   Users,
   BookOpen,
   Map,
+  BarChart3,
   LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -33,6 +34,7 @@ const navItems: Array<{
   { path: "/guests", label: "Huéspedes", icon: Users },
   { path: "/reservas", label: "Reservas", icon: BookOpen },
   { path: "/mapa", label: "Mapa", icon: Map },
+  { path: "/reportes", label: "Reportes", icon: BarChart3 },
 ];
 
 export default function Layout({ children }: LayoutProps) {

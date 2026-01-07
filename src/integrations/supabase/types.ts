@@ -238,6 +238,25 @@ export type Database = {
           total_rooms: number
         }[]
       }
+      report_reservations: {
+        Args: {
+          p_end: string
+          p_guest_id?: string
+          p_room_id?: string
+          p_start: string
+          p_status?: string
+        }
+        Returns: {
+          check_in_date: string
+          check_out_date: string
+          final_price: number
+          guest_name: string
+          id: string
+          occupancy: string
+          room_number: string
+          status: string
+        }[]
+      }
       report_revenue_daily: {
         Args: { p_end: string; p_start: string }
         Returns: {
