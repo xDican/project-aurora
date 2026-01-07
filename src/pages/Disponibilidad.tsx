@@ -168,8 +168,8 @@ export default function Disponibilidad() {
       const availability: RoomAvailability[] = parsedRooms.map((room) => {
         const conflicts = conflictsByRoomId[room.id] || [];
         const hasConflictInSelectedRange = conflicts.some((c) => {
-          const cStart = new Date(c.check_in_date);
-          const cEnd = new Date(c.check_out_date);
+          const cStart = parseISO(c.check_in_date);
+          const cEnd = parseISO(c.check_out_date);
           return cStart < selectedEnd && cEnd > selectedStart;
         });
 
