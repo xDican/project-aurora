@@ -18,9 +18,16 @@ interface LayoutProps {
   children: ReactNode;
 }
 
-const navItems = [
+type UserRole = "admin" | "receptionist";
+
+const navItems: Array<{
+  path: string;
+  label: string;
+  icon: typeof Calendar;
+  roles?: UserRole[];
+}> = [
   { path: "/hoy", label: "Hoy", icon: Calendar },
-  { path: "/rooms", label: "Habitaciones", icon: BedDouble },
+  { path: "/rooms", label: "Habitaciones", icon: BedDouble, roles: ["admin"] },
   { path: "/guests", label: "Huéspedes", icon: Users },
   { path: "/reservas", label: "Reservas", icon: BookOpen },
   { path: "/mapa", label: "Mapa", icon: Map },
@@ -29,7 +36,7 @@ const navItems = [
 export default function Layout({ children }: LayoutProps) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { currentUser, session, signOut } = useAuth();
+  const { currentUser, session, role, signOut } = useAuth();
 
   const handleSignOut = async () => {
     await signOut();
@@ -39,6 +46,11 @@ export default function Layout({ children }: LayoutProps) {
   const roleLabel = currentUser?.role
     ? es.auth.roles[currentUser.role as keyof typeof es.auth.roles]
     : null;
+
+  // Filter nav items based on user role
+  const filteredNavItems = navItems.filter(
+    (item) => !item.roles || (role && item.roles.includes(role))
+  );
 
   return (
     <div className="min-h-screen bg-background">
@@ -52,7 +64,7 @@ export default function Layout({ children }: LayoutProps) {
 
           {/* Navigation */}
           <nav className="hidden md:flex items-center gap-1">
-            {navItems.map((item) => {
+            {filteredNavItems.map((item) => {
               const Icon = item.icon;
               const isActive = location.pathname === item.path;
               return (
@@ -94,7 +106,7 @@ export default function Layout({ children }: LayoutProps) {
 
         {/* Mobile Navigation */}
         <nav className="md:hidden border-t px-4 py-2 flex gap-1 overflow-x-auto">
-          {navItems.map((item) => {
+          {filteredNavItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
             return (
