@@ -7,10 +7,12 @@ export interface Guest {
   document?: string | null;
   phone?: string | null;
   email?: string | null;
+  notes?: string | null;
+  created_at: string;
 }
 
-export type CreateGuestPayload = Omit<Guest, "id">;
-export type UpdateGuestPayload = Partial<Omit<Guest, "id">>;
+export type CreateGuestPayload = Omit<Guest, "id" | "created_at">;
+export type UpdateGuestPayload = Partial<Omit<Guest, "id" | "created_at">>;
 
 export interface UseGuestsResult {
   guests: Guest[];
@@ -31,6 +33,8 @@ function parseGuest(raw: Record<string, unknown>): Guest {
     document: raw.document as string | null | undefined,
     phone: raw.phone as string | null | undefined,
     email: raw.email as string | null | undefined,
+    notes: raw.notes as string | null | undefined,
+    created_at: String(raw.created_at ?? ""),
   };
 }
 
@@ -97,32 +101,34 @@ export function useGuests(): UseGuestsResult {
       throw new Error("Se requiere el ID del huésped para actualizar");
     }
 
-    const updateData: Record<string, unknown> = {};
+    // Find current guest to get existing values for fields not being updated
+    const currentGuest = guests.find(g => g.id === id);
 
-    if (payload.name !== undefined) updateData.name = payload.name;
-    if (payload.document !== undefined) updateData.document = payload.document;
-    if (payload.phone !== undefined) updateData.phone = payload.phone;
-    if (payload.email !== undefined) updateData.email = payload.email;
+    const { error } = await supabase.rpc('update_guest_recent', {
+      p_guest_id: id,
+      p_name: payload.name ?? currentGuest?.name ?? "",
+      p_phone: payload.phone ?? currentGuest?.phone ?? null,
+      p_email: payload.email ?? currentGuest?.email ?? null,
+      p_notes: payload.notes ?? currentGuest?.notes ?? null,
+    });
 
-    if (Object.keys(updateData).length === 0) {
-      return;
-    }
-
-    const { error: updateError } = await supabase
-      .from("guests")
-      .update(updateData)
-      .eq("id", id);
-
-    if (updateError) {
-      throw new Error(`Error al actualizar huésped: ${updateError.message}`);
+    if (error) {
+      // Map RPC errors to specific error codes
+      if (error.message.includes('edit window expired')) {
+        throw new Error("EDIT_WINDOW_EXPIRED");
+      }
+      if (error.message.includes('not allowed')) {
+        throw new Error("NOT_ALLOWED");
+      }
+      throw new Error(`Error al actualizar huésped: ${error.message}`);
     }
 
     await refresh();
-  }, [refresh]);
+  }, [guests, refresh]);
 
   const archiveGuest = useCallback(async (id: string): Promise<void> => {
     if (!id) {
-      throw new Error("Guest ID is required for archive");
+      throw new Error("Se requiere el ID del huésped para archivar");
     }
 
     // Get today's date in YYYY-MM-DD format
@@ -144,17 +150,16 @@ export function useGuests(): UseGuestsResult {
       throw new Error("HAS_ACTIVE_RESERVATIONS");
     }
 
-    // Archive the guest
-    const { error: updateError } = await supabase
-      .from("guests")
-      .update({
-        is_active: false,
-        archived_at: new Date().toISOString(),
-      })
-      .eq("id", id);
+    // Use RPC instead of direct update
+    const { error } = await supabase.rpc('archive_guest', {
+      p_guest_id: id,
+    });
 
-    if (updateError) {
-      throw new Error(`Error al archivar huésped: ${updateError.message}`);
+    if (error) {
+      if (error.message.includes('not allowed')) {
+        throw new Error("NOT_ALLOWED");
+      }
+      throw new Error(`Error al archivar huésped: ${error.message}`);
     }
 
     await refresh();

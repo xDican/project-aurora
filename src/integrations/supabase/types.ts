@@ -181,6 +181,16 @@ export type Database = {
       }
       unarchive_guest: { Args: { p_guest_id: string }; Returns: undefined }
       unarchive_room: { Args: { p_room_id: string }; Returns: undefined }
+      update_guest_recent: {
+        Args: {
+          p_email: string
+          p_guest_id: string
+          p_name: string
+          p_notes: string
+          p_phone: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       user_role: "admin" | "receptionist"

@@ -26,13 +26,23 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { GuestForm, type GuestFormData } from "@/components/guests/GuestForm";
 import { toast } from "sonner";
 import { useGuests, type Guest } from "@/hooks/useGuests";
+import { useAuth } from "@/contexts/AuthContext";
 import { Pencil, Plus, Loader2, Search, Archive } from "lucide-react";
 import { es } from "@/lib/i18n/es";
 
 const { guestsPage, common } = es;
+
+// 15 minutes in milliseconds
+const EDIT_WINDOW_MS = 15 * 60 * 1000;
 
 export default function Guests() {
   const {
@@ -45,10 +55,22 @@ export default function Guests() {
     updateGuest,
     archiveGuest,
   } = useGuests();
+  const { role } = useAuth();
+  const isAdmin = role === "admin";
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingGuest, setEditingGuest] = useState<Guest | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+
+  // Check if user can edit a guest based on role and creation time
+  const canEditGuest = (guest: Guest): boolean => {
+    if (isAdmin) return true;
+    
+    const createdAt = new Date(guest.created_at).getTime();
+    const now = Date.now();
+    return (now - createdAt) <= EDIT_WINDOW_MS;
+  };
 
   const openCreateModal = () => {
     setEditingGuest(null);
@@ -82,8 +104,15 @@ export default function Guests() {
       }
       closeModal();
     } catch (err) {
-      const message = err instanceof Error ? err.message : common.unexpectedError;
-      setFormError(message);
+      const errorMessage = err instanceof Error ? err.message : common.unexpectedError;
+      
+      if (errorMessage === "EDIT_WINDOW_EXPIRED") {
+        setFormError(guestsPage.editWindowExpired);
+      } else if (errorMessage === "NOT_ALLOWED") {
+        setFormError(guestsPage.notAllowed);
+      } else {
+        setFormError(errorMessage);
+      }
     } finally {
       setIsSaving(false);
     }
@@ -94,8 +123,14 @@ export default function Guests() {
       await archiveGuest(guestId);
       toast.success(guestsPage.archive.success);
     } catch (err) {
-      if (err instanceof Error && err.message === "HAS_ACTIVE_RESERVATIONS") {
-        toast.error(guestsPage.archive.hasActiveReservations);
+      if (err instanceof Error) {
+        if (err.message === "HAS_ACTIVE_RESERVATIONS") {
+          toast.error(guestsPage.archive.hasActiveReservations);
+        } else if (err.message === "NOT_ALLOWED") {
+          toast.error(guestsPage.archive.notAllowed);
+        } else {
+          toast.error(guestsPage.archive.error);
+        }
       } else {
         toast.error(guestsPage.archive.error);
       }
@@ -160,52 +195,74 @@ export default function Guests() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {guests.map((guest) => (
-                  <TableRow key={guest.id}>
-                    <TableCell className="font-medium">{guest.name}</TableCell>
-                    <TableCell>{displayValue(guest.document)}</TableCell>
-                    <TableCell>{displayValue(guest.phone)}</TableCell>
-                    <TableCell>{displayValue(guest.email)}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => openEditModal(guest)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="sm">
-                              <Archive className="h-4 w-4" />
+                {guests.map((guest) => {
+                  const canEdit = canEditGuest(guest);
+                  
+                  return (
+                    <TableRow key={guest.id}>
+                      <TableCell className="font-medium">{guest.name}</TableCell>
+                      <TableCell>{displayValue(guest.document)}</TableCell>
+                      <TableCell>{displayValue(guest.phone)}</TableCell>
+                      <TableCell>{displayValue(guest.email)}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          {canEdit ? (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => openEditModal(guest)}
+                            >
+                              <Pencil className="h-4 w-4" />
                             </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>
-                                {guestsPage.archive.dialogTitle}
-                              </AlertDialogTitle>
-                              <AlertDialogDescription>
-                                {guestsPage.archive.dialogMessage}
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>
-                                {guestsPage.archive.back}
-                              </AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => handleArchive(guest.id)}
-                              >
-                                {guestsPage.archive.confirm}
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                          ) : (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button variant="ghost" size="sm" disabled>
+                                    <Pencil className="h-4 w-4 text-muted-foreground" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  {guestsPage.editDisabledTooltip}
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )}
+                          
+                          {isAdmin && (
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="sm">
+                                  <Archive className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>
+                                    {guestsPage.archive.dialogTitle}
+                                  </AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    {guestsPage.archive.dialogMessage}
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>
+                                    {guestsPage.archive.back}
+                                  </AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => handleArchive(guest.id)}
+                                  >
+                                    {guestsPage.archive.confirm}
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </div>
