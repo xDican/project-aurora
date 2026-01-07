@@ -36,7 +36,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { RoomForm, type RoomFormData } from "@/components/rooms/RoomForm";
+import { RoomForm, type RoomFormData, type RateConfig } from "@/components/rooms/RoomForm";
 import { toast } from "sonner";
 import { useRooms, type Room, type RoomStatus } from "@/hooks/useRooms";
 import { useRoomRates, type RoomRate, type OccupancyType } from "@/hooks/useRoomRates";
@@ -63,6 +63,7 @@ export default function Rooms() {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
+  const [editingRoomRates, setEditingRoomRates] = useState<RateConfig[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -77,19 +78,33 @@ export default function Rooms() {
 
   const openCreateModal = () => {
     setEditingRoom(null);
+    setEditingRoomRates([]);
     setFormError(null);
     setIsModalOpen(true);
   };
 
-  const openEditModal = (room: Room) => {
+  const openEditModal = async (room: Room) => {
     setEditingRoom(room);
     setFormError(null);
+    
+    // Load existing rates for this room
+    const rates = await fetchRatesForRoom(room.id, false);
+    const rateConfigs: RateConfig[] = OCCUPANCY_OPTIONS.map((occ) => {
+      const existingRate = rates.find((r) => r.occupancy === occ);
+      return {
+        occupancy: occ,
+        enabled: existingRate?.is_active ?? false,
+        price: existingRate?.price ?? 0,
+      };
+    });
+    setEditingRoomRates(rateConfigs);
     setIsModalOpen(true);
   };
 
   const closeModal = () => {
     setIsModalOpen(false);
     setEditingRoom(null);
+    setEditingRoomRates([]);
     setFormError(null);
   };
 
@@ -119,10 +134,20 @@ export default function Rooms() {
 
     try {
       if (editingRoom) {
-        await updateRoom(editingRoom.id, data);
+        await updateRoom(editingRoom.id, {
+          number: data.number,
+          status: data.status,
+          notes: data.notes,
+          rates: data.rates,
+        });
         toast.success(roomsPage.roomUpdated);
       } else {
-        await createRoom(data);
+        await createRoom({
+          number: data.number,
+          status: data.status,
+          notes: data.notes,
+          rates: data.rates,
+        });
         toast.success(roomsPage.roomCreated);
       }
       closeModal();
@@ -263,8 +288,6 @@ export default function Rooms() {
               <TableHeader>
                 <TableRow>
                   <TableHead>{roomsPage.columns.number}</TableHead>
-                  <TableHead>{roomsPage.columns.type}</TableHead>
-                  <TableHead>{roomsPage.columns.basePrice}</TableHead>
                   <TableHead>{roomsPage.columns.status}</TableHead>
                   <TableHead>{roomsPage.columns.notes}</TableHead>
                   <TableHead className="w-[120px]">{common.actions}</TableHead>
@@ -274,10 +297,6 @@ export default function Rooms() {
                 {rooms.map((room) => (
                   <TableRow key={room.id}>
                     <TableCell className="font-medium">{room.number}</TableCell>
-                    <TableCell className="capitalize">
-                      {es.roomTypeLabels[room.type] || room.type}
-                    </TableCell>
-                    <TableCell>${room.base_price.toFixed(2)}</TableCell>
                     <TableCell>
                       <Badge
                         variant="outline"
@@ -360,6 +379,7 @@ export default function Rooms() {
               onCancel={closeModal}
               isLoading={isSaving}
               error={formError}
+              initialRates={editingRoomRates}
             />
           </DialogContent>
         </Dialog>
