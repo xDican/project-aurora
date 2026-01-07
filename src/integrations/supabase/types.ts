@@ -142,21 +142,21 @@ export type Database = {
       }
       users: {
         Row: {
-          auth_user_id: string | null
+          auth_user_id: string
           created_at: string
           email: string
           id: string
           role: Database["public"]["Enums"]["user_role"]
         }
         Insert: {
-          auth_user_id?: string | null
+          auth_user_id: string
           created_at?: string
           email: string
           id?: string
           role?: Database["public"]["Enums"]["user_role"]
         }
         Update: {
-          auth_user_id?: string | null
+          auth_user_id?: string
           created_at?: string
           email?: string
           id?: string
@@ -169,10 +169,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      archive_guest: { Args: { p_guest_id: string }; Returns: undefined }
+      archive_room: { Args: { p_room_id: string }; Returns: undefined }
       current_app_role: {
         Args: never
         Returns: Database["public"]["Enums"]["user_role"]
       }
+      set_room_status: {
+        Args: { p_notes?: string; p_room_id: string; p_status: string }
+        Returns: undefined
+      }
+      unarchive_guest: { Args: { p_guest_id: string }; Returns: undefined }
+      unarchive_room: { Args: { p_room_id: string }; Returns: undefined }
     }
     Enums: {
       user_role: "admin" | "receptionist"
