@@ -253,6 +253,9 @@ export const es = {
     occupied: "Ocupada",
     occupiedFrom: "Ocupada del",
     to: "al",
+    freeToBook: "Libre para reservar",
+    availableFrom: "Disponible a partir de",
+    suggestedGap: "Hueco sugerido",
 
     shortcuts: {
       today: "Hoy",

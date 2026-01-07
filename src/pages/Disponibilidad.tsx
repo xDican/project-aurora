@@ -42,11 +42,18 @@ interface MergedRange {
   end: Date;
 }
 
+interface AvailableGap {
+  start: Date;
+  end: Date;
+}
+
 interface RoomAvailability {
   room: Room;
   available: boolean;
   conflicts: ConflictingReservation[];
   mergedRanges: MergedRange[];
+  nextFreeDate: Date | null;
+  suggestedGap: AvailableGap | null;
 }
 
 /**
@@ -84,6 +91,79 @@ function mergeReservationRanges(reservations: ConflictingReservation[]): MergedR
   }
 
   return merged;
+}
+
+/**
+ * Finds the next free date after the block that conflicts with the selected range.
+ */
+function findNextFreeDate(
+  mergedRanges: MergedRange[],
+  selectedStart: Date,
+  selectedEnd: Date
+): Date | null {
+  const sortedRanges = [...mergedRanges].sort((a, b) => a.start.getTime() - b.start.getTime());
+
+  for (const range of sortedRanges) {
+    if (range.start < selectedEnd && range.end > selectedStart) {
+      return range.end;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Finds the first available gap where the requested duration fits.
+ * Searches up to 90 days from the search start date.
+ */
+function findFirstAvailableGap(
+  mergedRanges: MergedRange[],
+  nights: number,
+  searchFromDate: Date
+): AvailableGap | null {
+  const sortedRanges = [...mergedRanges]
+    .filter((r) => r.end > searchFromDate)
+    .sort((a, b) => a.start.getTime() - b.start.getTime());
+
+  const maxSearchDate = addDays(searchFromDate, 90);
+
+  // If no occupied ranges, available from searchFromDate
+  if (sortedRanges.length === 0) {
+    return { start: searchFromDate, end: addDays(searchFromDate, nights) };
+  }
+
+  // Check gap BEFORE first range
+  const firstRange = sortedRanges[0];
+  if (firstRange.start > searchFromDate) {
+    const gapNights = Math.floor(
+      (firstRange.start.getTime() - searchFromDate.getTime()) / (1000 * 60 * 60 * 24)
+    );
+    if (gapNights >= nights) {
+      return { start: searchFromDate, end: addDays(searchFromDate, nights) };
+    }
+  }
+
+  // Check gaps BETWEEN ranges
+  for (let i = 0; i < sortedRanges.length - 1; i++) {
+    const currentEnd = sortedRanges[i].end;
+    const nextStart = sortedRanges[i + 1].start;
+
+    const gapNights = Math.floor(
+      (nextStart.getTime() - currentEnd.getTime()) / (1000 * 60 * 60 * 24)
+    );
+
+    if (gapNights >= nights) {
+      return { start: currentEnd, end: addDays(currentEnd, nights) };
+    }
+  }
+
+  // Gap AFTER last range
+  const lastRange = sortedRanges[sortedRanges.length - 1];
+  if (lastRange.end < maxSearchDate) {
+    return { start: lastRange.end, end: addDays(lastRange.end, nights) };
+  }
+
+  return null;
 }
 
 export default function Disponibilidad() {
@@ -167,17 +247,35 @@ export default function Disponibilidad() {
       // 4. Calculate availability - check against SELECTED range only
       const availability: RoomAvailability[] = parsedRooms.map((room) => {
         const conflicts = conflictsByRoomId[room.id] || [];
+        const mergedRanges = mergeReservationRanges(conflicts);
         const hasConflictInSelectedRange = conflicts.some((c) => {
           const cStart = parseISO(c.check_in_date);
           const cEnd = parseISO(c.check_out_date);
           return cStart < selectedEnd && cEnd > selectedStart;
         });
 
+        // Calculate next free date if not available
+        const nextFreeDate = hasConflictInSelectedRange
+          ? findNextFreeDate(mergedRanges, selectedStart, selectedEnd)
+          : null;
+
+        // Calculate nights requested
+        const nightsRequested = Math.floor(
+          (selectedEnd.getTime() - selectedStart.getTime()) / (1000 * 60 * 60 * 24)
+        );
+
+        // Find suggested gap if not available
+        const suggestedGap = hasConflictInSelectedRange
+          ? findFirstAvailableGap(mergedRanges, nightsRequested, selectedStart)
+          : null;
+
         return {
           room,
           available: !hasConflictInSelectedRange,
           conflicts,
-          mergedRanges: mergeReservationRanges(conflicts),
+          mergedRanges,
+          nextFreeDate,
+          suggestedGap,
         };
       });
 
@@ -253,7 +351,7 @@ export default function Disponibilidad() {
     // Filter out ranges that ended before today
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const relevantRanges = ranges.filter(r => r.end > today);
+    const relevantRanges = ranges.filter((r) => r.end > today);
 
     if (relevantRanges.length === 0) return "";
 
@@ -265,6 +363,47 @@ export default function Disponibilidad() {
       (r) => `${format(r.start, "dd/MM")}→${format(r.end, "dd/MM")}`
     );
     return `${t.occupied}: ${rangeStrings.join(", ")}`;
+  };
+
+  const formatRoomInfo = (
+    available: boolean,
+    mergedRanges: MergedRange[],
+    nextFreeDate: Date | null,
+    suggestedGap: AvailableGap | null
+  ): React.ReactNode => {
+    const occupiedText = formatMergedRanges(mergedRanges);
+
+    if (available) {
+      return (
+        <div className="space-y-1">
+          {occupiedText && (
+            <span className="text-sm text-muted-foreground block">{occupiedText}</span>
+          )}
+          <span className="text-sm text-green-600 dark:text-green-400 font-medium">
+            {t.freeToBook}
+          </span>
+        </div>
+      );
+    }
+
+    // Not available
+    return (
+      <div className="space-y-1">
+        {occupiedText && (
+          <span className="text-sm text-muted-foreground block">{occupiedText}</span>
+        )}
+        {nextFreeDate && (
+          <span className="text-sm text-blue-600 dark:text-blue-400 block">
+            {t.availableFrom}: {format(nextFreeDate, "dd/MM/yyyy")}
+          </span>
+        )}
+        {suggestedGap && (
+          <span className="text-sm text-amber-600 dark:text-amber-400 block">
+            {t.suggestedGap}: {format(suggestedGap.start, "dd/MM")} → {format(suggestedGap.end, "dd/MM")}
+          </span>
+        )}
+      </div>
+    );
   };
 
   // Filter results based on toggle
@@ -366,7 +505,7 @@ export default function Disponibilidad() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredResults.map(({ room, available, mergedRanges }) => (
+                {filteredResults.map(({ room, available, mergedRanges, nextFreeDate, suggestedGap }) => (
                     <TableRow key={room.id}>
                       <TableCell className="font-medium">{room.number}</TableCell>
                       <TableCell>
@@ -398,11 +537,7 @@ export default function Disponibilidad() {
                         )}
                       </TableCell>
                       <TableCell>
-                        {mergedRanges.length > 0 && (
-                          <span className="text-sm text-muted-foreground">
-                            {formatMergedRanges(mergedRanges)}
-                          </span>
-                        )}
+                        {formatRoomInfo(available, mergedRanges, nextFreeDate, suggestedGap)}
                       </TableCell>
                       <TableCell>
                         <Button
