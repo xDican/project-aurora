@@ -354,4 +354,71 @@ export const es = {
       receptionist: "Recepcionista",
     },
   },
+
+  reportsPage: {
+    title: "Reportes",
+    startDate: "Fecha inicio",
+    endDate: "Fecha fin",
+    updateButton: "Actualizar",
+    invalidRange: "La fecha fin debe ser posterior o igual a la fecha inicio",
+
+    tabs: {
+      summary: "Resumen",
+      reservations: "Reservas",
+      occupancy: "Ocupación",
+      revenue: "Ingresos",
+    },
+
+    kpis: {
+      activeReservations: "Reservas activas",
+      cancelled: "Canceladas",
+      noShow: "No-show",
+      estimatedRevenue: "Ingresos estimados",
+    },
+
+    reservationsTab: {
+      statusFilter: "Estado",
+      roomFilter: "Habitación",
+      guestFilter: "Huésped",
+      allStatuses: "Todos",
+      allRooms: "Todas",
+      allGuests: "Todos",
+      exportCsv: "Exportar CSV",
+      noData: "No hay reservas en este rango",
+      columns: {
+        room: "Habitación",
+        guest: "Huésped",
+        checkIn: "Ingreso",
+        checkOut: "Salida",
+        status: "Estado",
+        price: "Precio",
+        occupancy: "Tipo",
+      },
+    },
+
+    occupancyTab: {
+      noData: "No hay datos de ocupación",
+      columns: {
+        day: "Día",
+        occupied: "Ocupadas",
+        total: "Total",
+        percentage: "Ocupación %",
+      },
+    },
+
+    revenueTab: {
+      noData: "No hay datos de ingresos",
+      columns: {
+        day: "Día",
+        revenue: "Ingresos",
+      },
+    },
+
+    errors: {
+      loadKpis: "Error al cargar KPIs",
+      loadReservations: "Error al cargar reservas",
+      loadOccupancy: "Error al cargar ocupación",
+      loadRevenue: "Error al cargar ingresos",
+    },
+  },
 } as const;

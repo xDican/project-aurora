@@ -15,6 +15,7 @@ import Reservas from "./pages/Reservas";
 import Hoy from "./pages/Hoy";
 import Mapa from "./pages/Mapa";
 import Disponibilidad from "./pages/Disponibilidad";
+import Reportes from "./pages/Reportes";
 
 const queryClient = new QueryClient();
 
@@ -94,6 +95,16 @@ const App = () => (
                 <ProtectedRoute>
                   <Layout>
                     <Mapa />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reportes"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <Reportes />
                   </Layout>
                 </ProtectedRoute>
               }
