@@ -220,6 +220,31 @@ export type Database = {
         Args: never
         Returns: Database["public"]["Enums"]["user_role"]
       }
+      report_kpis: {
+        Args: { p_end: string; p_start: string }
+        Returns: {
+          ingresos_estimados: number
+          total_canceladas: number
+          total_no_show: number
+          total_reservas_activas: number
+        }[]
+      }
+      report_occupancy_daily: {
+        Args: { p_end: string; p_start: string }
+        Returns: {
+          day: string
+          occupancy_pct: number
+          occupied_rooms: number
+          total_rooms: number
+        }[]
+      }
+      report_revenue_daily: {
+        Args: { p_end: string; p_start: string }
+        Returns: {
+          day: string
+          revenue: number
+        }[]
+      }
       set_room_status: {
         Args: { p_notes?: string; p_room_id: string; p_status: string }
         Returns: undefined
