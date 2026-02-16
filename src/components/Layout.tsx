@@ -34,7 +34,7 @@ const navItems: Array<{
   { path: "/guests", label: "Huéspedes", icon: Users },
   { path: "/reservas", label: "Reservas", icon: BookOpen },
   { path: "/mapa", label: "Mapa", icon: Map },
-  { path: "/reportes", label: "Reportes", icon: BarChart3 },
+  { path: "/reportes", label: "Reportes", icon: BarChart3, roles: ["admin"] },
 ];
 
 export default function Layout({ children }: LayoutProps) {
