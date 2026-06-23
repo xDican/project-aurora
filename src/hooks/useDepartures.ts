@@ -166,10 +166,10 @@ export function useDepartures(): UseDeparturesResult {
       }
 
       // Actualizar habitación a cleaning
-      const { error: roomError } = await supabase
-        .from("rooms")
-        .update({ status: "cleaning" })
-        .eq("id", roomId);
+      const { error: roomError } = await supabase.rpc("set_room_status", {
+        p_room_id: roomId,
+        p_status: "cleaning",
+      });
 
       if (roomError) {
         throw new Error(

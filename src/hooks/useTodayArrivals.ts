@@ -207,10 +207,10 @@ export function useTodayArrivals(): UseTodayArrivalsResult {
         );
       }
 
-      const { error: roomError } = await supabase
-        .from("rooms")
-        .update({ status: "occupied" })
-        .eq("id", roomId);
+      const { error: roomError } = await supabase.rpc("set_room_status", {
+        p_room_id: roomId,
+        p_status: "occupied",
+      });
 
       if (roomError) {
         throw new Error(
@@ -236,10 +236,10 @@ export function useTodayArrivals(): UseTodayArrivalsResult {
         );
       }
 
-      const { error: roomError } = await supabase
-        .from("rooms")
-        .update({ status: "cleaning" })
-        .eq("id", roomId);
+      const { error: roomError } = await supabase.rpc("set_room_status", {
+        p_room_id: roomId,
+        p_status: "cleaning",
+      });
 
       if (roomError) {
         throw new Error(

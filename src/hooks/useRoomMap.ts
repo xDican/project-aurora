@@ -137,10 +137,10 @@ export function useRoomMap(): UseRoomMapResult {
 
   const markAsClean = useCallback(
     async (roomId: string): Promise<void> => {
-      const { error: updateError } = await supabase
-        .from("rooms")
-        .update({ status: "available" })
-        .eq("id", roomId);
+      const { error: updateError } = await supabase.rpc("set_room_status", {
+        p_room_id: roomId,
+        p_status: "available",
+      });
 
       if (updateError) {
         throw new Error(`Error al marcar habitación como limpia: ${updateError.message}`);
