@@ -1,6 +1,6 @@
 # Estado Estrategia — Aurora
 
-## Dashboard (2026-06-23, fin de sesión)
+## Dashboard (2026-06-23, QA aprobado)
 - Clientes pagantes: 0
 - Pilotos activos: 1 (Hotel Pinares, hermana del founder)
 - Pipeline fuera del piloto: 0
@@ -33,10 +33,13 @@
 2. **Aislamiento multi-tenant no resuelto** — solo importa si aparece un 2do cliente real.
 
 ## Próximos pasos
-- **Recomendación dada al founder:** que Eliza opere el hotel con Aurora de forma real
-  (no datos de prueba) sin supervisión directa por ~2 semanas — primera señal de uso real,
-  no familiar/asistido. Sin fecha de inicio confirmada todavía.
-- Empezar a identificar (aunque sea informalmente) un segundo alojamiento con el mismo
-  problema de papel/Excel, para tener un segundo data point fuera del círculo familiar.
-- QA manual pendiente: el founder tiene una guía actualizada de 7 fases para correr después
-  de recrear habitaciones/tarifas de prueba (la base quedó vacía a propósito).
+- **QA manual de las 7 fases: aprobado por el founder (2026-06-23).** El producto pasó su
+  propia revisión; ya no es el bloqueante.
+- **Esperando ahora:** feedback de Eliza usando Aurora para operar el hotel de verdad. Esto
+  es la señal real pendiente — todavía no llegó. No confundir "QA aprobado por el founder"
+  con "validado por el piloto"; son cosas distintas y solo la segunda mueve el riesgo de
+  mercado.
+- Sigue pendiente, sin fecha: que Eliza opere sin supervisión directa por ~2 semanas como
+  primera señal de uso real no asistido.
+- Sigue pendiente, sin fecha: identificar informalmente un segundo alojamiento con el mismo
+  problema de papel/Excel, como segundo data point fuera del círculo familiar.
