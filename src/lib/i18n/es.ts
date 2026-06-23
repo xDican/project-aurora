@@ -283,6 +283,8 @@ export const es = {
     title: "Disponibilidad de habitaciones",
     checkInLabel: "Fecha de ingreso",
     checkOutLabel: "Fecha de salida",
+    occupancyFilterLabel: "Tamaño",
+    anySize: "Cualquier tamaño",
     showOnlyAvailable: "Solo disponibles",
     searchButton: "Buscar",
     selectDatesToSearch: "Selecciona un rango de fechas para consultar disponibilidad",

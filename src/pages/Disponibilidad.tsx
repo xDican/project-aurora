@@ -14,11 +14,22 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { es } from "@/lib/i18n/es";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { type Room } from "@/hooks/useRooms";
 import { type Guest } from "@/hooks/useGuests";
+import { type OccupancyType } from "@/hooks/useRoomRates";
 import { ReservationForm } from "@/components/reservations/ReservationForm";
 import { useReservations, type NewReservationInput } from "@/hooks/useReservations";
+import { formatCurrency } from "@/lib/currency";
 import { cn } from "@/lib/utils";
+
+const OCCUPANCY_OPTIONS = Object.keys(es.occupancyLabels) as OccupancyType[];
 
 interface ConflictingReservation {
   id: string;
@@ -45,6 +56,8 @@ interface RoomAvailability {
   mergedRanges: MergedRange[];
   nextFreeDate: Date | null;
   suggestedGap: AvailableGap | null;
+  // Price for the selected occupancy filter, when one is chosen
+  price?: number;
 }
 
 /**
@@ -165,6 +178,7 @@ export default function Disponibilidad() {
   const [checkInDate, setCheckInDate] = useState("");
   const [checkOutDate, setCheckOutDate] = useState("");
   const [showOnlyAvailable, setShowOnlyAvailable] = useState(false);
+  const [occupancyFilter, setOccupancyFilter] = useState<OccupancyType | "all">("all");
 
   // Results
   const [roomAvailability, setRoomAvailability] = useState<RoomAvailability[]>([]);
@@ -177,6 +191,7 @@ export default function Disponibilidad() {
     roomId: string;
     checkIn: string;
     checkOut: string;
+    occupancy?: OccupancyType;
   } | null>(null);
 
   // Data for reservation form
@@ -213,7 +228,26 @@ export default function Disponibilidad() {
 
       if (roomsError) throw roomsError;
 
-      const parsedRooms = (roomsData ?? []) as Room[];
+      let parsedRooms = (roomsData ?? []) as Room[];
+
+      // 1b. If a room size was chosen, only keep rooms that have an active
+      // rate for that occupancy, and remember the price to show on the card
+      let priceByRoomId: Record<string, number> = {};
+      if (occupancyFilter !== "all") {
+        const { data: ratesData, error: ratesError } = await supabase
+          .from("room_rates")
+          .select("room_id, price")
+          .eq("occupancy", occupancyFilter)
+          .eq("is_active", true);
+
+        if (ratesError) throw ratesError;
+
+        priceByRoomId = Object.fromEntries(
+          (ratesData ?? []).map((r) => [r.room_id, r.price])
+        );
+        parsedRooms = parsedRooms.filter((room) => room.id in priceByRoomId);
+      }
+
       setRooms(parsedRooms);
 
       // 2. Get blocking reservations with extended window to capture contiguous chains
@@ -273,6 +307,7 @@ export default function Disponibilidad() {
           mergedRanges,
           nextFreeDate,
           suggestedGap,
+          price: priceByRoomId[room.id],
         };
       });
 
@@ -292,13 +327,14 @@ export default function Disponibilidad() {
     } finally {
       setLoading(false);
     }
-  }, [checkInDate, checkOutDate, t.validation.datesRequired]);
+  }, [checkInDate, checkOutDate, occupancyFilter, t.validation.datesRequired]);
 
   const handleReserveClick = (room: Room) => {
     setPrefillData({
       roomId: room.id,
       checkIn: checkInDate,
       checkOut: checkOutDate,
+      occupancy: occupancyFilter !== "all" ? occupancyFilter : undefined,
     });
     setIsReservationDialogOpen(true);
   };
@@ -399,6 +435,27 @@ export default function Disponibilidad() {
               className="w-full md:w-40"
             />
           </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="occupancyFilter" className="text-label-md text-on-surface-variant">
+              {t.occupancyFilterLabel}
+            </Label>
+            <Select
+              value={occupancyFilter}
+              onValueChange={(value) => setOccupancyFilter(value as OccupancyType | "all")}
+            >
+              <SelectTrigger id="occupancyFilter" className="w-full md:w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t.anySize}</SelectItem>
+                {OCCUPANCY_OPTIONS.map((value) => (
+                  <SelectItem key={value} value={value}>
+                    {es.occupancyLabels[value]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
@@ -476,7 +533,7 @@ export default function Disponibilidad() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-gutter pb-8">
-            {filteredResults.map(({ room, available, mergedRanges, nextFreeDate, suggestedGap }) => (
+            {filteredResults.map(({ room, available, mergedRanges, nextFreeDate, suggestedGap, price }) => (
               <article
                 key={room.id}
                 className={cn(
@@ -491,7 +548,13 @@ export default function Disponibilidad() {
                     <h3 className="text-headline-md text-foreground font-bold">{room.number}</h3>
                     <p className="text-label-md text-on-surface-variant mt-0.5">
                       {es.roomTypeLabels[room.type] || room.type}
+                      {occupancyFilter !== "all" && ` · ${es.occupancyLabels[occupancyFilter]}`}
                     </p>
+                    {price !== undefined && (
+                      <p className="text-body-sm text-primary font-medium mt-0.5">
+                        {formatCurrency(price)} / noche
+                      </p>
+                    )}
                   </div>
                   {available ? (
                     <span className="bg-primary-container text-on-primary-container px-2.5 py-1 rounded-pill flex items-center gap-1.5 text-label-bold uppercase">
@@ -570,6 +633,7 @@ export default function Disponibilidad() {
             prefillRoomId={prefillData?.roomId}
             prefillCheckInDate={prefillData?.checkIn}
             prefillCheckOutDate={prefillData?.checkOut}
+            initialOccupancy={prefillData?.occupancy}
           />
         </DialogContent>
       </Dialog>
