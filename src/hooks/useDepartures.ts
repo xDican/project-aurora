@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
+import { type OccupancyType } from "@/hooks/useRoomRates";
 
 export const RESERVATION_STATUSES = [
   "booked",
@@ -19,6 +20,7 @@ export interface DepartureItem {
   guestName: string;
   checkOutDate: string; // "YYYY-MM-DD"
   status: ReservationStatus;
+  occupancy?: OccupancyType;
 }
 
 export interface UseDeparturesResult {
@@ -37,6 +39,7 @@ interface RawReservation {
   id: string;
   room_id: string;
   guest_id: string;
+  room_rate_id: string | null;
   check_out_date: string;
   status: string;
 }
@@ -51,10 +54,16 @@ interface RawGuest {
   name: string;
 }
 
+interface RawRoomRate {
+  id: string;
+  occupancy: OccupancyType;
+}
+
 function buildDepartureItem(
   reservation: RawReservation,
   roomMap: Map<string, RawRoom>,
-  guestMap: Map<string, RawGuest>
+  guestMap: Map<string, RawGuest>,
+  rateMap: Map<string, RawRoomRate>
 ): DepartureItem {
   const status = isValidReservationStatus(reservation.status)
     ? reservation.status
@@ -62,6 +71,7 @@ function buildDepartureItem(
 
   const room = roomMap.get(reservation.room_id);
   const guest = guestMap.get(reservation.guest_id);
+  const rate = reservation.room_rate_id ? rateMap.get(reservation.room_rate_id) : null;
 
   return {
     reservationId: reservation.id,
@@ -70,6 +80,7 @@ function buildDepartureItem(
     guestName: guest?.name ?? "",
     checkOutDate: reservation.check_out_date,
     status,
+    occupancy: rate?.occupancy,
   };
 }
 
@@ -88,7 +99,7 @@ export function useDepartures(): UseDeparturesResult {
       // 1. Cargar reservaciones sin embeds
       const { data: reservationsData, error: reservationsError } = await supabase
         .from("reservations")
-        .select("id, room_id, guest_id, check_out_date, status")
+        .select("id, room_id, guest_id, room_rate_id, check_out_date, status")
         .eq("check_out_date", today)
         .order("check_out_date", { ascending: true });
 
@@ -119,18 +130,31 @@ export function useDepartures(): UseDeparturesResult {
         return;
       }
 
-      // 4. Construir mapas para lookup rápido
+      // 4. Cargar room_rates para obtener ocupación
+      const { data: ratesData, error: ratesError } = await supabase
+        .from("room_rates")
+        .select("id, occupancy");
+
+      if (ratesError) {
+        setError(`Error al cargar configuraciones: ${ratesError.message}`);
+        return;
+      }
+
+      // 5. Construir mapas para lookup rápido
       const roomMap = new Map<string, RawRoom>(
         (roomsData ?? []).map((r) => [r.id, r as RawRoom])
       );
       const guestMap = new Map<string, RawGuest>(
         (guestsData ?? []).map((g) => [g.id, g as RawGuest])
       );
+      const rateMap = new Map<string, RawRoomRate>(
+        (ratesData ?? []).map((r) => [r.id, r as RawRoomRate])
+      );
 
-      // 5. Enriquecer departures con room y guest
+      // 6. Enriquecer departures con room, guest y ocupación
       setDepartures(
         (reservationsData ?? []).map((r) =>
-          buildDepartureItem(r as RawReservation, roomMap, guestMap)
+          buildDepartureItem(r as RawReservation, roomMap, guestMap, rateMap)
         )
       );
     } catch (err) {

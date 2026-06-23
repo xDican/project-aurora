@@ -2,16 +2,7 @@ import { useState } from "react";
 import { useTodayArrivals, TodayArrival } from "@/hooks/useTodayArrivals";
 import { useDepartures, DepartureItem } from "@/hooks/useDepartures";
 import { es } from "@/lib/i18n/es";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,7 +15,14 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { CalendarCheck, LogOut, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+const occupancyIcon: Record<string, string> = {
+  sencilla: "person",
+  doble: "group",
+  triple: "group",
+};
 
 export default function Hoy() {
   const {
@@ -104,26 +102,15 @@ export default function Hoy() {
 
     if (arrival.status === "booked") {
       return (
-        <div className="flex items-center gap-2">
-          <Button
-            size="sm"
-            onClick={() => handleCheckIn(arrival.reservationId, arrival.roomId)}
-            disabled={isProcessing}
-          >
-            {isProcessing ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin mr-1" />
-                {es.todayPage.processing}
-              </>
-            ) : (
-              es.todayPage.checkInButton
-            )}
-          </Button>
+        <div className="flex justify-end gap-2">
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button size="sm" variant="destructive" disabled={isProcessing}>
+              <button
+                disabled={isProcessing}
+                className="inline-flex items-center justify-center px-3 py-1.5 rounded border border-outline text-primary hover:bg-surface-container-low text-label-md transition-colors disabled:opacity-50"
+              >
                 {es.todayPage.noShow.button}
-              </Button>
+              </button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
@@ -140,202 +127,242 @@ export default function Hoy() {
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
+          <button
+            onClick={() => handleCheckIn(arrival.reservationId, arrival.roomId)}
+            disabled={isProcessing}
+            className="inline-flex items-center justify-center gap-1 px-4 py-1.5 rounded bg-primary text-primary-foreground hover:bg-on-primary-fixed-variant text-label-md font-semibold transition-colors disabled:opacity-50"
+          >
+            {isProcessing && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+            {es.todayPage.checkInButton}
+          </button>
         </div>
       );
     }
     if (arrival.status === "checked_in") {
       return (
-        <span className="text-sm text-muted-foreground">
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-pill bg-secondary-container text-on-secondary-container text-label-bold">
+          <span className="material-symbols-outlined text-[14px]">check_circle</span>
           {es.todayPage.alreadyCheckedIn}
         </span>
       );
     }
     if (arrival.status === "no_show") {
       return (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+        <span className="inline-flex items-center px-2.5 py-1 rounded-pill bg-tertiary-container/20 text-tertiary text-label-bold">
           {es.todayPage.noShow.label}
         </span>
       );
     }
     if (arrival.status === "cancelled") {
       return (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+        <span className="inline-flex items-center px-2.5 py-1 rounded-pill bg-destructive/10 text-destructive text-label-bold">
           {es.reservationStatusLabels.cancelled}
         </span>
       );
     }
-    return <span className="text-sm text-muted-foreground">—</span>;
+    return <span className="text-body-sm text-outline">—</span>;
   };
 
   const renderDepartureActions = (departure: DepartureItem) => {
     if (departure.status === "checked_in") {
+      const isProcessing = processingId === departure.reservationId;
       return (
-        <Button
-          size="sm"
-          variant="secondary"
-          onClick={() =>
-            handleCheckOut(departure.reservationId, departure.roomId)
-          }
-          disabled={processingId === departure.reservationId}
+        <button
+          onClick={() => handleCheckOut(departure.reservationId, departure.roomId)}
+          disabled={isProcessing}
+          className="inline-flex items-center justify-center gap-1 px-4 py-1.5 rounded bg-primary text-primary-foreground hover:bg-on-primary-fixed-variant text-label-md font-semibold transition-colors disabled:opacity-50"
         >
-          {processingId === departure.reservationId ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin mr-1" />
-              {es.todayPage.processing}
-            </>
-          ) : (
-            es.todayPage.checkOutButton
-          )}
-        </Button>
+          {isProcessing && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+          {es.todayPage.checkOutButton}
+        </button>
       );
     }
     if (departure.status === "checked_out") {
       return (
-        <span className="text-sm text-muted-foreground">
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-pill bg-surface-variant text-on-surface-variant text-label-bold">
+          <span className="material-symbols-outlined text-[14px]">done_all</span>
           {es.todayPage.alreadyCheckedOut}
         </span>
       );
     }
-    return <span className="text-sm text-muted-foreground">—</span>;
+    return <span className="text-body-sm text-outline">—</span>;
   };
 
   return (
-    <div className="container mx-auto py-8 px-4 space-y-10">
-      {/* Header */}
+    <div className="space-y-8">
       <div className="flex items-center justify-end">
         <Button variant="outline" onClick={refresh} disabled={loading}>
-          {loading ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            es.todayPage.refresh
-          )}
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : es.todayPage.refresh}
         </Button>
       </div>
 
       {error && (
-        <Alert variant="destructive">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
+        <div className="p-4 rounded bg-destructive/10 text-destructive text-body-md">{error}</div>
       )}
 
-      {/* Arrivals Section */}
+      {/* Llegadas de hoy */}
       <section>
-        <div className="flex items-center gap-3 mb-4">
-          <CalendarCheck className="h-7 w-7 text-primary" />
-          <h2 className="text-2xl font-bold">{es.todayPage.arrivalsTitle}</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-headline-md text-foreground flex items-center gap-2">
+            <span className="material-symbols-outlined text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>
+              flight_land
+            </span>
+            {es.todayPage.arrivalsTitle}
+            <span className="ml-2 inline-flex items-center justify-center px-2 py-0.5 rounded-pill bg-surface-container-high text-on-surface-variant text-label-bold">
+              {arrivals.length}
+            </span>
+          </h2>
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            <span className="ml-2 text-muted-foreground">
-              {es.common.loading}
-            </span>
+          <div className="flex items-center justify-center py-12 text-muted-foreground">
+            <Loader2 className="h-6 w-6 animate-spin mr-2" />
+            {es.common.loading}
           </div>
         ) : arrivals.length === 0 ? (
-          <div className="text-center py-8 border rounded-md bg-muted/30">
-            <CalendarCheck className="mx-auto h-10 w-10 text-muted-foreground mb-3" />
-            <p className="text-muted-foreground">{es.todayPage.noArrivals}</p>
+          <div className="text-center py-8 rounded bg-surface-container-low text-on-surface-variant">
+            {es.todayPage.noArrivals}
           </div>
         ) : (
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{es.todayPage.columns.room}</TableHead>
-                  <TableHead>{es.todayPage.columns.guest}</TableHead>
-                  <TableHead>{es.todayPage.columns.checkIn}</TableHead>
-                  <TableHead>{es.todayPage.columns.status}</TableHead>
-                  <TableHead>{es.common.actions}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+          <div className="bg-surface-container-lowest border border-surface-variant rounded-lg overflow-hidden">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-surface-container border-b border-surface-variant">
+                  <th className="px-table_cell_padding_x py-3 text-label-bold text-on-surface-variant uppercase tracking-wider">
+                    {es.todayPage.columns.guest}
+                  </th>
+                  <th className="px-table_cell_padding_x py-3 text-label-bold text-on-surface-variant uppercase tracking-wider w-32">
+                    {es.todayPage.columns.room}
+                  </th>
+                  <th className="px-table_cell_padding_x py-3 text-label-bold text-on-surface-variant uppercase tracking-wider w-40">
+                    Ocupación
+                  </th>
+                  <th className="px-table_cell_padding_x py-3 text-label-bold text-on-surface-variant uppercase tracking-wider text-right w-64">
+                    {es.common.actions}
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-surface-variant">
                 {arrivals.map((arrival) => (
-                  <TableRow key={arrival.reservationId}>
-                    <TableCell className="font-medium">
+                  <tr
+                    key={arrival.reservationId}
+                    className={cn(
+                      "transition-colors",
+                      arrival.status === "booked"
+                        ? "hover:bg-surface-container-low"
+                        : "bg-surface-container-low/50"
+                    )}
+                  >
+                    <td className="px-table_cell_padding_x py-table_cell_padding_y">
+                      <div className="text-table-data text-foreground">{arrival.guestName}</div>
+                    </td>
+                    <td className="px-table_cell_padding_x py-table_cell_padding_y text-table-data text-foreground">
                       {arrival.roomNumber}
-                    </TableCell>
-                    <TableCell>{arrival.guestName}</TableCell>
-                    <TableCell>{arrival.checkInDate}</TableCell>
-                    <TableCell>
-                      <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          arrival.status === "checked_in"
-                            ? "bg-green-100 text-green-800"
-                            : "bg-blue-100 text-blue-800"
-                        }`}
-                      >
-                        {es.reservationStatusLabels[arrival.status] ||
-                          arrival.status}
-                      </span>
-                    </TableCell>
-                    <TableCell>{renderArrivalActions(arrival)}</TableCell>
-                  </TableRow>
+                    </td>
+                    <td className="px-table_cell_padding_x py-table_cell_padding_y">
+                      {arrival.occupancy && (
+                        <span className="inline-flex items-center gap-1 text-body-sm text-on-surface-variant">
+                          <span className="material-symbols-outlined text-[16px]">
+                            {occupancyIcon[arrival.occupancy] ?? "person"}
+                          </span>
+                          {es.occupancyLabels[arrival.occupancy]}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-table_cell_padding_x py-table_cell_padding_y text-right">
+                      {renderArrivalActions(arrival)}
+                    </td>
+                  </tr>
                 ))}
-              </TableBody>
-            </Table>
+              </tbody>
+            </table>
           </div>
         )}
       </section>
 
-      {/* Departures Section */}
+      {/* Salidas de hoy */}
       <section>
-        <div className="flex items-center gap-3 mb-4">
-          <LogOut className="h-7 w-7 text-primary" />
-          <h2 className="text-2xl font-bold">{es.todayPage.departuresTitle}</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-headline-md text-foreground flex items-center gap-2">
+            <span className="material-symbols-outlined text-tertiary" style={{ fontVariationSettings: "'FILL' 1" }}>
+              flight_takeoff
+            </span>
+            {es.todayPage.departuresTitle}
+            <span className="ml-2 inline-flex items-center justify-center px-2 py-0.5 rounded-pill bg-surface-container-high text-on-surface-variant text-label-bold">
+              {departures.length}
+            </span>
+          </h2>
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            <span className="ml-2 text-muted-foreground">
-              {es.common.loading}
-            </span>
+          <div className="flex items-center justify-center py-12 text-muted-foreground">
+            <Loader2 className="h-6 w-6 animate-spin mr-2" />
+            {es.common.loading}
           </div>
         ) : departures.length === 0 ? (
-          <div className="text-center py-8 border rounded-md bg-muted/30">
-            <LogOut className="mx-auto h-10 w-10 text-muted-foreground mb-3" />
-            <p className="text-muted-foreground">{es.todayPage.noDepartures}</p>
+          <div className="text-center py-8 rounded bg-surface-container-low text-on-surface-variant">
+            {es.todayPage.noDepartures}
           </div>
         ) : (
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{es.todayPage.columns.room}</TableHead>
-                  <TableHead>{es.todayPage.columns.guest}</TableHead>
-                  <TableHead>{es.todayPage.columns.checkOut}</TableHead>
-                  <TableHead>{es.todayPage.columns.status}</TableHead>
-                  <TableHead>{es.common.actions}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+          <div className="bg-surface-container-lowest border border-surface-variant rounded-lg overflow-hidden">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-surface-container border-b border-surface-variant">
+                  <th className="px-table_cell_padding_x py-3 text-label-bold text-on-surface-variant uppercase tracking-wider">
+                    {es.todayPage.columns.guest}
+                  </th>
+                  <th className="px-table_cell_padding_x py-3 text-label-bold text-on-surface-variant uppercase tracking-wider w-32">
+                    {es.todayPage.columns.room}
+                  </th>
+                  <th className="px-table_cell_padding_x py-3 text-label-bold text-on-surface-variant uppercase tracking-wider w-40">
+                    Ocupación
+                  </th>
+                  <th className="px-table_cell_padding_x py-3 text-label-bold text-on-surface-variant uppercase tracking-wider text-right w-48">
+                    {es.common.actions}
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-surface-variant">
                 {departures.map((departure) => (
-                  <TableRow key={departure.reservationId}>
-                    <TableCell className="font-medium">
+                  <tr
+                    key={departure.reservationId}
+                    className={cn(
+                      "transition-colors",
+                      departure.status === "checked_in"
+                        ? "hover:bg-surface-container-low"
+                        : "bg-surface-container-low/50"
+                    )}
+                  >
+                    <td className="px-table_cell_padding_x py-table_cell_padding_y">
+                      <div className="text-table-data text-foreground">{departure.guestName}</div>
+                    </td>
+                    <td
+                      className={cn(
+                        "px-table_cell_padding_x py-table_cell_padding_y text-table-data",
+                        departure.status === "checked_out"
+                          ? "text-outline-variant line-through"
+                          : "text-foreground"
+                      )}
+                    >
                       {departure.roomNumber}
-                    </TableCell>
-                    <TableCell>{departure.guestName}</TableCell>
-                    <TableCell>{departure.checkOutDate}</TableCell>
-                    <TableCell>
-                      <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          departure.status === "checked_out"
-                            ? "bg-gray-100 text-gray-800"
-                            : departure.status === "checked_in"
-                            ? "bg-green-100 text-green-800"
-                            : "bg-blue-100 text-blue-800"
-                        }`}
-                      >
-                        {es.reservationStatusLabels[departure.status] ||
-                          departure.status}
-                      </span>
-                    </TableCell>
-                    <TableCell>{renderDepartureActions(departure)}</TableCell>
-                  </TableRow>
+                    </td>
+                    <td className="px-table_cell_padding_x py-table_cell_padding_y">
+                      {departure.occupancy && (
+                        <span className="inline-flex items-center gap-1 text-body-sm text-on-surface-variant">
+                          <span className="material-symbols-outlined text-[16px]">
+                            {occupancyIcon[departure.occupancy] ?? "person"}
+                          </span>
+                          {es.occupancyLabels[departure.occupancy]}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-table_cell_padding_x py-table_cell_padding_y text-right">
+                      {renderDepartureActions(departure)}
+                    </td>
+                  </tr>
                 ))}
-              </TableBody>
-            </Table>
+              </tbody>
+            </table>
           </div>
         )}
       </section>
