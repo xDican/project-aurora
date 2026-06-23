@@ -408,7 +408,7 @@ export default function Disponibilidad() {
   return (
     <div className="space-y-stack_gap_md">
       {/* Filters & Controls */}
-      <section className="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 flex flex-nowrap items-end gap-6 overflow-x-auto">
+      <section className="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 flex flex-nowrap items-end gap-6">
         <div className="flex flex-nowrap gap-4 shrink-0">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="checkIn" className="text-label-md text-on-surface-variant whitespace-nowrap">
