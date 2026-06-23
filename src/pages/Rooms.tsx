@@ -35,22 +35,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import { RoomForm, type RoomFormData, type RateConfig } from "@/components/rooms/RoomForm";
 import { toast } from "sonner";
 import { useRooms, type Room, type RoomStatus } from "@/hooks/useRooms";
 import { useRoomRates, type RoomRate, type OccupancyType } from "@/hooks/useRoomRates";
-import { Pencil, Plus, Loader2, Archive, DollarSign } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { es } from "@/lib/i18n/es";
 import { useAuth } from "@/contexts/AuthContext";
 
 const { roomsPage, common, roomRates: ratesT } = es;
 
-const statusColors: Record<RoomStatus, string> = {
-  available: "bg-green-500/10 text-green-700 border-green-500/20",
-  occupied: "bg-blue-500/10 text-blue-700 border-blue-500/20",
-  cleaning: "bg-yellow-500/10 text-yellow-700 border-yellow-500/20",
-  maintenance: "bg-red-500/10 text-red-700 border-red-500/20",
+const statusPillClasses: Record<RoomStatus, string> = {
+  available: "bg-[#dcfce7] text-[#166534]",
+  occupied: "bg-[#dbeafe] text-[#1e40af]",
+  cleaning: "bg-[#fef9c3] text-[#854d0e]",
+  maintenance: "bg-error-container text-on-error-container",
 };
 
 const OCCUPANCY_OPTIONS: OccupancyType[] = ["sencilla", "doble", "triple"];
@@ -256,114 +255,120 @@ export default function Rooms() {
   }
 
   return (
-    <div className="min-h-screen bg-background p-6 md:p-10">
-      <div className="mx-auto max-w-6xl">
-        <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <h1 className="text-2xl font-bold text-foreground">{roomsPage.title}</h1>
+    <div className="space-y-stack_gap_md">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h2 className="text-headline-md text-foreground font-bold">{roomsPage.title}</h2>
+          <p className="text-body-sm text-on-surface-variant mt-1">
+            Administra el inventario y estado físico de las habitaciones.
+          </p>
+        </div>
+        {isAdmin && (
+          <Button onClick={openCreateModal} className="gap-2">
+            <span className="material-symbols-outlined text-[18px]">add</span>
+            {roomsPage.addRoom}
+          </Button>
+        )}
+      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center py-12 text-muted-foreground">
+          <Loader2 className="h-6 w-6 animate-spin mr-2" />
+          {es.common.loading}
+        </div>
+      ) : rooms.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-outline-variant p-12 text-center">
+          <p className="text-on-surface-variant">{roomsPage.noRooms}</p>
           {isAdmin && (
-            <Button onClick={openCreateModal}>
-              <Plus className="mr-2 h-4 w-4" />
-              {roomsPage.addRoom}
+            <Button onClick={openCreateModal} variant="outline" className="mt-4 gap-2">
+              <span className="material-symbols-outlined text-[18px]">add</span>
+              {roomsPage.addFirstRoom}
             </Button>
           )}
-        </header>
-
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          </div>
-        ) : rooms.length === 0 ? (
-          <div className="rounded-lg border border-dashed p-12 text-center">
-            <p className="text-muted-foreground">{roomsPage.noRooms}</p>
-            {isAdmin && (
-              <Button onClick={openCreateModal} variant="outline" className="mt-4">
-                <Plus className="mr-2 h-4 w-4" />
-                {roomsPage.addFirstRoom}
-              </Button>
-            )}
-          </div>
-        ) : (
-          <div className="rounded-lg border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{roomsPage.columns.number}</TableHead>
-                  <TableHead>{roomsPage.columns.status}</TableHead>
-                  <TableHead>{roomsPage.columns.notes}</TableHead>
-                  <TableHead className="w-[120px]">{common.actions}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rooms.map((room) => (
-                  <TableRow key={room.id}>
-                    <TableCell className="font-medium">{room.number}</TableCell>
-                    <TableCell>
-                      <Badge
-                        variant="outline"
-                        className={statusColors[room.status]}
-                      >
-                        {es.statusLabels[room.status]}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="max-w-[200px] text-muted-foreground">
-                      {truncateText(room.notes)}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1">
-                        {isAdmin && (
-                          <>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => openRatesModal(room)}
-                              title={ratesT.configButton}
+        </div>
+      ) : (
+        <div className="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden">
+          <table className="w-full text-left border-collapse">
+            <thead className="bg-surface-container-low border-b border-outline-variant">
+              <tr>
+                <th className="px-table_cell_padding_x py-table_cell_padding_y text-label-bold text-on-surface-variant">{roomsPage.columns.number}</th>
+                <th className="px-table_cell_padding_x py-table_cell_padding_y text-label-bold text-on-surface-variant">{roomsPage.columns.status}</th>
+                <th className="px-table_cell_padding_x py-table_cell_padding_y text-label-bold text-on-surface-variant">{roomsPage.columns.notes}</th>
+                <th className="px-table_cell_padding_x py-table_cell_padding_y text-label-bold text-on-surface-variant text-right">{common.actions}</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-outline-variant">
+              {rooms.map((room) => (
+                <tr key={room.id} className="hover:bg-surface-container-low transition-colors group">
+                  <td className="px-table_cell_padding_x py-table_cell_padding_y text-table-data text-foreground font-semibold">
+                    {room.number}
+                  </td>
+                  <td className="px-table_cell_padding_x py-table_cell_padding_y">
+                    <span className={`inline-flex items-center px-2 py-1 rounded-pill text-label-md ${statusPillClasses[room.status]}`}>
+                      {es.statusLabels[room.status]}
+                    </span>
+                  </td>
+                  <td className="px-table_cell_padding_x py-table_cell_padding_y text-body-sm text-on-surface-variant max-w-xs truncate">
+                    {truncateText(room.notes)}
+                  </td>
+                  <td className="px-table_cell_padding_x py-table_cell_padding_y text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      {isAdmin && (
+                        <>
+                          <button
+                            onClick={() => openRatesModal(room)}
+                            title={ratesT.configButton}
+                            className="p-1.5 text-on-surface-variant hover:text-primary hover:bg-surface-container-high rounded transition-colors"
+                          >
+                            <span className="material-symbols-outlined text-[20px]">attach_money</span>
+                          </button>
+                          <button
+                            onClick={() => openEditModal(room)}
+                            title={es.common.edit}
+                            className="p-1.5 text-on-surface-variant hover:text-primary hover:bg-surface-container-high rounded transition-colors"
+                          >
+                            <span className="material-symbols-outlined text-[20px]">edit</span>
+                          </button>
+                        </>
+                      )}
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <button
+                            title={es.common.edit}
+                            className="p-1.5 text-on-surface-variant hover:text-destructive hover:bg-error-container/20 rounded transition-colors"
+                          >
+                            <span className="material-symbols-outlined text-[20px]">archive</span>
+                          </button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>
+                              {roomsPage.archive.dialogTitle}
+                            </AlertDialogTitle>
+                            <AlertDialogDescription>
+                              {roomsPage.archive.dialogMessage}
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>
+                              {roomsPage.archive.back}
+                            </AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleArchive(room.id)}
                             >
-                              <DollarSign className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => openEditModal(room)}
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                          </>
-                        )}
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="sm">
-                              <Archive className="h-4 w-4" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>
-                                {roomsPage.archive.dialogTitle}
-                              </AlertDialogTitle>
-                              <AlertDialogDescription>
-                                {roomsPage.archive.dialogMessage}
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>
-                                {roomsPage.archive.back}
-                              </AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => handleArchive(room.id)}
-                              >
-                                {roomsPage.archive.confirm}
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
+                              {roomsPage.archive.confirm}
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
         {/* Room Edit/Create Modal */}
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
@@ -491,7 +496,7 @@ export default function Rooms() {
                         onClick={handleCreateRate}
                         disabled={!newOccupancy || !newPrice}
                       >
-                        <Plus className="h-4 w-4 mr-1" />
+                        <span className="material-symbols-outlined text-[16px] mr-1">add</span>
                         {ratesT.add}
                       </Button>
                     </div>
@@ -501,7 +506,6 @@ export default function Rooms() {
             )}
           </DialogContent>
         </Dialog>
-      </div>
     </div>
   );
 }

@@ -1,7 +1,6 @@
 import { type RoomCard } from "@/hooks/useRoomMap";
 import { es } from "@/lib/i18n/es";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 
 interface RoomCardComponentProps {
   room: RoomCard;
@@ -9,11 +8,11 @@ interface RoomCardComponentProps {
   onMarkAsClean?: (roomId: string) => void;
 }
 
-const statusStyles: Record<string, string> = {
-  available: "bg-status-available text-status-available-foreground",
-  occupied: "bg-status-occupied text-status-occupied-foreground",
-  cleaning: "bg-status-cleaning text-status-cleaning-foreground",
-  maintenance: "bg-status-maintenance text-status-maintenance-foreground",
+const statusStyles: Record<string, { bg: string; text: string; icon: string }> = {
+  available: { bg: "bg-[#dcfce7] border border-[#bbf7d0]", text: "text-[#166534]", icon: "bed" },
+  occupied: { bg: "bg-[#dbeafe] border border-[#bfdbfe]", text: "text-[#1e40af]", icon: "person" },
+  cleaning: { bg: "bg-[#fef9c3] border border-[#fef08a]", text: "text-[#854d0e]", icon: "cleaning_services" },
+  maintenance: { bg: "bg-error-container border border-error/20", text: "text-on-error-container", icon: "build" },
 };
 
 export function RoomCardComponent({ room, onClick, onMarkAsClean }: RoomCardComponentProps) {
@@ -22,34 +21,37 @@ export function RoomCardComponent({ room, onClick, onMarkAsClean }: RoomCardComp
     onMarkAsClean?.(room.id);
   };
 
+  const style = statusStyles[room.status] ?? statusStyles.available;
+
   return (
     <button
       onClick={onClick}
       className={cn(
-        "w-full p-4 rounded-lg shadow-md transition-all hover:scale-105 hover:shadow-lg cursor-pointer text-left",
-        statusStyles[room.status] ?? statusStyles.available
+        "w-full rounded-xl p-4 h-32 flex flex-col justify-between text-left cursor-pointer hover:shadow-md transition-shadow",
+        style.bg
       )}
     >
-      <div className="text-3xl font-bold mb-1">{room.number}</div>
-      <div className="text-sm opacity-90">
-        {es.roomTypeLabels[room.type] ?? room.type}
+      <div className="flex justify-between items-start">
+        <span className={cn("text-headline-md font-bold", style.text)}>{room.number}</span>
+        <span className={cn("material-symbols-outlined text-[20px]", style.text)}>{style.icon}</span>
       </div>
-      <div className="mt-2 text-xs font-medium px-2 py-1 rounded bg-black/10 inline-block">
-        {es.statusLabels[room.status] ?? room.status}
-      </div>
-      
-      {room.status === "cleaning" && onMarkAsClean && (
-        <div className="mt-3">
-          <Button
-            size="sm"
-            variant="secondary"
+      <div className="flex flex-col gap-2">
+        <span className={cn("text-label-bold uppercase leading-none", style.text)}>
+          {es.statusLabels[room.status] ?? room.status}
+        </span>
+        {room.status === "cleaning" && onMarkAsClean ? (
+          <button
             onClick={handleMarkAsClean}
-            className="w-full bg-white/90 hover:bg-white text-foreground"
+            className="bg-[#ca8a04] text-white text-[11px] py-1 px-2 rounded hover:bg-[#a16207] transition-colors w-max"
           >
             {es.roomMapPage.markAsClean}
-          </Button>
-        </div>
-      )}
+          </button>
+        ) : (
+          <span className={cn("text-[11px] opacity-70", style.text)}>
+            {es.roomTypeLabels[room.type] ?? room.type}
+          </span>
+        )}
+      </div>
     </button>
   );
 }

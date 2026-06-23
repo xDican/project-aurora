@@ -2,14 +2,6 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -36,7 +28,7 @@ import { GuestForm, type GuestFormData } from "@/components/guests/GuestForm";
 import { toast } from "sonner";
 import { useGuests, type Guest } from "@/hooks/useGuests";
 import { useAuth } from "@/contexts/AuthContext";
-import { Pencil, Plus, Loader2, Search, Archive } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { es } from "@/lib/i18n/es";
 
 const { guestsPage, common } = es;
@@ -145,146 +137,158 @@ export default function Guests() {
   }
 
   return (
-    <div className="min-h-screen bg-background p-6 md:p-10">
-      <div className="mx-auto max-w-6xl">
-        <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <h1 className="text-2xl font-bold text-foreground">{guestsPage.title}</h1>
-          <Button onClick={openCreateModal}>
-            <Plus className="mr-2 h-4 w-4" />
-            {guestsPage.addGuest}
-          </Button>
-        </header>
-
-        {/* Search Bar */}
-        <div className="relative mb-6">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder={guestsPage.searchPlaceholder}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          </div>
-        ) : guests.length === 0 ? (
-          <div className="rounded-lg border border-dashed p-12 text-center">
-            <p className="text-muted-foreground">
-              {search ? `No se encontraron resultados para "${search}"` : guestsPage.noGuests}
-            </p>
-            {!search && (
-              <Button onClick={openCreateModal} variant="outline" className="mt-4">
-                <Plus className="mr-2 h-4 w-4" />
-                {guestsPage.addFirstGuest}
-              </Button>
-            )}
-          </div>
-        ) : (
-          <div className="rounded-lg border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{guestsPage.columns.name}</TableHead>
-                  <TableHead>{guestsPage.columns.document}</TableHead>
-                  <TableHead>{guestsPage.columns.phone}</TableHead>
-                  <TableHead>{guestsPage.columns.email}</TableHead>
-                  <TableHead className="w-[80px]">{common.actions}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {guests.map((guest) => {
-                  const canEdit = canEditGuest(guest);
-                  
-                  return (
-                    <TableRow key={guest.id}>
-                      <TableCell className="font-medium">{guest.name}</TableCell>
-                      <TableCell>{displayValue(guest.document)}</TableCell>
-                      <TableCell>{displayValue(guest.phone)}</TableCell>
-                      <TableCell>{displayValue(guest.email)}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          {canEdit ? (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => openEditModal(guest)}
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                          ) : (
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button variant="ghost" size="sm" disabled>
-                                    <Pencil className="h-4 w-4 text-muted-foreground" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  {guestsPage.editDisabledTooltip}
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          )}
-                          
-                          {isAdmin && (
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="sm">
-                                  <Archive className="h-4 w-4" />
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>
-                                    {guestsPage.archive.dialogTitle}
-                                  </AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    {guestsPage.archive.dialogMessage}
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>
-                                    {guestsPage.archive.back}
-                                  </AlertDialogCancel>
-                                  <AlertDialogAction
-                                    onClick={() => handleArchive(guest.id)}
-                                  >
-                                    {guestsPage.archive.confirm}
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-
-        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>
-                {editingGuest ? guestsPage.editGuest : guestsPage.newGuest}
-              </DialogTitle>
-            </DialogHeader>
-            <GuestForm
-              guest={editingGuest}
-              onSubmit={handleSubmit}
-              onCancel={closeModal}
-              isLoading={isSaving}
-              error={formError}
-            />
-          </DialogContent>
-        </Dialog>
+    <div className="space-y-stack_gap_md">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <h2 className="text-headline-md text-foreground font-bold">{guestsPage.title}</h2>
+        <Button onClick={openCreateModal} className="gap-2">
+          <span className="material-symbols-outlined text-[18px]">person_add</span>
+          {guestsPage.addGuest}
+        </Button>
       </div>
+
+      {/* Search Bar */}
+      <div className="relative max-w-md">
+        <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[20px]">
+          search
+        </span>
+        <Input
+          placeholder={guestsPage.searchPlaceholder}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="pl-10"
+        />
+      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center py-12 text-muted-foreground">
+          <Loader2 className="h-6 w-6 animate-spin mr-2" />
+          {es.common.loading}
+        </div>
+      ) : guests.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-outline-variant p-12 text-center">
+          <p className="text-on-surface-variant">
+            {search ? `No se encontraron resultados para "${search}"` : guestsPage.noGuests}
+          </p>
+          {!search && (
+            <Button onClick={openCreateModal} variant="outline" className="mt-4 gap-2">
+              <span className="material-symbols-outlined text-[18px]">person_add</span>
+              {guestsPage.addFirstGuest}
+            </Button>
+          )}
+        </div>
+      ) : (
+        <div className="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden">
+          <table className="w-full text-left border-collapse">
+            <thead className="bg-surface-container-low border-b border-outline-variant">
+              <tr>
+                <th className="px-table_cell_padding_x py-table_cell_padding_y text-label-bold text-on-surface-variant">{guestsPage.columns.name}</th>
+                <th className="px-table_cell_padding_x py-table_cell_padding_y text-label-bold text-on-surface-variant">{guestsPage.columns.document}</th>
+                <th className="px-table_cell_padding_x py-table_cell_padding_y text-label-bold text-on-surface-variant">{guestsPage.columns.phone}</th>
+                <th className="px-table_cell_padding_x py-table_cell_padding_y text-label-bold text-on-surface-variant">{guestsPage.columns.email}</th>
+                <th className="px-table_cell_padding_x py-table_cell_padding_y text-label-bold text-on-surface-variant text-right">{common.actions}</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-outline-variant">
+              {guests.map((guest) => {
+                const canEdit = canEditGuest(guest);
+
+                return (
+                  <tr key={guest.id} className="hover:bg-surface-container-low transition-colors">
+                    <td className="px-table_cell_padding_x py-table_cell_padding_y text-table-data text-foreground font-medium">
+                      {guest.name}
+                    </td>
+                    <td className="px-table_cell_padding_x py-table_cell_padding_y text-body-sm text-on-surface-variant">
+                      {displayValue(guest.document)}
+                    </td>
+                    <td className="px-table_cell_padding_x py-table_cell_padding_y text-body-sm text-on-surface-variant">
+                      {displayValue(guest.phone)}
+                    </td>
+                    <td className="px-table_cell_padding_x py-table_cell_padding_y text-body-sm text-on-surface-variant">
+                      {displayValue(guest.email)}
+                    </td>
+                    <td className="px-table_cell_padding_x py-table_cell_padding_y text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        {canEdit ? (
+                          <button
+                            onClick={() => openEditModal(guest)}
+                            title={es.common.edit}
+                            className="p-1 rounded text-on-surface-variant hover:text-primary hover:bg-primary-container/20 transition-colors"
+                          >
+                            <span className="material-symbols-outlined text-[20px]">edit</span>
+                          </button>
+                        ) : (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button disabled className="p-1 rounded text-outline-variant cursor-not-allowed">
+                                  <span className="material-symbols-outlined text-[20px]">edit</span>
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                {guestsPage.editDisabledTooltip}
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
+
+                        {isAdmin && (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <button
+                                title={common.actions}
+                                className="p-1 rounded text-on-surface-variant hover:text-destructive hover:bg-error-container/20 transition-colors"
+                              >
+                                <span className="material-symbols-outlined text-[20px]">archive</span>
+                              </button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>
+                                  {guestsPage.archive.dialogTitle}
+                                </AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  {guestsPage.archive.dialogMessage}
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>
+                                  {guestsPage.archive.back}
+                                </AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleArchive(guest.id)}
+                                >
+                                  {guestsPage.archive.confirm}
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {editingGuest ? guestsPage.editGuest : guestsPage.newGuest}
+            </DialogTitle>
+          </DialogHeader>
+          <GuestForm
+            guest={editingGuest}
+            onSubmit={handleSubmit}
+            onCancel={closeModal}
+            isLoading={isSaving}
+            error={formError}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

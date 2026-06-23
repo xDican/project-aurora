@@ -1,24 +1,15 @@
 import { useState, useEffect, useCallback } from "react";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { es as dateEs } from "date-fns/locale";
-import { BarChart3, Download, Loader2, RefreshCw } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { es } from "@/lib/i18n/es";
 import { useReports } from "@/hooks/useReports";
 import { supabase } from "@/integrations/supabase/client";
 import { formatCurrency } from "@/lib/currency";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import {
   Select,
   SelectContent,
@@ -26,6 +17,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+
+const tabsListClass = "border-b border-outline-variant bg-transparent p-0 h-auto justify-start rounded-none w-full";
+const tabsTriggerClass =
+  "rounded-none border-b-2 border-transparent px-6 py-3 text-body-md text-on-surface-variant data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none data-[state=active]:font-bold";
 
 interface Room {
   id: string;
@@ -180,308 +175,274 @@ export default function Reportes() {
   const formatPercent = (value: number) => `${value.toFixed(1)}%`;
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <BarChart3 className="h-8 w-8 text-primary" />
-        <h1 className="text-2xl font-bold">{es.reportsPage.title}</h1>
-      </div>
-
+    <div className="space-y-stack_gap_md">
       {/* Date range selector */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-wrap items-end gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="startDate">{es.reportsPage.startDate}</Label>
-              <Input
-                id="startDate"
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="w-40"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="endDate">{es.reportsPage.endDate}</Label>
-              <Input
-                id="endDate"
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="w-40"
-              />
-            </div>
-            <Button
-              onClick={loadActiveTabData}
-              disabled={!isValidRange}
-              className="gap-2"
-            >
-              <RefreshCw className="h-4 w-4" />
-              {es.reportsPage.updateButton}
-            </Button>
-            {!isValidRange && (
-              <span className="text-sm text-destructive">
-                {es.reportsPage.invalidRange}
-              </span>
-            )}
+      <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-4 flex flex-col md:flex-row items-end md:items-center justify-between gap-4">
+        <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto">
+          <div className="flex flex-col gap-1.5 w-full md:w-48">
+            <Label htmlFor="startDate" className="text-label-md text-on-surface-variant">{es.reportsPage.startDate}</Label>
+            <Input
+              id="startDate"
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+            />
           </div>
-        </CardContent>
-      </Card>
+          <div className="flex flex-col gap-1.5 w-full md:w-48">
+            <Label htmlFor="endDate" className="text-label-md text-on-surface-variant">{es.reportsPage.endDate}</Label>
+            <Input
+              id="endDate"
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+            />
+          </div>
+        </div>
+        <Button onClick={loadActiveTabData} disabled={!isValidRange} className="gap-2 whitespace-nowrap">
+          <span className="material-symbols-outlined text-[18px]">refresh</span>
+          {es.reportsPage.updateButton}
+        </Button>
+        {!isValidRange && (
+          <span className="text-body-sm text-destructive">
+            {es.reportsPage.invalidRange}
+          </span>
+        )}
+      </div>
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="resumen">{es.reportsPage.tabs.summary}</TabsTrigger>
-          <TabsTrigger value="reservas">{es.reportsPage.tabs.reservations}</TabsTrigger>
-          <TabsTrigger value="ocupacion">{es.reportsPage.tabs.occupancy}</TabsTrigger>
-          <TabsTrigger value="ingresos">{es.reportsPage.tabs.revenue}</TabsTrigger>
+        <TabsList className={tabsListClass}>
+          <TabsTrigger value="resumen" className={tabsTriggerClass}>{es.reportsPage.tabs.summary}</TabsTrigger>
+          <TabsTrigger value="reservas" className={tabsTriggerClass}>{es.reportsPage.tabs.reservations}</TabsTrigger>
+          <TabsTrigger value="ocupacion" className={tabsTriggerClass}>{es.reportsPage.tabs.occupancy}</TabsTrigger>
+          <TabsTrigger value="ingresos" className={tabsTriggerClass}>{es.reportsPage.tabs.revenue}</TabsTrigger>
         </TabsList>
 
         {/* Tab: Resumen */}
-        <TabsContent value="resumen" className="space-y-4">
+        <TabsContent value="resumen" className="space-y-4 mt-6">
           {loadingKpis ? (
-            <div className="flex justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <div className="flex justify-center py-12 text-muted-foreground">
+              <Loader2 className="h-6 w-6 animate-spin" />
             </div>
           ) : kpis ? (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    {es.reportsPage.kpis.activeReservations}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold">{kpis.total_reservas_activas}</div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    {es.reportsPage.kpis.cancelled}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold">{kpis.total_canceladas}</div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    {es.reportsPage.kpis.noShow}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold">{kpis.total_no_show}</div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    {es.reportsPage.kpis.estimatedRevenue}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold text-primary">
-                    {formatCurrency(kpis.ingresos_estimados)}
-                  </div>
-                </CardContent>
-              </Card>
+            <div className="grid gap-gutter md:grid-cols-2 lg:grid-cols-4">
+              <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-5 flex flex-col justify-between h-28">
+                <span className="text-label-md text-on-surface-variant uppercase tracking-wider">
+                  {es.reportsPage.kpis.activeReservations}
+                </span>
+                <span className="text-headline-lg text-foreground">{kpis.total_reservas_activas}</span>
+              </div>
+              <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-5 flex flex-col justify-between h-28">
+                <span className="text-label-md text-on-surface-variant uppercase tracking-wider">
+                  {es.reportsPage.kpis.cancelled}
+                </span>
+                <span className="text-headline-lg text-foreground">{kpis.total_canceladas}</span>
+              </div>
+              <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-5 flex flex-col justify-between h-28">
+                <span className="text-label-md text-on-surface-variant uppercase tracking-wider">
+                  {es.reportsPage.kpis.noShow}
+                </span>
+                <span className="text-headline-lg text-foreground">{kpis.total_no_show}</span>
+              </div>
+              <div className="bg-primary-container/10 border border-primary/20 rounded-xl p-5 flex flex-col justify-between h-28">
+                <span className="text-label-md text-on-surface-variant uppercase tracking-wider">
+                  {es.reportsPage.kpis.estimatedRevenue}
+                </span>
+                <span className="text-headline-lg text-primary">
+                  {formatCurrency(kpis.ingresos_estimados)}
+                </span>
+              </div>
             </div>
           ) : (
-            <p className="text-center text-muted-foreground py-8">
+            <p className="text-center text-on-surface-variant py-8">
               {es.reportsPage.reservationsTab.noData}
             </p>
           )}
         </TabsContent>
 
         {/* Tab: Reservas */}
-        <TabsContent value="reservas" className="space-y-4">
+        <TabsContent value="reservas" className="space-y-4 mt-6">
           {/* Filters */}
-          <Card>
-            <CardContent className="pt-6">
-              <div className="flex flex-wrap items-end gap-4">
-                <div className="space-y-2">
-                  <Label>{es.reportsPage.reservationsTab.statusFilter}</Label>
-                  <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="w-36">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {STATUS_OPTIONS.map((opt) => (
-                        <SelectItem key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>{es.reportsPage.reservationsTab.roomFilter}</Label>
-                  <Select value={roomFilter} onValueChange={setRoomFilter}>
-                    <SelectTrigger className="w-36">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">
-                        {es.reportsPage.reservationsTab.allRooms}
-                      </SelectItem>
-                      {rooms.map((room) => (
-                        <SelectItem key={room.id} value={room.id}>
-                          {room.number}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>{es.reportsPage.reservationsTab.guestFilter}</Label>
-                  <Select value={guestFilter} onValueChange={setGuestFilter}>
-                    <SelectTrigger className="w-48">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">
-                        {es.reportsPage.reservationsTab.allGuests}
-                      </SelectItem>
-                      {guests.map((guest) => (
-                        <SelectItem key={guest.id} value={guest.id}>
-                          {guest.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <Button variant="outline" onClick={exportCSV} className="gap-2">
-                  <Download className="h-4 w-4" />
-                  {es.reportsPage.reservationsTab.exportCsv}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="flex flex-wrap items-end gap-4">
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-label-md text-on-surface-variant">{es.reportsPage.reservationsTab.statusFilter}</Label>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-36">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {STATUS_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-label-md text-on-surface-variant">{es.reportsPage.reservationsTab.roomFilter}</Label>
+              <Select value={roomFilter} onValueChange={setRoomFilter}>
+                <SelectTrigger className="w-36">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">
+                    {es.reportsPage.reservationsTab.allRooms}
+                  </SelectItem>
+                  {rooms.map((room) => (
+                    <SelectItem key={room.id} value={room.id}>
+                      {room.number}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label className="text-label-md text-on-surface-variant">{es.reportsPage.reservationsTab.guestFilter}</Label>
+              <Select value={guestFilter} onValueChange={setGuestFilter}>
+                <SelectTrigger className="w-48">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">
+                    {es.reportsPage.reservationsTab.allGuests}
+                  </SelectItem>
+                  {guests.map((guest) => (
+                    <SelectItem key={guest.id} value={guest.id}>
+                      {guest.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button variant="outline" onClick={exportCSV} className="gap-2">
+              <span className="material-symbols-outlined text-[18px]">download</span>
+              {es.reportsPage.reservationsTab.exportCsv}
+            </Button>
+          </div>
 
           {/* Table */}
           {loadingReservations ? (
-            <div className="flex justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <div className="flex justify-center py-12 text-muted-foreground">
+              <Loader2 className="h-6 w-6 animate-spin" />
             </div>
           ) : reservations.length > 0 ? (
-            <Card>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{es.reportsPage.reservationsTab.columns.room}</TableHead>
-                    <TableHead>{es.reportsPage.reservationsTab.columns.guest}</TableHead>
-                    <TableHead>{es.reportsPage.reservationsTab.columns.checkIn}</TableHead>
-                    <TableHead>{es.reportsPage.reservationsTab.columns.checkOut}</TableHead>
-                    <TableHead>{es.reportsPage.reservationsTab.columns.status}</TableHead>
-                    <TableHead>{es.reportsPage.reservationsTab.columns.occupancy}</TableHead>
-                    <TableHead className="text-right">
+            <div className="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden">
+              <table className="w-full text-left border-collapse">
+                <thead className="bg-surface-container-low border-b border-outline-variant">
+                  <tr>
+                    <th className="px-table_cell_padding_x py-table_cell_padding_y text-label-bold text-on-surface-variant">{es.reportsPage.reservationsTab.columns.room}</th>
+                    <th className="px-table_cell_padding_x py-table_cell_padding_y text-label-bold text-on-surface-variant">{es.reportsPage.reservationsTab.columns.guest}</th>
+                    <th className="px-table_cell_padding_x py-table_cell_padding_y text-label-bold text-on-surface-variant">{es.reportsPage.reservationsTab.columns.checkIn}</th>
+                    <th className="px-table_cell_padding_x py-table_cell_padding_y text-label-bold text-on-surface-variant">{es.reportsPage.reservationsTab.columns.checkOut}</th>
+                    <th className="px-table_cell_padding_x py-table_cell_padding_y text-label-bold text-on-surface-variant">{es.reportsPage.reservationsTab.columns.status}</th>
+                    <th className="px-table_cell_padding_x py-table_cell_padding_y text-label-bold text-on-surface-variant">{es.reportsPage.reservationsTab.columns.occupancy}</th>
+                    <th className="px-table_cell_padding_x py-table_cell_padding_y text-label-bold text-on-surface-variant text-right">
                       {es.reportsPage.reservationsTab.columns.price}
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-outline-variant">
                   {reservations.map((r) => (
-                    <TableRow key={r.id}>
-                      <TableCell className="font-medium">{r.room_number}</TableCell>
-                      <TableCell>{r.guest_name}</TableCell>
-                      <TableCell>{formatDate(r.check_in_date)}</TableCell>
-                      <TableCell>{formatDate(r.check_out_date)}</TableCell>
-                      <TableCell>
+                    <tr key={r.id} className="hover:bg-surface-container-low transition-colors">
+                      <td className="px-table_cell_padding_x py-table_cell_padding_y text-table-data text-foreground">{r.room_number}</td>
+                      <td className="px-table_cell_padding_x py-table_cell_padding_y text-table-data text-foreground">{r.guest_name}</td>
+                      <td className="px-table_cell_padding_x py-table_cell_padding_y text-body-md text-on-surface-variant">{formatDate(r.check_in_date)}</td>
+                      <td className="px-table_cell_padding_x py-table_cell_padding_y text-body-md text-on-surface-variant">{formatDate(r.check_out_date)}</td>
+                      <td className="px-table_cell_padding_x py-table_cell_padding_y text-body-md text-on-surface-variant">
                         {STATUS_OPTIONS.find((o) => o.value === r.status)?.label || r.status}
-                      </TableCell>
-                      <TableCell>{r.occupancy || "-"}</TableCell>
-                      <TableCell className="text-right">
+                      </td>
+                      <td className="px-table_cell_padding_x py-table_cell_padding_y text-body-md text-on-surface-variant">{r.occupancy || "-"}</td>
+                      <td className="px-table_cell_padding_x py-table_cell_padding_y text-table-data text-foreground text-right">
                         {formatCurrency(r.final_price)}
-                      </TableCell>
-                    </TableRow>
+                      </td>
+                    </tr>
                   ))}
-                </TableBody>
-              </Table>
-            </Card>
+                </tbody>
+              </table>
+            </div>
           ) : (
-            <p className="text-center text-muted-foreground py-8">
+            <p className="text-center text-on-surface-variant py-8">
               {es.reportsPage.reservationsTab.noData}
             </p>
           )}
         </TabsContent>
 
         {/* Tab: Ocupación */}
-        <TabsContent value="ocupacion" className="space-y-4">
+        <TabsContent value="ocupacion" className="space-y-4 mt-6">
           {loadingOccupancy ? (
-            <div className="flex justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <div className="flex justify-center py-12 text-muted-foreground">
+              <Loader2 className="h-6 w-6 animate-spin" />
             </div>
           ) : occupancy.length > 0 ? (
-            <Card>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{es.reportsPage.occupancyTab.columns.day}</TableHead>
-                    <TableHead className="text-center">
+            <div className="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden">
+              <table className="w-full text-left border-collapse">
+                <thead className="bg-surface-container-low border-b border-outline-variant">
+                  <tr>
+                    <th className="px-table_cell_padding_x py-table_cell_padding_y text-label-bold text-on-surface-variant">{es.reportsPage.occupancyTab.columns.day}</th>
+                    <th className="px-table_cell_padding_x py-table_cell_padding_y text-label-bold text-on-surface-variant text-center">
                       {es.reportsPage.occupancyTab.columns.occupied}
-                    </TableHead>
-                    <TableHead className="text-center">
+                    </th>
+                    <th className="px-table_cell_padding_x py-table_cell_padding_y text-label-bold text-on-surface-variant text-center">
                       {es.reportsPage.occupancyTab.columns.total}
-                    </TableHead>
-                    <TableHead className="text-right">
+                    </th>
+                    <th className="px-table_cell_padding_x py-table_cell_padding_y text-label-bold text-on-surface-variant text-right">
                       {es.reportsPage.occupancyTab.columns.percentage}
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-outline-variant">
                   {occupancy.map((row) => (
-                    <TableRow key={row.day}>
-                      <TableCell className="font-medium">{formatDate(row.day)}</TableCell>
-                      <TableCell className="text-center">{row.occupied_rooms}</TableCell>
-                      <TableCell className="text-center">{row.total_rooms}</TableCell>
-                      <TableCell className="text-right">
+                    <tr key={row.day} className="hover:bg-surface-container-low transition-colors">
+                      <td className="px-table_cell_padding_x py-table_cell_padding_y text-table-data text-foreground">{formatDate(row.day)}</td>
+                      <td className="px-table_cell_padding_x py-table_cell_padding_y text-body-md text-on-surface-variant text-center">{row.occupied_rooms}</td>
+                      <td className="px-table_cell_padding_x py-table_cell_padding_y text-body-md text-on-surface-variant text-center">{row.total_rooms}</td>
+                      <td className="px-table_cell_padding_x py-table_cell_padding_y text-table-data text-foreground text-right">
                         {formatPercent(row.occupancy_pct)}
-                      </TableCell>
-                    </TableRow>
+                      </td>
+                    </tr>
                   ))}
-                </TableBody>
-              </Table>
-            </Card>
+                </tbody>
+              </table>
+            </div>
           ) : (
-            <p className="text-center text-muted-foreground py-8">
+            <p className="text-center text-on-surface-variant py-8">
               {es.reportsPage.occupancyTab.noData}
             </p>
           )}
         </TabsContent>
 
         {/* Tab: Ingresos */}
-        <TabsContent value="ingresos" className="space-y-4">
+        <TabsContent value="ingresos" className="space-y-4 mt-6">
           {loadingRevenue ? (
-            <div className="flex justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <div className="flex justify-center py-12 text-muted-foreground">
+              <Loader2 className="h-6 w-6 animate-spin" />
             </div>
           ) : revenue.length > 0 ? (
-            <Card>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{es.reportsPage.revenueTab.columns.day}</TableHead>
-                    <TableHead className="text-right">
+            <div className="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden">
+              <table className="w-full text-left border-collapse">
+                <thead className="bg-surface-container-low border-b border-outline-variant">
+                  <tr>
+                    <th className="px-table_cell_padding_x py-table_cell_padding_y text-label-bold text-on-surface-variant">{es.reportsPage.revenueTab.columns.day}</th>
+                    <th className="px-table_cell_padding_x py-table_cell_padding_y text-label-bold text-on-surface-variant text-right">
                       {es.reportsPage.revenueTab.columns.revenue}
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-outline-variant">
                   {revenue.map((row) => (
-                    <TableRow key={row.day}>
-                      <TableCell className="font-medium">{formatDate(row.day)}</TableCell>
-                      <TableCell className="text-right">
+                    <tr key={row.day} className="hover:bg-surface-container-low transition-colors">
+                      <td className="px-table_cell_padding_x py-table_cell_padding_y text-table-data text-foreground">{formatDate(row.day)}</td>
+                      <td className="px-table_cell_padding_x py-table_cell_padding_y text-table-data text-foreground text-right">
                         {formatCurrency(row.revenue)}
-                      </TableCell>
-                    </TableRow>
+                      </td>
+                    </tr>
                   ))}
-                </TableBody>
-              </Table>
-            </Card>
+                </tbody>
+              </table>
+            </div>
           ) : (
-            <p className="text-center text-muted-foreground py-8">
+            <p className="text-center text-on-surface-variant py-8">
               {es.reportsPage.revenueTab.noData}
             </p>
           )}
