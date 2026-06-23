@@ -175,7 +175,7 @@ export default function Reportes() {
   };
 
   const formatDate = (dateStr: string) =>
-    format(new Date(dateStr), "dd/MM/yyyy", { locale: dateEs });
+    format(new Date(dateStr + "T00:00:00"), "dd/MM/yyyy", { locale: dateEs });
 
   const formatPercent = (value: number) => `${value.toFixed(1)}%`;
 
