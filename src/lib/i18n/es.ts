@@ -170,8 +170,10 @@ export const es = {
   reservationsPage: {
     title: "Reservas",
     newReservation: "Nueva reserva",
+    editDialogTitle: "Editar reserva",
     noReservations: "No hay reservas registradas todavía.",
     reservationCreated: "Reserva creada exitosamente",
+    reservationUpdated: "Reserva actualizada exitosamente",
     noRatesWarning: "Esta habitación no tiene configuraciones activas. Pide a un admin configurarla.",
     columns: {
       room: "Habitación",
@@ -194,6 +196,7 @@ export const es = {
       checkOutLabel: "Fecha de salida",
       basePriceLabel: "Precio base",
       finalPriceLabel: "Precio final",
+      saveChanges: "Guardar cambios",
     },
     validation: {
       guestRequired: "Debe seleccionar un huésped",

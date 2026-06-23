@@ -14,6 +14,9 @@ export type ReservationStatus = (typeof RESERVATION_STATUSES)[number];
 
 export interface ReservationListItem {
   id: string;
+  roomId: string;
+  guestId: string;
+  roomRateId: string | null;
   roomNumber: string;
   guestName: string;
   checkInDate: string;
@@ -39,6 +42,7 @@ export interface UseReservationsResult {
   error?: string;
   refresh: () => Promise<void>;
   createReservation: (input: NewReservationInput) => Promise<void>;
+  updateReservation: (reservationId: string, input: NewReservationInput) => Promise<void>;
   cancelReservation: (reservationId: string) => Promise<void>;
 }
 
@@ -88,6 +92,9 @@ function buildReservationListItem(
 
   return {
     id: reservation.id,
+    roomId: reservation.room_id,
+    guestId: reservation.guest_id,
+    roomRateId: reservation.room_rate_id,
     roomNumber: room?.number ?? "",
     guestName: guest?.name ?? "",
     checkInDate: reservation.check_in_date,
@@ -225,6 +232,62 @@ export function useReservations(): UseReservationsResult {
     [refresh]
   );
 
+  const updateReservation = useCallback(
+    async (reservationId: string, input: NewReservationInput): Promise<void> => {
+      // Editable reservations are limited to booked/checked_in (cancelled,
+      // checked_out and no_show are historical and shouldn't be rewritten)
+      const currentReservation = reservations.find((r) => r.id === reservationId);
+      if (
+        currentReservation &&
+        !["booked", "checked_in"].includes(currentReservation.status)
+      ) {
+        throw new Error(
+          `No se puede editar: la reserva tiene estado "${currentReservation.status}"`
+        );
+      }
+
+      if (input.checkOutDate <= input.checkInDate) {
+        throw new Error(
+          "La fecha de salida debe ser posterior a la fecha de ingreso"
+        );
+      }
+
+      // Intentionally no past-checkin guard here: an existing reservation's
+      // check_in_date is routinely already in the past by the time it needs
+      // editing (e.g. extending a stay 3 days in) - that's exactly why the
+      // past-checkin rule was implemented as an INSERT-only trigger.
+      const updateData = {
+        room_id: input.roomId,
+        guest_id: input.guestId,
+        check_in_date: input.checkInDate,
+        check_out_date: input.checkOutDate,
+        room_rate_id: input.roomRateId,
+        base_price: input.basePrice,
+        discount: 0,
+        final_price: input.finalPrice,
+      };
+
+      const { error: updateError } = await supabase
+        .from("reservations")
+        .update(updateData)
+        .eq("id", reservationId);
+
+      if (updateError) {
+        const msg = updateError.message || "";
+        if (
+          msg.includes("reservations_no_overlap_per_room") ||
+          msg.includes("no_overlap_per_room")
+        ) {
+          throw new Error("ROOM_OVERLAP");
+        }
+        throw new Error(`Error al actualizar reserva: ${msg}`);
+      }
+
+      await refresh();
+    },
+    [reservations, refresh]
+  );
+
   const cancelReservation = useCallback(
     async (reservationId: string): Promise<void> => {
       // Validación opcional: verificar que la reserva esté en estado booked
@@ -259,6 +322,7 @@ export function useReservations(): UseReservationsResult {
     error,
     refresh,
     createReservation,
+    updateReservation,
     cancelReservation,
   };
 }

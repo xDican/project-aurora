@@ -30,6 +30,10 @@ interface ReservationFormProps {
   prefillRoomId?: string;
   prefillCheckInDate?: string;
   prefillCheckOutDate?: string;
+  // When set, the form edits an existing reservation instead of creating one
+  editingReservationId?: string;
+  initialGuest?: Guest;
+  initialRoomRateId?: string;
 }
 
 export function ReservationForm({
@@ -40,10 +44,14 @@ export function ReservationForm({
   prefillRoomId,
   prefillCheckInDate,
   prefillCheckOutDate,
+  editingReservationId,
+  initialGuest,
+  initialRoomRateId,
 }: ReservationFormProps) {
   const t = es.reservationsPage;
+  const isEditing = Boolean(editingReservationId);
 
-  const [guestId, setGuestId] = useState("");
+  const [guestId, setGuestId] = useState(initialGuest?.id || "");
   const [roomId, setRoomId] = useState(prefillRoomId || "");
   const [checkInDate, setCheckInDate] = useState(prefillCheckInDate || "");
   const [checkOutDate, setCheckOutDate] = useState(prefillCheckOutDate || "");
@@ -57,11 +65,14 @@ export function ReservationForm({
     loading: isSearchingGuests,
     error: guestSearchError,
   } = useGuests();
-  const [createdGuest, setCreatedGuest] = useState<Guest | null>(null);
+  // Holds either a guest just created via the modal, or (in edit mode) the
+  // reservation's current guest, so the combobox shows a name immediately
+  // without depending on a search query matching it
+  const [guestOverride, setGuestOverride] = useState<Guest | null>(initialGuest || null);
   const [isCreateGuestModalOpen, setIsCreateGuestModalOpen] = useState(false);
 
   // Find selected guest for display
-  const selectedGuest = (createdGuest && createdGuest.id === guestId ? createdGuest : null) ||
+  const selectedGuest = (guestOverride && guestOverride.id === guestId ? guestOverride : null) ||
     searchedGuests.find((g) => g.id === guestId) ||
     guests.find((g) => g.id === guestId) || null;
 
@@ -91,9 +102,14 @@ export function ReservationForm({
   // Handler when guest is created from modal
   const handleGuestCreated = (newGuest: Guest) => {
     setGuestId(newGuest.id);
-    setCreatedGuest(newGuest);
+    setGuestOverride(newGuest);
     setGuestSearchQuery("");
   };
+
+  // Only apply the initial rate (edit mode) once, the first time rates load
+  // for the room the reservation already had - if the user picks a
+  // different room afterwards, the normal auto-select/blank logic applies
+  const [initialRateApplied, setInitialRateApplied] = useState(false);
 
   // Load rates when room changes
   useEffect(() => {
@@ -114,8 +130,15 @@ export function ReservationForm({
         if (!error && data) {
           const rates = data as RoomRate[];
           setAvailableRates(rates);
-          // Auto-select if only one rate
-          if (rates.length === 1) {
+          if (
+            !initialRateApplied &&
+            initialRoomRateId &&
+            rates.some((r) => r.id === initialRoomRateId)
+          ) {
+            setSelectedRateId(initialRoomRateId);
+            setInitialRateApplied(true);
+          } else if (rates.length === 1) {
+            // Auto-select if only one rate
             setSelectedRateId(rates[0].id);
           } else {
             setSelectedRateId("");
@@ -126,7 +149,7 @@ export function ReservationForm({
         }
         setLoadingRates(false);
       });
-  }, [roomId]);
+  }, [roomId, initialRoomRateId, initialRateApplied]);
 
   // Check availability when room/dates change
   const checkAvailability = useCallback(async () => {
@@ -135,7 +158,7 @@ export function ReservationForm({
       return;
     }
 
-    const { data, error } = await supabase
+    let query = supabase
       .from("reservations")
       .select("id")
       .eq("room_id", roomId)
@@ -143,12 +166,19 @@ export function ReservationForm({
       .lt("check_in_date", checkOutDate)
       .gt("check_out_date", checkInDate);
 
+    // Exclude the reservation being edited from its own conflict check
+    if (editingReservationId) {
+      query = query.neq("id", editingReservationId);
+    }
+
+    const { data, error } = await query;
+
     if (!error && data && data.length > 0) {
       setConflictWarning(t.warnings.conflictDetected);
     } else {
       setConflictWarning(null);
     }
-  }, [roomId, checkInDate, checkOutDate, t.warnings.conflictDetected]);
+  }, [roomId, checkInDate, checkOutDate, editingReservationId, t.warnings.conflictDetected]);
 
   useEffect(() => {
     const timeout = setTimeout(checkAvailability, 300);
@@ -176,9 +206,13 @@ export function ReservationForm({
     if (checkInDate && checkOutDate && checkOutDate <= checkInDate) {
       newErrors.checkOutDate = t.validation.checkOutAfterCheckIn;
     }
-    const today = new Date().toISOString().split("T")[0];
-    if (checkInDate && checkInDate < today) {
-      newErrors.checkInDate = t.validation.checkInPast;
+    // Skip when editing: an existing reservation's check-in is routinely
+    // already in the past (e.g. extending a stay that started days ago)
+    if (!isEditing) {
+      const today = new Date().toISOString().split("T")[0];
+      if (checkInDate && checkInDate < today) {
+        newErrors.checkInDate = t.validation.checkInPast;
+      }
     }
 
     setErrors(newErrors);
@@ -314,7 +348,7 @@ export function ReservationForm({
           <Input
             id="checkInDate"
             type="date"
-            min={new Date().toISOString().split("T")[0]}
+            min={isEditing ? undefined : new Date().toISOString().split("T")[0]}
             value={checkInDate}
             onChange={(e) => setCheckInDate(e.target.value)}
             className={errors.checkInDate ? "border-destructive" : ""}
@@ -375,7 +409,11 @@ export function ReservationForm({
             {es.common.cancel}
           </Button>
           <Button type="submit" disabled={!canSubmit}>
-            {isSubmitting ? es.common.saving : es.common.save}
+            {isSubmitting
+              ? es.common.saving
+              : isEditing
+                ? t.form.saveChanges
+                : es.common.save}
           </Button>
         </div>
       </form>

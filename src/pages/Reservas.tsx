@@ -32,6 +32,7 @@ import { es } from "@/lib/i18n/es";
 import {
   useReservations,
   type NewReservationInput,
+  type ReservationListItem,
 } from "@/hooks/useReservations";
 import { type Room } from "@/hooks/useRooms";
 import { type Guest } from "@/hooks/useGuests";
@@ -42,8 +43,14 @@ import { formatCurrency } from "@/lib/currency";
 export default function Reservas() {
   const t = es.reservationsPage;
 
-  const { reservations, loading, error, createReservation, cancelReservation } =
-    useReservations();
+  const {
+    reservations,
+    loading,
+    error,
+    createReservation,
+    updateReservation,
+    cancelReservation,
+  } = useReservations();
 
   // We need rooms and guests for the form selects
   const [rooms, setRooms] = useState<Room[]>([]);
@@ -51,6 +58,7 @@ export default function Reservas() {
   const [loadingDeps, setLoadingDeps] = useState(true);
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingReservation, setEditingReservation] = useState<ReservationListItem | null>(null);
 
   // Load rooms and guests for the form
   useEffect(() => {
@@ -88,6 +96,23 @@ export default function Reservas() {
         toast.error(t.errors.roomOverlap);
       } else if (message === "PAST_CHECKIN") {
         toast.error(t.errors.checkInPast);
+      } else {
+        toast.error(message);
+      }
+      // NO cerrar el dialog - usuario debe corregir
+    }
+  };
+
+  const handleUpdate = async (input: NewReservationInput) => {
+    if (!editingReservation) return;
+    try {
+      await updateReservation(editingReservation.id, input);
+      setEditingReservation(null);
+      toast.success(t.reservationUpdated);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : es.common.unexpectedError;
+      if (message === "ROOM_OVERLAP") {
+        toast.error(t.errors.roomOverlap);
       } else {
         toast.error(message);
       }
@@ -185,35 +210,47 @@ export default function Reservas() {
                     </TableCell>
                     <TableCell>{formatCurrency(reservation.finalPrice)}</TableCell>
                     <TableCell>
-                      {reservation.status === "booked" && (
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="destructive" size="sm">
-                              {t.cancel.button}
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>
-                                {t.cancel.dialogTitle}
-                              </AlertDialogTitle>
-                              <AlertDialogDescription>
-                                {t.cancel.dialogMessage}
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>
-                                {t.cancel.back}
-                              </AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => handleCancel(reservation.id)}
-                              >
-                                {t.cancel.confirm}
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      )}
+                      <div className="flex gap-2">
+                        {(reservation.status === "booked" ||
+                          reservation.status === "checked_in") && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setEditingReservation(reservation)}
+                          >
+                            {es.common.edit}
+                          </Button>
+                        )}
+                        {reservation.status === "booked" && (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="destructive" size="sm">
+                                {t.cancel.button}
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>
+                                  {t.cancel.dialogTitle}
+                                </AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  {t.cancel.dialogMessage}
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>
+                                  {t.cancel.back}
+                                </AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleCancel(reservation.id)}
+                                >
+                                  {t.cancel.confirm}
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -235,6 +272,38 @@ export default function Reservas() {
             onSubmit={handleCreate}
             onCancel={() => setIsDialogOpen(false)}
           />
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Reservation Dialog */}
+      <Dialog
+        open={editingReservation !== null}
+        onOpenChange={(open) => !open && setEditingReservation(null)}
+      >
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>{t.editDialogTitle}</DialogTitle>
+          </DialogHeader>
+          {editingReservation && (
+            <ReservationForm
+              rooms={rooms}
+              guests={guests}
+              onSubmit={handleUpdate}
+              onCancel={() => setEditingReservation(null)}
+              editingReservationId={editingReservation.id}
+              prefillRoomId={editingReservation.roomId}
+              prefillCheckInDate={editingReservation.checkInDate}
+              prefillCheckOutDate={editingReservation.checkOutDate}
+              initialRoomRateId={editingReservation.roomRateId ?? undefined}
+              initialGuest={
+                guests.find((g) => g.id === editingReservation.guestId) ?? {
+                  id: editingReservation.guestId,
+                  name: editingReservation.guestName,
+                  created_at: "",
+                }
+              }
+            />
+          )}
         </DialogContent>
       </Dialog>
     </div>
