@@ -491,7 +491,11 @@ export default function Disponibilidad() {
             />
             <span className="text-label-md text-on-surface-variant">{t.showOnlyAvailable}</span>
           </label>
-          <Button onClick={searchAvailability} disabled={!checkInDate || !checkOutDate || loading}>
+          <Button
+            onClick={searchAvailability}
+            disabled={!checkInDate || !checkOutDate || loading}
+            className="min-w-[140px]"
+          >
             {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
             {loading ? es.common.loading : t.searchButton}
           </Button>
