@@ -408,10 +408,10 @@ export default function Disponibilidad() {
   return (
     <div className="space-y-stack_gap_md">
       {/* Filters & Controls */}
-      <section className="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 flex flex-col lg:flex-row gap-6 items-start lg:items-end justify-between">
-        <div className="flex flex-col md:flex-row gap-4 w-full lg:w-auto">
+      <section className="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 flex flex-nowrap items-end gap-6 overflow-x-auto">
+        <div className="flex flex-nowrap gap-4 shrink-0">
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="checkIn" className="text-label-md text-on-surface-variant">
+            <Label htmlFor="checkIn" className="text-label-md text-on-surface-variant whitespace-nowrap">
               {t.checkInLabel}
             </Label>
             <Input
@@ -420,11 +420,11 @@ export default function Disponibilidad() {
               min={format(new Date(), "yyyy-MM-dd")}
               value={checkInDate}
               onChange={(e) => setCheckInDate(e.target.value)}
-              className="w-full md:w-40"
+              className="w-40"
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="checkOut" className="text-label-md text-on-surface-variant">
+            <Label htmlFor="checkOut" className="text-label-md text-on-surface-variant whitespace-nowrap">
               {t.checkOutLabel}
             </Label>
             <Input
@@ -432,18 +432,18 @@ export default function Disponibilidad() {
               type="date"
               value={checkOutDate}
               onChange={(e) => setCheckOutDate(e.target.value)}
-              className="w-full md:w-40"
+              className="w-40"
             />
           </div>
           <div className="flex flex-col gap-1.5">
-            <Label htmlFor="occupancyFilter" className="text-label-md text-on-surface-variant">
+            <Label htmlFor="occupancyFilter" className="text-label-md text-on-surface-variant whitespace-nowrap">
               {t.occupancyFilterLabel}
             </Label>
             <Select
               value={occupancyFilter}
               onValueChange={(value) => setOccupancyFilter(value as OccupancyType | "all")}
             >
-              <SelectTrigger id="occupancyFilter" className="w-full md:w-40">
+              <SelectTrigger id="occupancyFilter" className="w-40">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -458,32 +458,32 @@ export default function Disponibilidad() {
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
-          <div className="flex bg-surface-container-low border border-outline-variant rounded-lg p-1">
+        <div className="flex flex-nowrap items-center gap-3 shrink-0">
+          <div className="flex bg-surface-container-low border border-outline-variant rounded-lg p-1 shrink-0">
             <button
               type="button"
               onClick={() => setQuickRange("today")}
-              className="px-4 py-1.5 rounded-md text-on-surface-variant hover:bg-surface text-label-md transition-colors"
+              className="px-4 py-1.5 rounded-md text-on-surface-variant hover:bg-surface text-label-md transition-colors whitespace-nowrap"
             >
               {t.shortcuts.today}
             </button>
             <button
               type="button"
               onClick={() => setQuickRange("tomorrow")}
-              className="px-4 py-1.5 rounded-md text-on-surface-variant hover:bg-surface text-label-md transition-colors"
+              className="px-4 py-1.5 rounded-md text-on-surface-variant hover:bg-surface text-label-md transition-colors whitespace-nowrap"
             >
               {t.shortcuts.tomorrow}
             </button>
             <button
               type="button"
               onClick={() => setQuickRange("week")}
-              className="px-4 py-1.5 rounded-md text-on-surface-variant hover:bg-surface text-label-md transition-colors"
+              className="px-4 py-1.5 rounded-md text-on-surface-variant hover:bg-surface text-label-md transition-colors whitespace-nowrap"
             >
               {t.shortcuts.nextWeek}
             </button>
           </div>
-          <div className="w-px h-8 bg-outline-variant mx-2 hidden md:block" />
-          <label className="flex items-center gap-2 cursor-pointer">
+          <div className="w-px h-8 bg-outline-variant mx-2 hidden md:block shrink-0" />
+          <label className="flex items-center gap-2 cursor-pointer shrink-0">
             <Switch
               id="showAvailable"
               checked={showOnlyAvailable}
@@ -494,7 +494,7 @@ export default function Disponibilidad() {
           <Button
             onClick={searchAvailability}
             disabled={!checkInDate || !checkOutDate || loading}
-            className="min-w-[140px]"
+            className="min-w-[140px] shrink-0"
           >
             {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
             {loading ? es.common.loading : t.searchButton}
