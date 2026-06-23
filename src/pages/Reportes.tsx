@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { format, subDays } from "date-fns";
+import { format, startOfMonth, endOfMonth } from "date-fns";
 import { es as dateEs } from "date-fns/locale";
 import { BarChart3, Download, Loader2, RefreshCw } from "lucide-react";
 import { es } from "@/lib/i18n/es";
@@ -47,12 +47,12 @@ const STATUS_OPTIONS = [
 ];
 
 export default function Reportes() {
-  // Date range (default: last 30 days)
+  // Date range (default: current month)
   const [startDate, setStartDate] = useState(() =>
-    format(subDays(new Date(), 30), "yyyy-MM-dd")
+    format(startOfMonth(new Date()), "yyyy-MM-dd")
   );
   const [endDate, setEndDate] = useState(() =>
-    format(new Date(), "yyyy-MM-dd")
+    format(endOfMonth(new Date()), "yyyy-MM-dd")
   );
 
   // Filters for reservations tab
