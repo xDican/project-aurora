@@ -179,6 +179,10 @@ export default function Disponibilidad() {
   const [checkOutDate, setCheckOutDate] = useState("");
   const [showOnlyAvailable, setShowOnlyAvailable] = useState(false);
   const [occupancyFilter, setOccupancyFilter] = useState<OccupancyType | "all">("all");
+  // Snapshot of occupancyFilter at the moment of the last actual search -
+  // used for anything tied to the displayed results, so changing the
+  // dropdown without clicking Buscar doesn't relabel stale results
+  const [searchedOccupancy, setSearchedOccupancy] = useState<OccupancyType | "all">("all");
 
   // Results
   const [roomAvailability, setRoomAvailability] = useState<RoomAvailability[]>([]);
@@ -217,6 +221,7 @@ export default function Disponibilidad() {
 
     setLoading(true);
     setHasSearched(true);
+    setSearchedOccupancy(occupancyFilter);
 
     try {
       // 1. Get active rooms
@@ -334,7 +339,7 @@ export default function Disponibilidad() {
       roomId: room.id,
       checkIn: checkInDate,
       checkOut: checkOutDate,
-      occupancy: occupancyFilter !== "all" ? occupancyFilter : undefined,
+      occupancy: searchedOccupancy !== "all" ? searchedOccupancy : undefined,
     });
     setIsReservationDialogOpen(true);
   };
@@ -552,7 +557,7 @@ export default function Disponibilidad() {
                     <h3 className="text-headline-md text-foreground font-bold">{room.number}</h3>
                     <p className="text-label-md text-on-surface-variant mt-0.5">
                       {es.roomTypeLabels[room.type] || room.type}
-                      {occupancyFilter !== "all" && ` · ${es.occupancyLabels[occupancyFilter]}`}
+                      {searchedOccupancy !== "all" && ` · ${es.occupancyLabels[searchedOccupancy]}`}
                     </p>
                     {price !== undefined && (
                       <p className="text-body-sm text-primary font-medium mt-0.5">
