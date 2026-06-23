@@ -107,9 +107,9 @@ export default function Layout({ children }: LayoutProps) {
         {/* Top App Bar */}
         <header className="bg-surface-container-lowest border-b border-surface-variant flex justify-between items-center w-full px-container_padding h-16 shrink-0">
           <div className="flex items-center gap-4">
-            <div className="text-headline-md font-bold text-foreground">Aurora PMS</div>
-            <div className="h-4 w-px bg-outline-variant mx-2" />
-            <div className="text-body-md font-medium text-on-surface-variant">Proyecto Aurora</div>
+            <h2 className="text-headline-md font-bold text-foreground">
+              {filteredNavItems.find((item) => item.path === location.pathname)?.label ?? "Aurora PMS"}
+            </h2>
           </div>
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-2 text-on-surface-variant text-label-md">

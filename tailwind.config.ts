@@ -88,6 +88,8 @@ export default {
         "on-secondary-container": "#54647a",
         tertiary: "#943700",
         "tertiary-container": "#bc4800",
+        "error-container": "#ffdad6",
+        "on-error-container": "#93000a",
       },
       fontFamily: {
         sans: ["Hanken Grotesk", "ui-sans-serif", "system-ui", "sans-serif"],

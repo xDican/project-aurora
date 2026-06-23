@@ -1,25 +1,16 @@
 import { useState, useCallback } from "react";
 import { format, addDays, subDays, parseISO } from "date-fns";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Search, CalendarCheck, CheckCircle, XCircle } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { es } from "@/lib/i18n/es";
 import { supabase } from "@/integrations/supabase/client";
@@ -373,198 +364,195 @@ export default function Disponibilidad() {
     return `${t.occupied}: ${rangeStrings.join(", ")}`;
   };
 
-  const formatRoomInfo = (
-    available: boolean,
-    mergedRanges: MergedRange[],
-    nextFreeDate: Date | null,
-    suggestedGap: AvailableGap | null
-  ): React.ReactNode => {
-    const occupiedText = formatMergedRanges(mergedRanges);
-
-    if (available) {
-      return (
-        <div className="space-y-1">
-          {occupiedText && (
-            <span className="text-sm text-muted-foreground block">{occupiedText}</span>
-          )}
-          <span className="text-sm text-green-600 dark:text-green-400 font-medium">
-            {t.freeToBook}
-          </span>
-        </div>
-      );
-    }
-
-    // Not available
-    return (
-      <div className="space-y-1">
-        {occupiedText && (
-          <span className="text-sm text-muted-foreground block">{occupiedText}</span>
-        )}
-        {nextFreeDate && (
-          <span className="text-sm text-blue-600 dark:text-blue-400 block">
-            {t.availableFrom}: {format(nextFreeDate, "dd/MM/yyyy")}
-          </span>
-        )}
-        {suggestedGap && (
-          <span className="text-sm text-amber-600 dark:text-amber-400 block">
-            {t.suggestedGap}: {format(suggestedGap.start, "dd/MM")} → {format(suggestedGap.end, "dd/MM")}
-          </span>
-        )}
-      </div>
-    );
-  };
-
   // Filter results based on toggle
   const filteredResults = showOnlyAvailable
     ? roomAvailability.filter((r) => r.available)
     : roomAvailability;
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-2xl font-bold flex items-center gap-2">
-            <CalendarCheck className="h-6 w-6" />
-            {t.title}
-          </CardTitle>
-        </CardHeader>
+    <div className="space-y-stack_gap_md">
+      {/* Filters & Controls */}
+      <section className="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 flex flex-col lg:flex-row gap-6 items-start lg:items-end justify-between">
+        <div className="flex flex-col md:flex-row gap-4 w-full lg:w-auto">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="checkIn" className="text-label-md text-on-surface-variant">
+              {t.checkInLabel}
+            </Label>
+            <Input
+              id="checkIn"
+              type="date"
+              min={format(new Date(), "yyyy-MM-dd")}
+              value={checkInDate}
+              onChange={(e) => setCheckInDate(e.target.value)}
+              className="w-full md:w-40"
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="checkOut" className="text-label-md text-on-surface-variant">
+              {t.checkOutLabel}
+            </Label>
+            <Input
+              id="checkOut"
+              type="date"
+              value={checkOutDate}
+              onChange={(e) => setCheckOutDate(e.target.value)}
+              className="w-full md:w-40"
+            />
+          </div>
+        </div>
 
-        <CardContent className="space-y-6">
-          {/* Filters */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-            <div className="space-y-2">
-              <Label htmlFor="checkIn">{t.checkInLabel}</Label>
-              <Input
-                id="checkIn"
-                type="date"
-                min={format(new Date(), "yyyy-MM-dd")}
-                value={checkInDate}
-                onChange={(e) => setCheckInDate(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="checkOut">{t.checkOutLabel}</Label>
-              <Input
-                id="checkOut"
-                type="date"
-                value={checkOutDate}
-                onChange={(e) => setCheckOutDate(e.target.value)}
-              />
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Switch
-                id="showAvailable"
-                checked={showOnlyAvailable}
-                onCheckedChange={setShowOnlyAvailable}
-              />
-              <Label htmlFor="showAvailable" className="text-sm">
-                {t.showOnlyAvailable}
-              </Label>
-            </div>
-
-            <Button
-              onClick={searchAvailability}
-              disabled={!checkInDate || !checkOutDate || loading}
+        <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+          <div className="flex bg-surface-container-low border border-outline-variant rounded-lg p-1">
+            <button
+              type="button"
+              onClick={() => setQuickRange("today")}
+              className="px-4 py-1.5 rounded-md text-on-surface-variant hover:bg-surface text-label-md transition-colors"
             >
-              <Search className="h-4 w-4 mr-2" />
-              {loading ? es.common.loading : t.searchButton}
-            </Button>
-          </div>
-
-          {/* Quick shortcuts */}
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => setQuickRange("today")}>
               {t.shortcuts.today}
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => setQuickRange("tomorrow")}>
+            </button>
+            <button
+              type="button"
+              onClick={() => setQuickRange("tomorrow")}
+              className="px-4 py-1.5 rounded-md text-on-surface-variant hover:bg-surface text-label-md transition-colors"
+            >
               {t.shortcuts.tomorrow}
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => setQuickRange("week")}>
+            </button>
+            <button
+              type="button"
+              onClick={() => setQuickRange("week")}
+              className="px-4 py-1.5 rounded-md text-on-surface-variant hover:bg-surface text-label-md transition-colors"
+            >
               {t.shortcuts.nextWeek}
-            </Button>
+            </button>
+          </div>
+          <div className="w-px h-8 bg-outline-variant mx-2 hidden md:block" />
+          <label className="flex items-center gap-2 cursor-pointer">
+            <Switch
+              id="showAvailable"
+              checked={showOnlyAvailable}
+              onCheckedChange={setShowOnlyAvailable}
+            />
+            <span className="text-label-md text-on-surface-variant">{t.showOnlyAvailable}</span>
+          </label>
+          <Button onClick={searchAvailability} disabled={!checkInDate || !checkOutDate || loading}>
+            {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+            {loading ? es.common.loading : t.searchButton}
+          </Button>
+        </div>
+      </section>
+
+      {/* Results */}
+      {loading ? (
+        <div className="flex items-center justify-center py-12 text-muted-foreground">
+          <Loader2 className="h-6 w-6 animate-spin mr-2" />
+          {es.common.loading}
+        </div>
+      ) : !hasSearched ? (
+        <div className="text-center py-12 text-on-surface-variant">
+          <span className="material-symbols-outlined text-5xl opacity-50 mb-2 block">
+            calendar_month
+          </span>
+          <p>{t.selectDatesToSearch}</p>
+        </div>
+      ) : filteredResults.length === 0 ? (
+        <div className="text-center py-12 text-on-surface-variant">
+          <p>{t.noResults}</p>
+        </div>
+      ) : (
+        <>
+          <div className="flex items-center justify-between px-1">
+            <p className="text-body-sm text-on-surface-variant">
+              Mostrando <strong className="text-on-surface">{filteredResults.length}</strong>{" "}
+              habitaciones en los criterios seleccionados.
+            </p>
+            <div className="flex items-center gap-3">
+              <span className="flex items-center gap-1 text-label-md text-on-surface-variant">
+                <span className="w-2 h-2 rounded-full bg-primary" /> {t.available}
+              </span>
+              <span className="flex items-center gap-1 text-label-md text-on-surface-variant">
+                <span className="w-2 h-2 rounded-full bg-surface-container-highest" /> {t.notAvailable}
+              </span>
+            </div>
           </div>
 
-          {/* Results */}
-          {loading ? (
-            <div className="text-center py-8 text-muted-foreground">
-              {es.common.loading}
-            </div>
-          ) : !hasSearched ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <CalendarCheck className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>{t.selectDatesToSearch}</p>
-            </div>
-          ) : filteredResults.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <p>{t.noResults}</p>
-            </div>
-          ) : (
-            <div className="border rounded-lg overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t.columns.room}</TableHead>
-                    <TableHead>{t.columns.type}</TableHead>
-                    <TableHead>{t.columns.roomStatus}</TableHead>
-                    <TableHead>{t.columns.availability}</TableHead>
-                    <TableHead>{t.columns.conflictInfo}</TableHead>
-                    <TableHead>{t.columns.actions}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                {filteredResults.map(({ room, available, mergedRanges, nextFreeDate, suggestedGap }) => (
-                    <TableRow key={room.id}>
-                      <TableCell className="font-medium">{room.number}</TableCell>
-                      <TableCell>
-                        {es.roomTypeLabels[room.type] || room.type}
-                      </TableCell>
-                      <TableCell>
-                        <span
-                          className={cn(
-                            "inline-flex items-center px-2 py-1 rounded-full text-xs font-medium",
-                            room.status === "available"
-                              ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                              : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
-                          )}
-                        >
-                          {es.statusLabels[room.status] || room.status}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-gutter pb-8">
+            {filteredResults.map(({ room, available, mergedRanges, nextFreeDate, suggestedGap }) => (
+              <article
+                key={room.id}
+                className={cn(
+                  "border border-outline-variant rounded-xl p-5 flex flex-col gap-4",
+                  available
+                    ? "bg-surface-container-lowest hover:bg-surface-container-low transition-colors"
+                    : "bg-surface-container-lowest opacity-90"
+                )}
+              >
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="text-headline-md text-foreground font-bold">{room.number}</h3>
+                    <p className="text-label-md text-on-surface-variant mt-0.5">
+                      {es.roomTypeLabels[room.type] || room.type}
+                    </p>
+                  </div>
+                  {available ? (
+                    <span className="bg-primary-container text-on-primary-container px-2.5 py-1 rounded-pill flex items-center gap-1.5 text-label-bold uppercase">
+                      <span className="material-symbols-outlined text-[14px]">check_circle</span>
+                      {t.available}
+                    </span>
+                  ) : (
+                    <span className="bg-surface-container-highest text-on-surface-variant px-2.5 py-1 rounded-pill flex items-center gap-1.5 text-label-bold uppercase">
+                      <span className="material-symbols-outlined text-[14px]">block</span>
+                      {t.notAvailable}
+                    </span>
+                  )}
+                </div>
+
+                {!available && (
+                  <div className="flex flex-col gap-1.5">
+                    {formatMergedRanges(mergedRanges) && (
+                      <div className="flex items-center gap-2 text-foreground">
+                        <span className="material-symbols-outlined text-[16px] text-destructive">
+                          event_busy
                         </span>
-                      </TableCell>
-                      <TableCell>
-                        {available ? (
-                          <span className="inline-flex items-center gap-1 text-green-600 dark:text-green-400">
-                            <CheckCircle className="h-4 w-4" />
-                            {t.available}
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 text-red-600 dark:text-red-400">
-                            <XCircle className="h-4 w-4" />
-                            {t.notAvailable}
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {formatRoomInfo(available, mergedRanges, nextFreeDate, suggestedGap)}
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          size="sm"
-                          disabled={!available}
-                          onClick={() => handleReserveClick(room)}
-                        >
-                          {available ? t.reserveButton : t.notAvailable}
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                        <span className="text-body-sm font-medium">
+                          {formatMergedRanges(mergedRanges)}
+                        </span>
+                      </div>
+                    )}
+                    {nextFreeDate && (
+                      <div className="flex items-center gap-2 text-primary">
+                        <span className="material-symbols-outlined text-[16px]">event_available</span>
+                        <span className="text-body-sm">
+                          {t.availableFrom}: {format(nextFreeDate, "dd/MM/yyyy")}
+                        </span>
+                      </div>
+                    )}
+                    {suggestedGap && (
+                      <div className="flex items-center gap-2 text-tertiary">
+                        <span className="material-symbols-outlined text-[16px]">event</span>
+                        <span className="text-body-sm">
+                          {t.suggestedGap}: {format(suggestedGap.start, "dd/MM")} → {format(suggestedGap.end, "dd/MM")}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="mt-auto pt-4 border-t border-surface-variant">
+                  <button
+                    type="button"
+                    disabled={!available}
+                    onClick={() => handleReserveClick(room)}
+                    className="w-full bg-primary text-primary-foreground hover:bg-on-primary-fixed-variant disabled:opacity-40 disabled:cursor-not-allowed text-label-bold py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2"
+                  >
+                    {available ? t.reserveButton : t.notAvailable}
+                    {available && <span className="material-symbols-outlined text-[18px]">arrow_forward</span>}
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+        </>
+      )}
 
       {/* Reservation Dialog with prefill */}
       <Dialog
@@ -576,7 +564,6 @@ export default function Disponibilidad() {
             <DialogTitle>{es.reservationsPage.newReservation}</DialogTitle>
           </DialogHeader>
           <ReservationForm
-            rooms={rooms}
             guests={guests}
             onSubmit={handleReservationCreate}
             onCancel={() => setIsReservationDialogOpen(false)}

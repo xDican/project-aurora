@@ -175,6 +175,7 @@ export const es = {
     reservationCreated: "Reserva creada exitosamente",
     reservationUpdated: "Reserva actualizada exitosamente",
     noRatesWarning: "Esta habitación no tiene configuraciones activas. Pide a un admin configurarla.",
+    noRoomsAvailable: "No hay habitaciones disponibles para esa ocupación en esas fechas.",
     columns: {
       room: "Habitación",
       occupancy: "Tipo",
@@ -192,6 +193,7 @@ export const es = {
       roomPlaceholder: "Seleccionar habitación",
       occupancyLabel: "Tipo / Ocupación",
       occupancyPlaceholder: "Seleccionar ocupación",
+      datesFirstPlaceholder: "Elegí las fechas primero",
       checkInLabel: "Fecha de ingreso",
       checkOutLabel: "Fecha de salida",
       basePriceLabel: "Precio base",
