@@ -126,14 +126,20 @@ export default function DebugDbTest() {
       return false;
     }
 
-    // Create reservation
+    // Create reservation (dates relative to today so this fixture stays valid
+    // indefinitely now that past check-in dates are rejected)
+    const inSevenDays = new Date();
+    inSevenDays.setDate(inSevenDays.getDate() + 7);
+    const inNineDays = new Date();
+    inNineDays.setDate(inNineDays.getDate() + 9);
+
     const { data, error } = await supabase
       .from("reservations")
       .insert({
         room_id: room.id,
         guest_id: guest.id,
-        check_in_date: "2025-01-10",
-        check_out_date: "2025-01-12",
+        check_in_date: inSevenDays.toISOString().split("T")[0],
+        check_out_date: inNineDays.toISOString().split("T")[0],
         base_price: 1000,
         discount: 0,
         final_price: 1000,
@@ -178,12 +184,19 @@ export default function DebugDbTest() {
       return false;
     }
 
-    // Try to create invalid reservation (dates reversed)
+    // Try to create invalid reservation (dates reversed, but still in the
+    // future so this specifically exercises the check_out > check_in
+    // constraint rather than the past-check-in trigger)
+    const inTwelveDays = new Date();
+    inTwelveDays.setDate(inTwelveDays.getDate() + 12);
+    const inTenDays = new Date();
+    inTenDays.setDate(inTenDays.getDate() + 10);
+
     const { error } = await supabase.from("reservations").insert({
       room_id: room.id,
       guest_id: guest.id,
-      check_in_date: "2025-01-12",
-      check_out_date: "2025-01-10", // Invalid: before check_in
+      check_in_date: inTwelveDays.toISOString().split("T")[0],
+      check_out_date: inTenDays.toISOString().split("T")[0], // Invalid: before check_in
       base_price: 1000,
       discount: 0,
       final_price: 1000,

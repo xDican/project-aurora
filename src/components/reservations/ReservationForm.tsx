@@ -14,10 +14,11 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, AlertTriangle, Loader2 } from "lucide-react";
 import { es } from "@/lib/i18n/es";
 import { type Room } from "@/hooks/useRooms";
-import { type Guest } from "@/hooks/useGuests";
+import { type Guest, useGuests } from "@/hooks/useGuests";
 import { type NewReservationInput } from "@/hooks/useReservations";
 import { supabase } from "@/integrations/supabase/client";
 import { type RoomRate } from "@/hooks/useRoomRates";
+import { formatCurrency } from "@/lib/currency";
 import { GuestCombobox } from "./GuestCombobox";
 import { CreateGuestModal } from "./CreateGuestModal";
 
@@ -47,14 +48,21 @@ export function ReservationForm({
   const [checkInDate, setCheckInDate] = useState(prefillCheckInDate || "");
   const [checkOutDate, setCheckOutDate] = useState(prefillCheckOutDate || "");
 
-  // Guest search state
-  const [guestSearchQuery, setGuestSearchQuery] = useState("");
-  const [filteredGuests, setFilteredGuests] = useState<Guest[]>([]);
-  const [isSearchingGuests, setIsSearchingGuests] = useState(false);
+  // Guest search - reuses the same query as the Guests page (useGuests), instead
+  // of the previous bespoke search here that silently swallowed query errors
+  const {
+    guests: searchedGuests,
+    search: guestSearchQuery,
+    setSearch: setGuestSearchQuery,
+    loading: isSearchingGuests,
+    error: guestSearchError,
+  } = useGuests();
+  const [createdGuest, setCreatedGuest] = useState<Guest | null>(null);
   const [isCreateGuestModalOpen, setIsCreateGuestModalOpen] = useState(false);
 
   // Find selected guest for display
-  const selectedGuest = filteredGuests.find((g) => g.id === guestId) || 
+  const selectedGuest = (createdGuest && createdGuest.id === guestId ? createdGuest : null) ||
+    searchedGuests.find((g) => g.id === guestId) ||
     guests.find((g) => g.id === guestId) || null;
 
   // Room rates state
@@ -80,35 +88,10 @@ export function ReservationForm({
     return { nights: numNights, totalPrice: numNights * selectedRate.price };
   }, [checkInDate, checkOutDate, selectedRate]);
 
-  // Search guests with debounce - only when there's a query
-  useEffect(() => {
-    if (!guestSearchQuery.trim()) {
-      setFilteredGuests([]);
-      setIsSearchingGuests(false);
-      return;
-    }
-
-    setIsSearchingGuests(true);
-    const timeout = setTimeout(async () => {
-      const query = guestSearchQuery.trim();
-      const { data } = await supabase
-        .from("guests")
-        .select("*")
-        .eq("is_active", true)
-        .or(`name.ilike.%${query}%,document.ilike.%${query}%,phone.ilike.%${query}%`)
-        .limit(2);
-
-      setFilteredGuests((data as Guest[]) || []);
-      setIsSearchingGuests(false);
-    }, 300);
-
-    return () => clearTimeout(timeout);
-  }, [guestSearchQuery]);
-
   // Handler when guest is created from modal
   const handleGuestCreated = (newGuest: Guest) => {
     setGuestId(newGuest.id);
-    setFilteredGuests([newGuest]);
+    setCreatedGuest(newGuest);
     setGuestSearchQuery("");
   };
 
@@ -193,6 +176,10 @@ export function ReservationForm({
     if (checkInDate && checkOutDate && checkOutDate <= checkInDate) {
       newErrors.checkOutDate = t.validation.checkOutAfterCheckIn;
     }
+    const today = new Date().toISOString().split("T")[0];
+    if (checkInDate && checkInDate < today) {
+      newErrors.checkInDate = t.validation.checkInPast;
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -219,7 +206,13 @@ export function ReservationForm({
     } catch (err) {
       const message =
         err instanceof Error ? err.message : es.common.unexpectedError;
-      setSubmitError(message);
+      if (message === "ROOM_OVERLAP") {
+        setSubmitError(t.errors.roomOverlap);
+      } else if (message === "PAST_CHECKIN") {
+        setSubmitError(t.errors.checkInPast);
+      } else {
+        setSubmitError(message);
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -242,7 +235,7 @@ export function ReservationForm({
         <div className="space-y-2">
           <Label>{t.form.guestLabel} *</Label>
           <GuestCombobox
-            guests={filteredGuests}
+            guests={searchedGuests}
             selectedGuestId={guestId}
             selectedGuest={selectedGuest}
             onSelect={setGuestId}
@@ -251,6 +244,7 @@ export function ReservationForm({
             onSearchChange={setGuestSearchQuery}
             isSearching={isSearchingGuests}
             error={errors.guestId}
+            searchError={guestSearchError}
           />
         </div>
 
@@ -302,7 +296,7 @@ export function ReservationForm({
                 <SelectContent>
                   {availableRates.map((rate) => (
                     <SelectItem key={rate.id} value={rate.id}>
-                      {es.occupancyLabels[rate.occupancy]} - ${rate.price.toFixed(2)}
+                      {es.occupancyLabels[rate.occupancy]} - {formatCurrency(rate.price)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -320,6 +314,7 @@ export function ReservationForm({
           <Input
             id="checkInDate"
             type="date"
+            min={new Date().toISOString().split("T")[0]}
             value={checkInDate}
             onChange={(e) => setCheckInDate(e.target.value)}
             className={errors.checkInDate ? "border-destructive" : ""}
@@ -356,15 +351,15 @@ export function ReservationForm({
         {selectedRate && nights > 0 && !conflictWarning && (
           <div className="rounded-md bg-muted p-3 text-sm space-y-1">
             <p>
-              <strong>{t.form.basePriceLabel}:</strong> $
-              {selectedRate.price.toFixed(2)} / noche
+              <strong>{t.form.basePriceLabel}:</strong>{" "}
+              {formatCurrency(selectedRate.price)} / noche
             </p>
             <p className="text-muted-foreground">
               {nights} {nights === 1 ? "noche" : "noches"}
             </p>
             <p className="text-lg font-semibold">
-              <strong>{t.form.finalPriceLabel}:</strong> $
-              {totalPrice.toFixed(2)}
+              <strong>{t.form.finalPriceLabel}:</strong>{" "}
+              {formatCurrency(totalPrice)}
             </p>
           </div>
         )}

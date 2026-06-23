@@ -37,6 +37,7 @@ import { type Room } from "@/hooks/useRooms";
 import { type Guest } from "@/hooks/useGuests";
 import { ReservationForm } from "@/components/reservations/ReservationForm";
 import { supabase } from "@/integrations/supabase/client";
+import { formatCurrency } from "@/lib/currency";
 
 export default function Reservas() {
   const t = es.reservationsPage;
@@ -85,6 +86,8 @@ export default function Reservas() {
       const message = err instanceof Error ? err.message : es.common.unexpectedError;
       if (message === "ROOM_OVERLAP") {
         toast.error(t.errors.roomOverlap);
+      } else if (message === "PAST_CHECKIN") {
+        toast.error(t.errors.checkInPast);
       } else {
         toast.error(message);
       }
@@ -110,13 +113,6 @@ export default function Reservas() {
       month: "2-digit",
       year: "numeric",
     });
-  };
-
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat("es-ES", {
-      style: "currency",
-      currency: "USD",
-    }).format(price);
   };
 
   const isLoading = loading || loadingDeps;
@@ -187,7 +183,7 @@ export default function Reservas() {
                           reservation.status}
                       </span>
                     </TableCell>
-                    <TableCell>{formatPrice(reservation.finalPrice)}</TableCell>
+                    <TableCell>{formatCurrency(reservation.finalPrice)}</TableCell>
                     <TableCell>
                       {reservation.status === "booked" && (
                         <AlertDialog>

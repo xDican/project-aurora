@@ -183,6 +183,10 @@ export function useReservations(): UseReservationsResult {
           "La fecha de salida debe ser posterior a la fecha de ingreso"
         );
       }
+      const today = new Date().toISOString().split("T")[0];
+      if (input.checkInDate < today) {
+        throw new Error("PAST_CHECKIN");
+      }
 
       // Insert reservation with room_rate_id
       const insertData = {
@@ -209,6 +213,9 @@ export function useReservations(): UseReservationsResult {
           msg.includes("no_overlap_per_room")
         ) {
           throw new Error("ROOM_OVERLAP");
+        }
+        if (msg.includes("PAST_CHECKIN")) {
+          throw new Error("PAST_CHECKIN");
         }
         throw new Error(`Error al crear reserva: ${msg}`);
       }

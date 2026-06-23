@@ -23,6 +23,7 @@ interface GuestComboboxProps {
   onSearchChange: (query: string) => void;
   isSearching?: boolean;
   error?: string;
+  searchError?: string;
 }
 
 export function GuestCombobox({
@@ -35,6 +36,7 @@ export function GuestCombobox({
   onSearchChange,
   isSearching,
   error,
+  searchError,
 }: GuestComboboxProps) {
   const t = es.guestCombobox;
 
@@ -111,11 +113,15 @@ export function GuestCombobox({
                   <div className="py-4 text-center text-sm text-muted-foreground">
                     {es.common.loading}
                   </div>
+                ) : searchError ? (
+                  <div className="py-4 text-center text-sm text-destructive">
+                    {searchError}
+                  </div>
                 ) : guests.length === 0 ? (
                   <CommandEmpty>{t.noResults}</CommandEmpty>
                 ) : (
                   <CommandGroup heading={es.guestsPage.title}>
-                    {guests.slice(0, 2).map((guest) => (
+                    {guests.map((guest) => (
                       <CommandItem
                         key={guest.id}
                         value={guest.id}

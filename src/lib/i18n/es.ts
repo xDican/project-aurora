@@ -202,6 +202,7 @@ export const es = {
       checkInRequired: "La fecha de ingreso es obligatoria",
       checkOutRequired: "La fecha de salida es obligatoria",
       checkOutAfterCheckIn: "La fecha de salida debe ser posterior a la de ingreso",
+      checkInPast: "La fecha de ingreso no puede ser anterior a hoy",
     },
     cancel: {
       button: "Cancelar",
@@ -214,6 +215,7 @@ export const es = {
     },
     errors: {
       roomOverlap: "Esa habitación ya está reservada para esas fechas. Elegí otra habitación o ajustá el rango.",
+      checkInPast: "La fecha de ingreso no puede ser anterior a hoy.",
       createError: "No se pudo crear la reserva",
     },
     warnings: {

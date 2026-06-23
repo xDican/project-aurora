@@ -56,8 +56,10 @@ export function useGuests(): UseGuestsResult {
       // Apply server-side search filter if search term exists
       const searchTerm = search.trim();
       if (searchTerm) {
-        // Use ilike for case-insensitive search on name and document
-        query = query.or(`name.ilike.%${searchTerm}%,document.ilike.%${searchTerm}%`);
+        // Use ilike for case-insensitive search on name, document and phone
+        query = query.or(
+          `name.ilike.%${searchTerm}%,document.ilike.%${searchTerm}%,phone.ilike.%${searchTerm}%`
+        );
       }
 
       const { data, error: fetchError } = await query;

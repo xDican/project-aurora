@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2 } from "lucide-react";
+import { formatCurrency } from "@/lib/currency";
 
 interface RoomDetailModalProps {
   room: RoomCard | null;
@@ -95,7 +96,7 @@ export function RoomDetailModal({
               {es.roomMapPage.basePrice}:
             </div>
             <div className="font-medium">
-              ${room.basePrice.toLocaleString("es-CO")}
+              {formatCurrency(room.basePrice)}
             </div>
 
             <div className="text-muted-foreground">

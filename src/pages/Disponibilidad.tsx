@@ -203,6 +203,12 @@ export default function Disponibilidad() {
       return;
     }
 
+    const today = format(new Date(), "yyyy-MM-dd");
+    if (checkInDate < today) {
+      toast.error(es.reservationsPage.validation.checkInPast);
+      return;
+    }
+
     setLoading(true);
     setHasSearched(true);
 
@@ -317,6 +323,8 @@ export default function Disponibilidad() {
       const message = err instanceof Error ? err.message : es.common.unexpectedError;
       if (message === "ROOM_OVERLAP") {
         toast.error(es.reservationsPage.errors.roomOverlap);
+      } else if (message === "PAST_CHECKIN") {
+        toast.error(es.reservationsPage.errors.checkInPast);
       } else {
         toast.error(message);
       }
@@ -429,6 +437,7 @@ export default function Disponibilidad() {
               <Input
                 id="checkIn"
                 type="date"
+                min={format(new Date(), "yyyy-MM-dd")}
                 value={checkInDate}
                 onChange={(e) => setCheckInDate(e.target.value)}
               />

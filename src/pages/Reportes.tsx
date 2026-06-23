@@ -5,6 +5,7 @@ import { BarChart3, Download, Loader2, RefreshCw } from "lucide-react";
 import { es } from "@/lib/i18n/es";
 import { useReports } from "@/hooks/useReports";
 import { supabase } from "@/integrations/supabase/client";
+import { formatCurrency } from "@/lib/currency";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -172,9 +173,6 @@ export default function Reportes() {
     link.click();
     URL.revokeObjectURL(url);
   };
-
-  const formatCurrency = (value: number) =>
-    new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(value);
 
   const formatDate = (dateStr: string) =>
     format(new Date(dateStr), "dd/MM/yyyy", { locale: dateEs });
