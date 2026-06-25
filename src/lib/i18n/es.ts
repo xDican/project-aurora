@@ -462,6 +462,7 @@ export const es = {
       guestLabel:         "Cliente",
       spaceLabel:         "Espacio",
       slotLabel:          "Slot",
+      noRatesForSpace:    "Este espacio no tiene tarifas configuradas. Un admin debe asignarlas en Configuración → editar espacio.",
       startDateLabel:     "Fecha inicio",
       endDateLabel:       "Fecha fin",
       attendeesLabel:     "Número de asistentes",

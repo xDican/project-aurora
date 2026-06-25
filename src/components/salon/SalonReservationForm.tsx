@@ -87,7 +87,7 @@ export function SalonReservationForm({
 
   const { guests: searchedGuests, search: guestSearchQuery, setSearch: setGuestSearchQuery, loading: isSearchingGuests, error: guestSearchError } = useGuests();
 
-  const { rates: spaceRates } = useSalonSpaceRates(spaceId || undefined);
+  const { rates: spaceRates, loading: ratesLoading } = useSalonSpaceRates(spaceId || undefined);
 
   const selectedGuest = (guestOverride?.id === guestId ? guestOverride : null) ?? searchedGuests.find((g) => g.id === guestId) ?? null;
   const selectedSlot = slots.find((s) => s.id === slotId) ?? null;
@@ -231,6 +231,9 @@ export function SalonReservationForm({
             </SelectContent>
           </Select>
           {errors.slotId && <p className="text-sm text-destructive">{errors.slotId}</p>}
+          {spaceId && !ratesLoading && slotsWithRate.length === 0 && (
+            <p className="text-sm text-on-surface-variant">{t.form.noRatesForSpace}</p>
+          )}
         </div>
 
         {/* Dates */}
