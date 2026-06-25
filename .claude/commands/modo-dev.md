@@ -63,6 +63,9 @@ Después de haber pensado en entidades y reglas, los edge cases emergen solos. L
 
 El objetivo es diseñar una BD que soporte exactamente lo que se definió en Fase 0, sin over-engineering.
 
+**Antes de escribir una sola línea de SQL, entrar en plan mode.**
+Diseñar el schema completo, proponer la migración y obtener aprobación antes de aplicarla. Un schema mal diseñado aplicado a Supabase requiere migraciones de corrección — es más caro que planificar bien.
+
 **Antes de proponer nada, leer lo que ya existe.**
 Revisar tablas actuales con `list_tables` y las migraciones en `supabase/migrations/`. Entender qué puede reutilizarse y qué necesita ser nuevo. Proponer siempre el diseño mínimo que resuelve el problema.
 

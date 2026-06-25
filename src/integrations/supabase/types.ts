@@ -1,3 +1,4 @@
+npm warn exec The following package was not found and will be installed: supabase@2.108.0
 export type Json =
   | string
   | number
@@ -10,7 +11,32 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "13.0.5"
+    PostgrestVersion: "14.5"
+  }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
   public: {
     Tables: {
@@ -163,14 +189,14 @@ export type Database = {
         }
         Insert: {
           archived_at?: string | null
-          base_price: number
+          base_price?: number
           created_at?: string
           id?: string
           is_active?: boolean
           notes?: string | null
           number: string
           status?: string
-          type: string
+          type?: string
         }
         Update: {
           archived_at?: string | null
@@ -182,6 +208,184 @@ export type Database = {
           number?: string
           status?: string
           type?: string
+        }
+        Relationships: []
+      }
+      salon_config: {
+        Row: {
+          audio_basic_price: number
+          audio_complete_price: number
+          coffee_min_attendees: number
+          coffee_price_per_person: number
+          cookies_price: number
+          id: string
+          projector_price: number
+          screen_price: number
+          updated_at: string
+        }
+        Insert: {
+          audio_basic_price?: number
+          audio_complete_price?: number
+          coffee_min_attendees?: number
+          coffee_price_per_person?: number
+          cookies_price?: number
+          id?: string
+          projector_price?: number
+          screen_price?: number
+          updated_at?: string
+        }
+        Update: {
+          audio_basic_price?: number
+          audio_complete_price?: number
+          coffee_min_attendees?: number
+          coffee_price_per_person?: number
+          cookies_price?: number
+          id?: string
+          projector_price?: number
+          screen_price?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      salon_menus: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          price_per_person: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          price_per_person?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          price_per_person?: number
+        }
+        Relationships: []
+      }
+      salon_reservations: {
+        Row: {
+          addons_price: number
+          attendees: number | null
+          audio_package: string
+          base_price: number
+          coffee_cookies: boolean
+          coffee_station: boolean
+          created_at: string
+          discount: number
+          end_date: string
+          final_price: number
+          guest_id: string
+          id: string
+          includes_projector: boolean
+          includes_screen: boolean
+          menu_id: string | null
+          notes: string | null
+          slot_id: string
+          start_date: string
+          status: string
+        }
+        Insert: {
+          addons_price?: number
+          attendees?: number | null
+          audio_package?: string
+          base_price?: number
+          coffee_cookies?: boolean
+          coffee_station?: boolean
+          created_at?: string
+          discount?: number
+          end_date: string
+          final_price?: number
+          guest_id: string
+          id?: string
+          includes_projector?: boolean
+          includes_screen?: boolean
+          menu_id?: string | null
+          notes?: string | null
+          slot_id: string
+          start_date: string
+          status?: string
+        }
+        Update: {
+          addons_price?: number
+          attendees?: number | null
+          audio_package?: string
+          base_price?: number
+          coffee_cookies?: boolean
+          coffee_station?: boolean
+          created_at?: string
+          discount?: number
+          end_date?: string
+          final_price?: number
+          guest_id?: string
+          id?: string
+          includes_projector?: boolean
+          includes_screen?: boolean
+          menu_id?: string | null
+          notes?: string | null
+          slot_id?: string
+          start_date?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salon_reservations_guest_fk"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "guests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salon_reservations_menu_fk"
+            columns: ["menu_id"]
+            isOneToOne: false
+            referencedRelation: "salon_menus"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salon_reservations_slot_fk"
+            columns: ["slot_id"]
+            isOneToOne: false
+            referencedRelation: "salon_slots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      salon_slots: {
+        Row: {
+          created_at: string
+          end_time: string
+          id: string
+          is_active: boolean
+          name: string
+          price_per_day: number
+          start_time: string
+        }
+        Insert: {
+          created_at?: string
+          end_time: string
+          id?: string
+          is_active?: boolean
+          name: string
+          price_per_day?: number
+          start_time: string
+        }
+        Update: {
+          created_at?: string
+          end_time?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          price_per_day?: number
+          start_time?: string
         }
         Relationships: []
       }
@@ -214,6 +418,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      apply_salon_discount: {
+        Args: { p_discount: number; p_reservation_id: string }
+        Returns: undefined
+      }
       archive_guest: { Args: { p_guest_id: string }; Returns: undefined }
       archive_room: { Args: { p_room_id: string }; Returns: undefined }
       current_app_role: {
@@ -270,26 +478,15 @@ export type Database = {
       }
       unarchive_guest: { Args: { p_guest_id: string }; Returns: undefined }
       unarchive_room: { Args: { p_room_id: string }; Returns: undefined }
-      update_guest_recent:
-        | {
-            Args: {
-              p_email: string
-              p_guest_id: string
-              p_name: string
-              p_phone: string
-            }
-            Returns: undefined
-          }
-        | {
-            Args: {
-              p_email: string
-              p_guest_id: string
-              p_name: string
-              p_notes: string
-              p_phone: string
-            }
-            Returns: undefined
-          }
+      update_guest_recent: {
+        Args: {
+          p_email: string
+          p_guest_id: string
+          p_name: string
+          p_phone: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       room_occupancy: "sencilla" | "doble" | "triple"
@@ -419,6 +616,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       room_occupancy: ["sencilla", "doble", "triple"],
