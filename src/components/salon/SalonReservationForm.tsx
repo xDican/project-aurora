@@ -130,8 +130,12 @@ export function SalonReservationForm({
     return { numDays: days, basePrice: base, equipmentPrice: equipment, cateringPrice: catering, addonsPrice: addons, totalPrice: base + addons };
   }, [startDate, endDate, selectedSlot, spaceId, pricePerDay, resourceQtys, resources, selectedMenu, attendees, coffeeStation, coffeeCookies, config]);
 
-  // Reset slot when space changes (avoid stale rate)
-  useEffect(() => { if (spaceId) setSlotId(""); }, [spaceId]);
+  // Limpia el slot solo cuando la selección actual no pertenece al espacio elegido.
+  // Así conserva el slot inicial al editar y lo borra únicamente ante un cambio real de espacio.
+  useEffect(() => {
+    if (!spaceId || slots.length === 0 || !slotId) return;
+    if (!slots.some((s) => s.id === slotId && s.space_id === spaceId)) setSlotId("");
+  }, [spaceId, slotId, slots]);
 
   const toggleResource = (res: SalonResource, checked: boolean) => {
     setResourceQtys((prev) => {

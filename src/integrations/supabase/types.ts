@@ -517,9 +517,48 @@ export type Database = {
       }
       archive_guest: { Args: { p_guest_id: string }; Returns: undefined }
       archive_room: { Args: { p_room_id: string }; Returns: undefined }
+      create_salon_reservation: {
+        Args: {
+          p_guest_id: string
+          p_space_id: string
+          p_slot_id: string
+          p_start_date: string
+          p_end_date: string
+          p_attendees: number | null
+          p_menu_id: string | null
+          p_coffee_station: boolean
+          p_coffee_cookies: boolean
+          p_base_price: number
+          p_addons_price: number
+          p_final_price: number
+          p_notes: string | null
+          p_resources: Json
+        }
+        Returns: string
+      }
       current_app_role: {
         Args: never
         Returns: Database["public"]["Enums"]["user_role"]
+      }
+      update_salon_reservation: {
+        Args: {
+          p_id: string
+          p_guest_id: string
+          p_space_id: string
+          p_slot_id: string
+          p_start_date: string
+          p_end_date: string
+          p_attendees: number | null
+          p_menu_id: string | null
+          p_coffee_station: boolean
+          p_coffee_cookies: boolean
+          p_base_price: number
+          p_addons_price: number
+          p_final_price: number
+          p_notes: string | null
+          p_resources: Json
+        }
+        Returns: undefined
       }
       log_app_event: {
         Args: { p_path: string }

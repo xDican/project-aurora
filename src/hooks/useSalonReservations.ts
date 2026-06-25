@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 import { differenceInDays, parseISO } from "date-fns";
 
 export const SALON_RESERVATION_STATUSES = ["booked", "done", "cancelled"] as const;
@@ -151,20 +152,13 @@ export function useSalonReservations(): UseSalonReservationsResult {
     }
   }, []);
 
-  const insertResources = async (reservationId: string, resources: NewSalonReservationResourceInput[]) => {
-    for (const r of resources) {
-      const { error: insertError } = await supabase.from("salon_reservation_resources").insert({
-        reservation_id: reservationId,
-        resource_id: r.resourceId,
-        quantity_requested: r.quantityRequested,
-      });
-      if (insertError) {
-        const msg = insertError.message;
-        // Extract resource id from RESOURCE_UNAVAILABLE:<uuid>
-        const match = msg.match(/RESOURCE_UNAVAILABLE:([0-9a-f-]+)/i);
-        throw new Error(match ? `RESOURCE_UNAVAILABLE:${match[1]}` : `Error al reservar recurso: ${msg}`);
-      }
-    }
+  // Mapea el mensaje crudo de Postgres a un error semántico para la UI.
+  const mapSalonError = (msg: string): Error => {
+    const unavailable = msg.match(/RESOURCE_UNAVAILABLE:([0-9a-f-]+)/i);
+    if (unavailable) return new Error(`RESOURCE_UNAVAILABLE:${unavailable[1]}`);
+    if (msg.includes("SALON_OVERLAP")) return new Error("SALON_OVERLAP");
+    if (msg.includes("NOT_EDITABLE")) return new Error("NOT_EDITABLE");
+    return new Error(msg);
   };
 
   const createReservation = useCallback(async (input: NewSalonReservationInput): Promise<void> => {
@@ -172,71 +166,54 @@ export function useSalonReservations(): UseSalonReservationsResult {
     const today = new Date().toISOString().split("T")[0];
     if (input.startDate < today) throw new Error("PAST_START_DATE");
 
-    const { data, error: insertError } = await supabase.from("salon_reservations").insert({
-      guest_id:      input.guestId,
-      space_id:      input.spaceId,
-      slot_id:       input.slotId,
-      start_date:    input.startDate,
-      end_date:      input.endDate,
-      attendees:     input.attendees,
-      menu_id:       input.menuId,
-      coffee_station: input.coffeeStation,
-      coffee_cookies: input.coffeeCookies,
-      base_price:    input.basePrice,
-      addons_price:  input.addonsPrice,
-      final_price:   input.finalPrice,
-      notes:         input.notes,
-    }).select("id").single();
+    // Atómico en Postgres: reserva + recursos en una transacción. Si un recurso no
+    // está disponible, el trigger revierte todo y no queda reserva huérfana.
+    const { error } = await supabase.rpc("create_salon_reservation", {
+      p_guest_id:      input.guestId,
+      p_space_id:      input.spaceId,
+      p_slot_id:       input.slotId,
+      p_start_date:    input.startDate,
+      p_end_date:      input.endDate,
+      p_attendees:     input.attendees,
+      p_menu_id:       input.menuId,
+      p_coffee_station: input.coffeeStation,
+      p_coffee_cookies: input.coffeeCookies,
+      p_base_price:    input.basePrice,
+      p_addons_price:  input.addonsPrice,
+      p_final_price:   input.finalPrice,
+      p_notes:         input.notes,
+      p_resources:     input.resources as unknown as Json,
+    });
 
-    if (insertError) {
-      if (insertError.message.includes("SALON_OVERLAP")) throw new Error("SALON_OVERLAP");
-      throw new Error(`Error al crear reserva: ${insertError.message}`);
-    }
-
-    if (input.resources.length > 0) {
-      try {
-        await insertResources(data.id, input.resources);
-      } catch (err) {
-        // Roll back the just-created reservation so a failed resource booking
-        // doesn't leave an orphan row with addons but no resources.
-        await supabase.from("salon_reservations").delete().eq("id", data.id);
-        throw err;
-      }
-    }
-
+    if (error) throw mapSalonError(error.message);
     await refresh();
   }, [refresh]);
 
   const updateReservation = useCallback(async (id: string, input: NewSalonReservationInput): Promise<void> => {
     const current = reservations.find((r) => r.id === id);
-    if (current && current.status !== "booked") throw new Error(`No se puede editar: estado "${current.status}"`);
+    if (current && current.status !== "booked") throw new Error("NOT_EDITABLE");
     if (input.endDate < input.startDate) throw new Error("INVALID_DATES");
 
-    const { error: updateError } = await supabase.from("salon_reservations").update({
-      guest_id:      input.guestId,
-      space_id:      input.spaceId,
-      slot_id:       input.slotId,
-      start_date:    input.startDate,
-      end_date:      input.endDate,
-      attendees:     input.attendees,
-      menu_id:       input.menuId,
-      coffee_station: input.coffeeStation,
-      coffee_cookies: input.coffeeCookies,
-      base_price:    input.basePrice,
-      addons_price:  input.addonsPrice,
-      final_price:   input.finalPrice,
-      notes:         input.notes,
-    }).eq("id", id);
+    // Atómico: actualiza la reserva y reemplaza sus recursos en una transacción.
+    const { error } = await supabase.rpc("update_salon_reservation", {
+      p_id:            id,
+      p_guest_id:      input.guestId,
+      p_space_id:      input.spaceId,
+      p_slot_id:       input.slotId,
+      p_start_date:    input.startDate,
+      p_end_date:      input.endDate,
+      p_attendees:     input.attendees,
+      p_menu_id:       input.menuId,
+      p_coffee_station: input.coffeeStation,
+      p_coffee_cookies: input.coffeeCookies,
+      p_base_price:    input.basePrice,
+      p_addons_price:  input.addonsPrice,
+      p_final_price:   input.finalPrice,
+      p_notes:         input.notes,
+      p_resources:     input.resources as unknown as Json,
+    });
 
-    if (updateError) {
-      if (updateError.message.includes("SALON_OVERLAP")) throw new Error("SALON_OVERLAP");
-      throw new Error(`Error al actualizar reserva: ${updateError.message}`);
-    }
-
-    // Replace all resources
-    await supabase.from("salon_reservation_resources").delete().eq("reservation_id", id);
-    if (input.resources.length > 0) await insertResources(id, input.resources);
-
+    if (error) throw mapSalonError(error.message);
     await refresh();
   }, [reservations, refresh]);
 
