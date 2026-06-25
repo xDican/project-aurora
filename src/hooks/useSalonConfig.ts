@@ -3,8 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 
 export interface SalonConfig {
   id: string;
-  coffee_price_per_person: number;
-  coffee_min_attendees: number;
+  coffee_station_price: number;
+  coffee_station_capacity: number;
   cookies_price: number;
   updated_at: string;
 }

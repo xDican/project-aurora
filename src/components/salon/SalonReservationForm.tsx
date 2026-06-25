@@ -114,11 +114,15 @@ export function SalonReservationForm({
       if (res) equipment += res.price * qty;
     }
 
-    // Catering: menu per attendee per day, coffee per attendee, cookies flat
+    // Catering: menú por asistente por día; café por estación (una estación cubre
+    // hasta `coffee_station_capacity` personas, precio plano); galletas flat.
     let catering = 0;
     if (config) {
       if (selectedMenu && attendees) catering += selectedMenu.price_per_person * attendees * days;
-      if (coffeeStation && attendees) catering += config.coffee_price_per_person * attendees;
+      if (coffeeStation && attendees) {
+        const stations = Math.ceil(attendees / config.coffee_station_capacity);
+        catering += stations * config.coffee_station_price;
+      }
       if (coffeeCookies && coffeeStation) catering += config.cookies_price;
     }
 
@@ -155,7 +159,6 @@ export function SalonReservationForm({
       if (startDate && startDate < today) errs.startDate = t.validation.startDatePast;
     }
     if ((menuId || coffeeStation) && !attendees) errs.attendees = t.validation.attendeesRequired;
-    if (coffeeStation && attendees && config && attendees < config.coffee_min_attendees) errs.attendees = t.validation.coffeMinAttendees;
     if (coffeeCookies && !coffeeStation) errs.coffeeCookies = t.validation.cookiesRequiresCoffee;
     setErrors(errs);
     return Object.keys(errs).length === 0;
@@ -309,8 +312,16 @@ export function SalonReservationForm({
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <Checkbox id="coffee" checked={coffeeStation} onCheckedChange={(v) => { setCoffeeStation(Boolean(v)); if (!v) setCoffeeCookies(false); }} />
-              <Label htmlFor="coffee">{t.form.coffeeLabel}{config ? ` — ${formatCurrency(config.coffee_price_per_person)}/pax` : ""}</Label>
+              <Label htmlFor="coffee">{t.form.coffeeLabel}{config ? ` — ${formatCurrency(config.coffee_station_price)} / ${config.coffee_station_capacity} pax` : ""}</Label>
             </div>
+            {coffeeStation && attendees && config && (
+              <p className="text-sm text-on-surface-variant ml-6">
+                {t.form.coffeeStationsNote(
+                  Math.ceil(attendees / config.coffee_station_capacity),
+                  formatCurrency(Math.ceil(attendees / config.coffee_station_capacity) * config.coffee_station_price),
+                )}
+              </p>
+            )}
             {coffeeStation && (
               <div className="flex items-center gap-2 ml-6">
                 <Checkbox id="cookies" checked={coffeeCookies} onCheckedChange={(v) => setCoffeeCookies(Boolean(v))} />

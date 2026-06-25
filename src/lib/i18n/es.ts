@@ -472,6 +472,8 @@ export const es = {
       menuLabel:          "Menú",
       noMenu:             "Sin menú",
       coffeeLabel:        "Estación de café permanente",
+      coffeeStationsNote: (stations: number, total: string) =>
+        `${stations} ${stations === 1 ? "estación" : "estaciones"} · ${total}`,
       cookiesLabel:       "Incluir galletas",
       notesLabel:         "Notas",
       notesPlaceholder:   "Requerimientos especiales, disposición, etc.",
@@ -492,7 +494,6 @@ export const es = {
       dateRangeInvalid:   "La fecha de fin no puede ser anterior a la de inicio",
       startDatePast:      "La fecha de inicio no puede ser anterior a hoy",
       attendeesRequired:  "Debe ingresar el número de asistentes",
-      coffeMinAttendees:  "La estación de café requiere mínimo 30 asistentes",
       cookiesRequiresCoffee: "Las galletas requieren la estación de café",
     },
 
@@ -517,8 +518,8 @@ export const es = {
 
     config: {
       title:               "Catering",
-      coffeePricePerPerson: "Precio café / persona",
-      coffeeMinAttendees:  "Mínimo de personas para café",
+      coffeeStationPrice:   "Precio por estación de café",
+      coffeeStationCapacity: "Personas que cubre una estación",
       cookiesPrice:        "Precio galletas",
       save:                "Guardar",
       saved:               "Configuración guardada",

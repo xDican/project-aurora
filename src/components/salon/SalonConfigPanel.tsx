@@ -57,14 +57,14 @@ const editBtn = (onClick: () => void) => (
 // ── Catering form ─────────────────────────────────────────────────────────────
 function CateringForm() {
   const { config, loading, saveConfig } = useSalonConfig();
-  const empty: SalonConfigInput = { coffee_price_per_person: 0, coffee_min_attendees: 30, cookies_price: 0 };
+  const empty: SalonConfigInput = { coffee_station_price: 2500, coffee_station_capacity: 30, cookies_price: 0 };
   const [form, setForm] = useState<SalonConfigInput>(empty);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (config) setForm({
-      coffee_price_per_person: config.coffee_price_per_person,
-      coffee_min_attendees: config.coffee_min_attendees,
+      coffee_station_price: config.coffee_station_price,
+      coffee_station_capacity: config.coffee_station_capacity,
       cookies_price: config.cookies_price,
     });
   }, [config]);
@@ -83,9 +83,9 @@ function CateringForm() {
       className="flex flex-col gap-4"
     >
       {[
-        { key: "coffee_price_per_person" as const, label: t.config.coffeePricePerPerson, isInt: false },
-        { key: "coffee_min_attendees"    as const, label: t.config.coffeeMinAttendees,   isInt: true  },
-        { key: "cookies_price"           as const, label: t.config.cookiesPrice,         isInt: false },
+        { key: "coffee_station_price"    as const, label: t.config.coffeeStationPrice,    isInt: false },
+        { key: "coffee_station_capacity" as const, label: t.config.coffeeStationCapacity, isInt: true  },
+        { key: "cookies_price"           as const, label: t.config.cookiesPrice,          isInt: false },
       ].map(({ key, label, isInt }) => (
         <div key={key} className="flex flex-col gap-1">
           <label className="text-label-bold text-on-surface-variant uppercase tracking-wider">{label}</label>

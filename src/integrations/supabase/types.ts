@@ -187,22 +187,22 @@ export type Database = {
       }
       salon_config: {
         Row: {
-          coffee_min_attendees: number
-          coffee_price_per_person: number
+          coffee_station_capacity: number
+          coffee_station_price: number
           cookies_price: number
           id: string
           updated_at: string
         }
         Insert: {
-          coffee_min_attendees?: number
-          coffee_price_per_person?: number
+          coffee_station_capacity?: number
+          coffee_station_price?: number
           cookies_price?: number
           id?: string
           updated_at?: string
         }
         Update: {
-          coffee_min_attendees?: number
-          coffee_price_per_person?: number
+          coffee_station_capacity?: number
+          coffee_station_price?: number
           cookies_price?: number
           id?: string
           updated_at?: string
