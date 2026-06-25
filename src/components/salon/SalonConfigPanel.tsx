@@ -9,9 +9,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { es } from "@/lib/i18n/es";
 import { formatCurrency } from "@/lib/currency";
 import { useSalonConfig, type SalonConfigInput } from "@/hooks/useSalonConfig";
-import { useSalonSlots, type SalonSlot, type NewSalonSlotInput } from "@/hooks/useSalonSlots";
+import { useSalonSlots } from "@/hooks/useSalonSlots";
 import { useSalonMenus, type SalonMenu, type NewSalonMenuInput } from "@/hooks/useSalonMenus";
-import { useSalonSpaces, useSalonSpaceRates, type SalonSpace } from "@/hooks/useSalonSpaces";
+import { useSalonSpaces, type SalonSpace } from "@/hooks/useSalonSpaces";
 import { useSalonResources, type SalonResource, type NewSalonResourceInput } from "@/hooks/useSalonResources";
 
 const t = es.salonPage;
@@ -159,60 +159,65 @@ function ResourceDialog({ open, onOpenChange, editing, onCreate, onUpdate }: {
   );
 }
 
-// ── Space rates sub-form ──────────────────────────────────────────────────────
-function SpaceRatesForm({ spaceId, slots }: { spaceId: string; slots: SalonSlot[] }) {
-  const { rates, loading, upsertRate } = useSalonSpaceRates(spaceId);
-  const [saving, setSaving] = useState<string | null>(null);
-  const rateFor = (slotId: string) => rates.find((r) => r.slot_id === slotId)?.price_per_day ?? 0;
+// ── Space dialog (espacio + sus horarios con un solo Guardar) ──────────────────
+interface SlotRow { id?: string; name: string; start_time: string; end_time: string; price_per_day: number; }
 
-  return (
-    <div className="space-y-3 pt-3 border-t border-outline-variant">
-      <p className="text-label-bold text-on-surface-variant uppercase tracking-wider">{t.spaces.ratesTitle}</p>
-      {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : slots.map((slot) => (
-        <div key={slot.id} className="flex items-center gap-3">
-          <span className="text-body-md text-foreground w-36 shrink-0">{slot.name} <span className="text-on-surface-variant text-body-sm">({slot.start_time.slice(0, 5)}–{slot.end_time.slice(0, 5)})</span></span>
-          <Input type="number" min={0} step={0.01} defaultValue={rateFor(slot.id)} className="w-32 bg-transparent"
-            onBlur={async (e) => {
-              const price = parseFloat(e.target.value) || 0;
-              setSaving(slot.id);
-              try { await upsertRate(spaceId, slot.id, price); toast.success("Tarifa guardada"); }
-              catch { toast.error(es.common.unexpectedError); } finally { setSaving(null); }
-            }}
-          />
-          {saving === slot.id && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
-        </div>
-      ))}
-      {slots.length === 0 && <p className="text-body-sm text-on-surface-variant">{t.slots.noSlots}</p>}
-    </div>
-  );
-}
-
-// ── Space dialog ──────────────────────────────────────────────────────────────
-function SpaceDialog({ open, onOpenChange, editing, slots, onCreate, onUpdate }: {
+function SpaceDialog({ open, onOpenChange, editing, onCreate, onUpdate }: {
   open: boolean; onOpenChange: (v: boolean) => void;
-  editing: SalonSpace | null; slots: SalonSlot[];
-  onCreate: (name: string) => Promise<void>;
+  editing: SalonSpace | null;
+  onCreate: (name: string) => Promise<string>;
   onUpdate: (id: string, u: { name?: string; is_active?: boolean }) => Promise<void>;
 }) {
+  const { slots, createSlot, updateSlot } = useSalonSlots(editing?.id);
   const [name, setName] = useState("");
+  const [rows, setRows] = useState<SlotRow[]>([]);
+  const [originalIds, setOriginalIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+
   useEffect(() => { setName(editing?.name ?? ""); }, [editing, open]);
+
+  useEffect(() => {
+    if (!editing) { setRows([]); setOriginalIds([]); return; }
+    const active = slots.filter((s) => s.is_active);
+    setRows(active.map((s) => ({ id: s.id, name: s.name, start_time: s.start_time.slice(0, 5), end_time: s.end_time.slice(0, 5), price_per_day: s.price_per_day })));
+    setOriginalIds(active.map((s) => s.id));
+  }, [editing, open, slots]);
+
+  const setRow = (i: number, patch: Partial<SlotRow>) => setRows((rs) => rs.map((r, idx) => idx === i ? { ...r, ...patch } : r));
+  const addRow = () => setRows((rs) => [...rs, { name: "", start_time: "", end_time: "", price_per_day: 0 }]);
+  const removeRow = (i: number) => setRows((rs) => rs.filter((_, idx) => idx !== i));
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (rows.length === 0) { toast.error(t.spaces.noSlotsYet); return; }
+    setSaving(true);
+    try {
+      const spaceId = editing ? editing.id : await onCreate(name);
+      if (editing && name !== editing.name) await onUpdate(editing.id, { name });
+
+      for (const r of rows) {
+        if (r.id) {
+          await updateSlot(r.id, { name: r.name, start_time: r.start_time, end_time: r.end_time, price_per_day: r.price_per_day, is_active: true });
+        } else {
+          await createSlot({ space_id: spaceId, name: r.name, start_time: r.start_time, end_time: r.end_time, price_per_day: r.price_per_day });
+        }
+      }
+
+      const keptIds = rows.filter((r) => r.id).map((r) => r.id);
+      for (const id of originalIds) {
+        if (!keptIds.includes(id)) await updateSlot(id, { is_active: false });
+      }
+
+      onOpenChange(false);
+      toast.success(editing ? t.spaces.updated : t.spaces.created);
+    } catch { toast.error(es.common.unexpectedError); } finally { setSaving(false); }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[420px]">
+      <DialogContent className="sm:max-w-[560px] max-h-[85vh] overflow-y-auto">
         <DialogHeader><DialogTitle>{editing ? editing.name : t.spaces.newSpace}</DialogTitle></DialogHeader>
-        <form
-          onSubmit={async (e) => {
-            e.preventDefault(); setSaving(true);
-            try {
-              editing ? await onUpdate(editing.id, { name }) : await onCreate(name);
-              if (!editing) onOpenChange(false);
-              toast.success(editing ? t.spaces.updated : t.spaces.created);
-            } catch { toast.error(es.common.unexpectedError); } finally { setSaving(false); }
-          }}
-          className="space-y-3"
-        >
+        <form onSubmit={submit} className="space-y-4">
           <div className="space-y-1"><Label>{t.spaces.name} *</Label><Input value={name} onChange={(e) => setName(e.target.value)} required /></div>
           {editing && (
             <div className="flex items-center gap-2">
@@ -220,49 +225,30 @@ function SpaceDialog({ open, onOpenChange, editing, slots, onCreate, onUpdate }:
               <Label htmlFor="sp-active">Activo</Label>
             </div>
           )}
-          {editing && <SpaceRatesForm spaceId={editing.id} slots={slots} />}
-          <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>{es.common.cancel}</Button>
-            <Button type="submit" disabled={saving}>{saving ? es.common.saving : es.common.save}</Button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-}
 
-// ── Slot dialog ───────────────────────────────────────────────────────────────
-function SlotDialog({ open, onOpenChange, editing, onCreate, onUpdate }: {
-  open: boolean; onOpenChange: (v: boolean) => void; editing: SalonSlot | null;
-  onCreate: (i: NewSalonSlotInput) => Promise<void>;
-  onUpdate: (id: string, i: Partial<NewSalonSlotInput> & { is_active?: boolean }) => Promise<void>;
-}) {
-  const empty: NewSalonSlotInput = { name: "", start_time: "", end_time: "", price_per_day: 0 };
-  const [form, setForm] = useState<NewSalonSlotInput>(empty);
-  const [saving, setSaving] = useState(false);
-  useEffect(() => { setForm(editing ? { name: editing.name, start_time: editing.start_time.slice(0, 5), end_time: editing.end_time.slice(0, 5), price_per_day: editing.price_per_day } : empty); }, [editing, open]);
+          <div className="space-y-2 pt-3 border-t border-outline-variant">
+            <div className="flex items-center justify-between">
+              <p className="text-label-bold text-on-surface-variant uppercase tracking-wider">{t.spaces.slotsTitle}</p>
+              <button type="button" onClick={addRow} className="border border-primary text-primary text-label-md px-2 py-1 rounded-lg hover:bg-primary/5 transition-colors flex items-center gap-1">
+                <span className="material-symbols-outlined text-[16px]">add</span>{t.spaces.addSlot}
+              </button>
+            </div>
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[360px]">
-        <DialogHeader><DialogTitle>{editing ? "Editar slot" : t.slots.newSlot}</DialogTitle></DialogHeader>
-        <form
-          onSubmit={async (e) => {
-            e.preventDefault(); setSaving(true);
-            try {
-              editing ? await onUpdate(editing.id, form) : await onCreate(form);
-              onOpenChange(false);
-              toast.success(editing ? t.slots.updated : t.slots.created);
-            } catch { toast.error(es.common.unexpectedError); } finally { setSaving(false); }
-          }}
-          className="space-y-3"
-        >
-          <div className="space-y-1"><Label>{t.slots.name} *</Label><Input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} required /></div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1"><Label>{t.slots.startTime}</Label><Input type="time" value={form.start_time} onChange={(e) => setForm((f) => ({ ...f, start_time: e.target.value }))} required /></div>
-            <div className="space-y-1"><Label>{t.slots.endTime}</Label><Input type="time" value={form.end_time} onChange={(e) => setForm((f) => ({ ...f, end_time: e.target.value }))} required /></div>
+            {rows.length === 0 && <p className="text-body-sm text-on-surface-variant">{t.spaces.noSlotsYet}</p>}
+
+            {rows.map((r, i) => (
+              <div key={r.id ?? `new-${i}`} className="grid grid-cols-[1fr_auto_auto_auto_auto] items-end gap-2">
+                <div className="space-y-1"><Label className="text-body-sm">{t.slots.name}</Label><Input value={r.name} onChange={(e) => setRow(i, { name: e.target.value })} required /></div>
+                <div className="space-y-1"><Label className="text-body-sm">{t.slots.startTime}</Label><Input type="time" className="w-28" value={r.start_time} onChange={(e) => setRow(i, { start_time: e.target.value })} required /></div>
+                <div className="space-y-1"><Label className="text-body-sm">{t.slots.endTime}</Label><Input type="time" className="w-28" value={r.end_time} onChange={(e) => setRow(i, { end_time: e.target.value })} required /></div>
+                <div className="space-y-1"><Label className="text-body-sm">{t.slots.pricePerDay}</Label><Input type="number" min={0} step={0.01} className="w-28" value={r.price_per_day} onChange={(e) => setRow(i, { price_per_day: parseFloat(e.target.value) || 0 })} required /></div>
+                <button type="button" onClick={() => removeRow(i)} className="text-outline hover:text-destructive transition-colors pb-2" aria-label="Quitar horario">
+                  <span className="material-symbols-outlined text-[18px]">delete</span>
+                </button>
+              </div>
+            ))}
           </div>
-          {editing && <div className="flex items-center gap-2"><input type="checkbox" checked={editing.is_active} onChange={(e) => onUpdate(editing.id, { is_active: e.target.checked })} className="rounded" /><Label>Activo</Label></div>}
+
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>{es.common.cancel}</Button>
             <Button type="submit" disabled={saving}>{saving ? es.common.saving : es.common.save}</Button>
@@ -316,12 +302,10 @@ function MenuDialog({ open, onOpenChange, editing, onCreate, onUpdate }: {
 export function SalonConfigPanel() {
   const { resources, createResource, updateResource } = useSalonResources();
   const { spaces, createSpace, updateSpace } = useSalonSpaces();
-  const { slots, createSlot, updateSlot } = useSalonSlots();
   const { menus, createMenu, updateMenu } = useSalonMenus();
 
   const [resourceDialog, setResourceDialog] = useState<{ open: boolean; editing: SalonResource | null }>({ open: false, editing: null });
   const [spaceDialog,    setSpaceDialog]    = useState<{ open: boolean; editing: SalonSpace   | null }>({ open: false, editing: null });
-  const [slotDialog,     setSlotDialog]     = useState<{ open: boolean; editing: SalonSlot    | null }>({ open: false, editing: null });
   const [menuDialog,     setMenuDialog]     = useState<{ open: boolean; editing: SalonMenu    | null }>({ open: false, editing: null });
 
   const tableCard = (icon: string, title: string, btnLabel: string, onAdd: () => void, content: React.ReactNode) => (
@@ -394,28 +378,6 @@ export function SalonConfigPanel() {
           )
         )}
 
-        {/* Slots */}
-        {tableCard("schedule", t.slots.title, t.slots.newSlot, () => setSlotDialog({ open: true, editing: null }),
-          slots.length === 0 ? emptyRow(t.slots.noSlots) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                {tableHead("Nombre", "Hora inicio", "Hora fin", "Estado", "Acciones")}
-                <tbody className="text-table-data text-on-surface divide-y divide-outline-variant/50">
-                  {slots.map((s) => (
-                    <tr key={s.id} className="hover:bg-surface-container-low/50 transition-colors">
-                      <td className="px-table_cell_padding_x py-table_cell_padding_y">{s.name}</td>
-                      <td className="px-table_cell_padding_x py-table_cell_padding_y text-on-surface-variant">{s.start_time.slice(0, 5)}</td>
-                      <td className="px-table_cell_padding_x py-table_cell_padding_y text-on-surface-variant">{s.end_time.slice(0, 5)}</td>
-                      <td className="px-table_cell_padding_x py-table_cell_padding_y">{pill(s.is_active)}</td>
-                      <td className="px-table_cell_padding_x py-table_cell_padding_y text-right">{editBtn(() => setSlotDialog({ open: true, editing: s }))}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )
-        )}
-
         {/* Menús */}
         {tableCard("restaurant", t.menus.title, t.menus.newMenu, () => setMenuDialog({ open: true, editing: null }),
           menus.length === 0 ? emptyRow(t.menus.noMenus) : (
@@ -439,8 +401,7 @@ export function SalonConfigPanel() {
       </div>
 
       <ResourceDialog open={resourceDialog.open} onOpenChange={(v) => setResourceDialog((s) => ({ ...s, open: v }))} editing={resourceDialog.editing} onCreate={createResource} onUpdate={updateResource} />
-      <SpaceDialog    open={spaceDialog.open}    onOpenChange={(v) => setSpaceDialog((s)    => ({ ...s, open: v }))} editing={spaceDialog.editing}    slots={slots}  onCreate={createSpace}   onUpdate={updateSpace}    />
-      <SlotDialog     open={slotDialog.open}     onOpenChange={(v) => setSlotDialog((s)     => ({ ...s, open: v }))} editing={slotDialog.editing}     onCreate={createSlot}    onUpdate={updateSlot}     />
+      <SpaceDialog    open={spaceDialog.open}    onOpenChange={(v) => setSpaceDialog((s)    => ({ ...s, open: v }))} editing={spaceDialog.editing}    onCreate={createSpace}   onUpdate={updateSpace}    />
       <MenuDialog     open={menuDialog.open}     onOpenChange={(v) => setMenuDialog((s)     => ({ ...s, open: v }))} editing={menuDialog.editing}     onCreate={createMenu}    onUpdate={updateMenu}     />
     </div>
   );

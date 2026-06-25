@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 export interface SalonSlot {
   id: string;
+  space_id: string;
   name: string;
   start_time: string;
   end_time: string;
@@ -12,6 +13,7 @@ export interface SalonSlot {
 }
 
 export interface NewSalonSlotInput {
+  space_id: string;
   name: string;
   start_time: string;
   end_time: string;
@@ -27,7 +29,7 @@ export interface UseSalonSlotsResult {
   updateSlot: (id: string, input: Partial<NewSalonSlotInput> & { is_active?: boolean }) => Promise<void>;
 }
 
-export function useSalonSlots(onlyActive = false): UseSalonSlotsResult {
+export function useSalonSlots(spaceId?: string, onlyActive = false): UseSalonSlotsResult {
   const [slots, setSlots] = useState<SalonSlot[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | undefined>();
@@ -37,6 +39,7 @@ export function useSalonSlots(onlyActive = false): UseSalonSlotsResult {
     setError(undefined);
     try {
       let query = supabase.from("salon_slots").select("*").order("start_time");
+      if (spaceId) query = query.eq("space_id", spaceId);
       if (onlyActive) query = query.eq("is_active", true);
 
       const { data, error: fetchError } = await query;
@@ -48,7 +51,7 @@ export function useSalonSlots(onlyActive = false): UseSalonSlotsResult {
     } finally {
       setLoading(false);
     }
-  }, [onlyActive]);
+  }, [spaceId, onlyActive]);
 
   const createSlot = useCallback(async (input: NewSalonSlotInput): Promise<void> => {
     const { error: insertError } = await supabase.from("salon_slots").insert(input);

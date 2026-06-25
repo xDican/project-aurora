@@ -462,7 +462,7 @@ export const es = {
       guestLabel:         "Cliente",
       spaceLabel:         "Espacio",
       slotLabel:          "Slot",
-      noRatesForSpace:    "Este espacio no tiene tarifas configuradas. Un admin debe asignarlas en Configuración → editar espacio.",
+      noSlotsForSpace:    "Este espacio no tiene horarios configurados. Un admin debe agregarlos en Configuración → editar espacio.",
       startDateLabel:     "Fecha inicio",
       endDateLabel:       "Fecha fin",
       attendeesLabel:     "Número de asistentes",
@@ -543,19 +543,16 @@ export const es = {
       noSpaces:   "No hay espacios configurados.",
       created:    "Espacio creado",
       updated:    "Espacio actualizado",
-      ratesTitle: "Tarifas por slot",
+      slotsTitle: "Horarios y tarifas",
+      addSlot:    "Agregar horario",
+      noSlotsYet: "Agrega al menos un horario con su precio.",
     },
 
     slots: {
-      title:       "Slots de tiempo",
-      newSlot:     "Nuevo slot",
       name:        "Nombre",
       startTime:   "Hora inicio",
       endTime:     "Hora fin",
       pricePerDay: "Precio / día",
-      noSlots:     "No hay slots configurados.",
-      created:     "Slot creado",
-      updated:     "Slot actualizado",
     },
 
     menus: {

@@ -17,7 +17,6 @@ import type { SalonSlot } from "@/hooks/useSalonSlots";
 import type { SalonMenu } from "@/hooks/useSalonMenus";
 import type { SalonConfig } from "@/hooks/useSalonConfig";
 import type { SalonSpace } from "@/hooks/useSalonSpaces";
-import { useSalonSpaceRates } from "@/hooks/useSalonSpaces";
 import type { SalonResource } from "@/hooks/useSalonResources";
 import type { NewSalonReservationInput } from "@/hooks/useSalonReservations";
 
@@ -92,17 +91,14 @@ export function SalonReservationForm({
 
   const { guests: searchedGuests, search: guestSearchQuery, setSearch: setGuestSearchQuery, loading: isSearchingGuests, error: guestSearchError } = useGuests();
 
-  const { rates: spaceRates, loading: ratesLoading } = useSalonSpaceRates(spaceId || undefined);
-
   const selectedGuest = (guestOverride?.id === guestId ? guestOverride : null) ?? searchedGuests.find((g) => g.id === guestId) ?? null;
   const selectedSlot = slots.find((s) => s.id === slotId) ?? null;
   const selectedMenu = menus.find((m) => m.id === menuId) ?? null;
-  const spaceRate = spaceRates.find((r) => r.slot_id === slotId);
 
   const activeResources = resources.filter((r) => r.is_active);
 
-  // When space or slot changes, recalculate base price from space_rate
-  const pricePerDay = spaceRate?.price_per_day ?? 0;
+  // El precio base lo lleva el propio slot (un slot pertenece a un espacio).
+  const pricePerDay = selectedSlot?.price_per_day ?? 0;
 
   const { numDays, basePrice, equipmentPrice, cateringPrice, addonsPrice, totalPrice } = useMemo(() => {
     if (!startDate || !endDate || endDate < startDate || !selectedSlot || !spaceId) {
@@ -197,7 +193,7 @@ export function SalonReservationForm({
   };
 
   const activeSpaces = spaces.filter((s) => s.is_active);
-  const slotsWithRate = slots.filter((s) => s.is_active && (spaceId ? spaceRates.some((r) => r.slot_id === s.id) : true));
+  const spaceSlots = slots.filter((s) => s.is_active && s.space_id === spaceId);
 
   return (
     <>
@@ -230,15 +226,14 @@ export function SalonReservationForm({
           <Select value={slotId} onValueChange={setSlotId} disabled={!spaceId}>
             <SelectTrigger className={errors.slotId ? "border-destructive" : ""}><SelectValue placeholder={spaceId ? "Seleccionar slot" : "Selecciona un espacio primero"} /></SelectTrigger>
             <SelectContent>
-              {slotsWithRate.map((s) => {
-                const rate = spaceRates.find((r) => r.slot_id === s.id);
-                return <SelectItem key={s.id} value={s.id}>{s.name} ({s.start_time.slice(0, 5)}–{s.end_time.slice(0, 5)}){rate ? ` — ${formatCurrency(rate.price_per_day)}/día` : ""}</SelectItem>;
-              })}
+              {spaceSlots.map((s) => (
+                <SelectItem key={s.id} value={s.id}>{s.name} ({s.start_time.slice(0, 5)}–{s.end_time.slice(0, 5)}) — {formatCurrency(s.price_per_day)}/día</SelectItem>
+              ))}
             </SelectContent>
           </Select>
           {errors.slotId && <p className="text-sm text-destructive">{errors.slotId}</p>}
-          {spaceId && !ratesLoading && slotsWithRate.length === 0 && (
-            <p className="text-sm text-on-surface-variant">{t.form.noRatesForSpace}</p>
+          {spaceId && spaceSlots.length === 0 && (
+            <p className="text-sm text-on-surface-variant">{t.form.noSlotsForSpace}</p>
           )}
         </div>
 

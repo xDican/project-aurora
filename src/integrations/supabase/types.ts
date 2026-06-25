@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       guests: {
@@ -421,6 +396,7 @@ export type Database = {
           is_active: boolean
           name: string
           price_per_day: number
+          space_id: string
           start_time: string
         }
         Insert: {
@@ -430,6 +406,7 @@ export type Database = {
           is_active?: boolean
           name: string
           price_per_day?: number
+          space_id: string
           start_time: string
         }
         Update: {
@@ -439,45 +416,12 @@ export type Database = {
           is_active?: boolean
           name?: string
           price_per_day?: number
-          start_time?: string
-        }
-        Relationships: []
-      }
-      salon_space_rates: {
-        Row: {
-          created_at: string
-          id: string
-          is_active: boolean
-          price_per_day: number
-          slot_id: string
-          space_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          is_active?: boolean
-          price_per_day?: number
-          slot_id: string
-          space_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          is_active?: boolean
-          price_per_day?: number
-          slot_id?: string
           space_id?: string
+          start_time?: string
         }
         Relationships: [
           {
-            foreignKeyName: "salon_space_rates_slot_id_fkey"
-            columns: ["slot_id"]
-            isOneToOne: false
-            referencedRelation: "salon_slots"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "salon_space_rates_space_id_fkey"
+            foreignKeyName: "salon_slots_space_id_fkey"
             columns: ["space_id"]
             isOneToOne: false
             referencedRelation: "salon_spaces"
@@ -733,9 +677,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       room_occupancy: ["sencilla", "doble", "triple"],

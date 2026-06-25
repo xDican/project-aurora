@@ -36,7 +36,7 @@ export default function Salon() {
 
   const { reservations, loading, error, createReservation, updateReservation, cancelReservation, markDone } = useSalonReservations();
   const { spaces } = useSalonSpaces(true);
-  const { slots } = useSalonSlots(true);
+  const { slots } = useSalonSlots(undefined, true);
   const { menus } = useSalonMenus(true);
   const { resources } = useSalonResources(true);
   const { config } = useSalonConfig();
