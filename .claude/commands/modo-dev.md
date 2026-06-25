@@ -87,6 +87,9 @@ Aplicar migración vía Supabase MCP (`apply_migration`). Verificar con query re
 
 El objetivo es construir la interfaz entre BD y UI: tipos correctos, queries probadas, errores manejados.
 
+**Antes de escribir código, entrar en plan mode.**
+Definir las interfaces de los hooks y el contrato con la UI antes de implementar. Obtener aprobación del plan antes de proceder.
+
 **Regenerar types después de cualquier migración.**
 `supabase gen types typescript --project-id kyjetjdzciczlqshjbcr > src/integrations/supabase/types.ts`
 Sin este paso, TypeScript trabaja con tipos desactualizados y los errores aparecen en runtime.
@@ -105,6 +108,9 @@ Una query que falla en el SQL editor falla igual en el hook. Mejor descubrirlo a
 ### Fase 3 — UI
 
 El objetivo es construir la presentación sobre una capa de datos que ya funciona.
+
+**Antes de escribir código, entrar en plan mode.**
+Definir qué componentes se crean, qué rutas se agregan y cómo se conectan los hooks antes de tocar archivos. Obtener aprobación antes de proceder.
 
 **Evaluar si la pantalla necesita mockup.**
 Pantalla nueva con layout propio → mockup en Stitch primero, luego portar al código (mantener hooks reales, descartar campos inventados por el mockup que no existen en el schema). Componente menor o form dentro de una pantalla existente → directo en código.
@@ -128,6 +134,9 @@ Nunca texto hardcodeado en componentes. Extender el objeto `es` con una nueva se
 ### Fase 4 — Verificación
 
 El objetivo es confirmar que el feature funciona para ambos roles y no rompe nada existente.
+
+**Antes de verificar, entrar en plan mode.**
+Listar los casos de prueba exactos (happy path, roles, edge cases de Fase 0) y obtener aprobación antes de ejecutarlos. Así la verificación es sistemática y no se saltea nada.
 
 **TypeScript limpio.**
 `npx tsc --noEmit` sin errores. Resolverlos antes de continuar — no ignorarlos.
