@@ -318,6 +318,7 @@ export default function Reservas() {
               onSubmit={handleUpdate}
               onCancel={() => setEditingReservation(null)}
               editingReservationId={editingReservation.id}
+              reservationStatus={editingReservation.status}
               prefillRoomId={editingReservation.roomId}
               prefillCheckInDate={editingReservation.checkInDate}
               prefillCheckOutDate={editingReservation.checkOutDate}

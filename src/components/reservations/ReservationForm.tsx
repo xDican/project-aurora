@@ -30,6 +30,7 @@ interface ReservationFormProps {
   prefillCheckOutDate?: string;
   // When set, the form edits an existing reservation instead of creating one
   editingReservationId?: string;
+  reservationStatus?: string;
   initialGuest?: Guest;
   initialOccupancy?: OccupancyType;
 }
@@ -51,11 +52,13 @@ export function ReservationForm({
   prefillCheckInDate,
   prefillCheckOutDate,
   editingReservationId,
+  reservationStatus,
   initialGuest,
   initialOccupancy,
 }: ReservationFormProps) {
   const t = es.reservationsPage;
   const isEditing = Boolean(editingReservationId);
+  const isCheckedIn = isEditing && reservationStatus === "checked_in";
 
   const [guestId, setGuestId] = useState(initialGuest?.id || "");
   const [checkInDate, setCheckInDate] = useState(prefillCheckInDate || "");
@@ -321,8 +324,12 @@ export function ReservationForm({
               min={isEditing ? undefined : new Date().toISOString().split("T")[0]}
               value={checkInDate}
               onChange={(e) => setCheckInDate(e.target.value)}
+              disabled={isCheckedIn}
               className={errors.checkInDate ? "border-destructive" : ""}
             />
+            {isCheckedIn && (
+              <p className="text-xs text-muted-foreground">El ingreso ya fue registrado y no puede modificarse.</p>
+            )}
             {errors.checkInDate && (
               <p className="text-sm text-destructive">{errors.checkInDate}</p>
             )}
