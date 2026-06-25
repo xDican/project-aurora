@@ -13,6 +13,7 @@ import { useSalonSlots } from "@/hooks/useSalonSlots";
 import { useSalonMenus } from "@/hooks/useSalonMenus";
 import { useSalonConfig } from "@/hooks/useSalonConfig";
 import { useSalonSpaces } from "@/hooks/useSalonSpaces";
+import { useSalonResources } from "@/hooks/useSalonResources";
 import { SalonReservationForm } from "@/components/salon/SalonReservationForm";
 import { SalonConfigPanel } from "@/components/salon/SalonConfigPanel";
 
@@ -37,6 +38,7 @@ export default function Salon() {
   const { spaces } = useSalonSpaces(true);
   const { slots } = useSalonSlots(true);
   const { menus } = useSalonMenus(true);
+  const { resources } = useSalonResources(true);
   const { config } = useSalonConfig();
 
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -174,6 +176,7 @@ export default function Salon() {
             spaces={spaces}
             slots={slots}
             menus={menus}
+            resources={resources}
             config={config}
             onSubmit={editingReservation ? handleUpdate : handleCreate}
             onCancel={closeSheet}
@@ -187,9 +190,7 @@ export default function Salon() {
               startDate: editingReservation.startDate,
               endDate: editingReservation.endDate,
               attendees: editingReservation.attendees,
-              includesProjector: editingReservation.includesProjector,
-              includesScreen: editingReservation.includesScreen,
-              audioPackage: editingReservation.audioPackage,
+              resources: editingReservation.resources.map((r) => ({ resourceId: r.resourceId, quantityRequested: r.quantityRequested })),
               menuId: editingReservation.menuId,
               coffeeStation: editingReservation.coffeeStation,
               coffeeCookies: editingReservation.coffeeCookies,

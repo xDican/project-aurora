@@ -18,9 +18,17 @@ import type { SalonMenu } from "@/hooks/useSalonMenus";
 import type { SalonConfig } from "@/hooks/useSalonConfig";
 import type { SalonSpace } from "@/hooks/useSalonSpaces";
 import { useSalonSpaceRates } from "@/hooks/useSalonSpaces";
-import type { NewSalonReservationInput, AudioPackage } from "@/hooks/useSalonReservations";
+import type { SalonResource } from "@/hooks/useSalonResources";
+import type { NewSalonReservationInput } from "@/hooks/useSalonReservations";
 
 const t = es.salonPage;
+
+const clamp = (n: number, min: number, max: number) => Math.min(Math.max(n, min), max);
+
+interface InitialResource {
+  resourceId: string;
+  quantityRequested: number;
+}
 
 interface InitialValues {
   guestId: string;
@@ -30,9 +38,7 @@ interface InitialValues {
   startDate: string;
   endDate: string;
   attendees: number | null;
-  includesProjector: boolean;
-  includesScreen: boolean;
-  audioPackage: AudioPackage;
+  resources: InitialResource[];
   menuId: string | null;
   coffeeStation: boolean;
   coffeeCookies: boolean;
@@ -43,6 +49,7 @@ interface SalonReservationFormProps {
   spaces: SalonSpace[];
   slots: SalonSlot[];
   menus: SalonMenu[];
+  resources: SalonResource[];
   config: SalonConfig | null;
   onSubmit: (input: NewSalonReservationInput) => Promise<void>;
   onCancel: () => void;
@@ -52,7 +59,7 @@ interface SalonReservationFormProps {
 }
 
 export function SalonReservationForm({
-  spaces, slots, menus, config,
+  spaces, slots, menus, resources, config,
   onSubmit, onCancel,
   isAdmin = false, editingId, initialValues,
 }: SalonReservationFormProps) {
@@ -65,9 +72,10 @@ export function SalonReservationForm({
   const [startDate, setStartDate] = useState(initialValues?.startDate ?? "");
   const [endDate, setEndDate] = useState(initialValues?.endDate ?? "");
   const [attendees, setAttendees] = useState<number | null>(initialValues?.attendees ?? null);
-  const [includesProjector, setIncludesProjector] = useState(initialValues?.includesProjector ?? false);
-  const [includesScreen, setIncludesScreen] = useState(initialValues?.includesScreen ?? false);
-  const [audioPackage, setAudioPackage] = useState<AudioPackage>(initialValues?.audioPackage ?? "none");
+  // resourceId -> quantityRequested. Presence of a key means the resource is selected.
+  const [resourceQtys, setResourceQtys] = useState<Record<string, number>>(
+    () => Object.fromEntries((initialValues?.resources ?? []).map((r) => [r.resourceId, r.quantityRequested])),
+  );
   const [menuId, setMenuId] = useState<string | null>(initialValues?.menuId ?? null);
   const [coffeeStation, setCoffeeStation] = useState(initialValues?.coffeeStation ?? false);
   const [coffeeCookies, setCoffeeCookies] = useState(initialValues?.coffeeCookies ?? false);
@@ -86,30 +94,52 @@ export function SalonReservationForm({
   const selectedMenu = menus.find((m) => m.id === menuId) ?? null;
   const spaceRate = spaceRates.find((r) => r.slot_id === slotId);
 
+  const activeResources = resources.filter((r) => r.is_active);
+
   // When space or slot changes, recalculate base price from space_rate
   const pricePerDay = spaceRate?.price_per_day ?? 0;
 
-  const { numDays, basePrice, addonsPrice, totalPrice } = useMemo(() => {
+  const { numDays, basePrice, equipmentPrice, cateringPrice, addonsPrice, totalPrice } = useMemo(() => {
     if (!startDate || !endDate || endDate < startDate || !selectedSlot || !spaceId) {
-      return { numDays: 0, basePrice: 0, addonsPrice: 0, totalPrice: 0 };
+      return { numDays: 0, basePrice: 0, equipmentPrice: 0, cateringPrice: 0, addonsPrice: 0, totalPrice: 0 };
     }
     const days = differenceInDays(parseISO(endDate), parseISO(startDate)) + 1;
     const base = pricePerDay * days;
-    let addons = 0;
-    if (config) {
-      if (includesProjector) addons += config.projector_price;
-      if (includesScreen) addons += config.screen_price;
-      if (audioPackage === "basic") addons += config.audio_basic_price;
-      if (audioPackage === "complete") addons += config.audio_complete_price;
-      if (selectedMenu && attendees) addons += selectedMenu.price_per_person * attendees * days;
-      if (coffeeStation && attendees) addons += config.coffee_price_per_person * attendees;
-      if (coffeeCookies && coffeeStation) addons += config.cookies_price;
+
+    // Equipment: each selected resource priced flat per unit (not per day)
+    let equipment = 0;
+    for (const [id, qty] of Object.entries(resourceQtys)) {
+      const res = resources.find((r) => r.id === id);
+      if (res) equipment += res.price * qty;
     }
-    return { numDays: days, basePrice: base, addonsPrice: addons, totalPrice: base + addons };
-  }, [startDate, endDate, selectedSlot, spaceId, pricePerDay, selectedMenu, attendees, includesProjector, includesScreen, audioPackage, coffeeStation, coffeeCookies, config]);
+
+    // Catering: menu per attendee per day, coffee per attendee, cookies flat
+    let catering = 0;
+    if (config) {
+      if (selectedMenu && attendees) catering += selectedMenu.price_per_person * attendees * days;
+      if (coffeeStation && attendees) catering += config.coffee_price_per_person * attendees;
+      if (coffeeCookies && coffeeStation) catering += config.cookies_price;
+    }
+
+    const addons = equipment + catering;
+    return { numDays: days, basePrice: base, equipmentPrice: equipment, cateringPrice: catering, addonsPrice: addons, totalPrice: base + addons };
+  }, [startDate, endDate, selectedSlot, spaceId, pricePerDay, resourceQtys, resources, selectedMenu, attendees, coffeeStation, coffeeCookies, config]);
 
   // Reset slot when space changes (avoid stale rate)
   useEffect(() => { if (spaceId) setSlotId(""); }, [spaceId]);
+
+  const toggleResource = (res: SalonResource, checked: boolean) => {
+    setResourceQtys((prev) => {
+      const next = { ...prev };
+      if (checked) next[res.id] = prev[res.id] ?? 1;
+      else delete next[res.id];
+      return next;
+    });
+  };
+
+  const setResourceQty = (res: SalonResource, value: number) => {
+    setResourceQtys((prev) => ({ ...prev, [res.id]: clamp(value || 1, 1, res.quantity) }));
+  };
 
   const validate = (): boolean => {
     const errs: Record<string, string> = {};
@@ -136,18 +166,26 @@ export function SalonReservationForm({
     if (!validate()) return;
     setIsSubmitting(true);
     try {
-      await onSubmit({ guestId, spaceId, slotId, startDate, endDate, attendees, includesProjector, includesScreen, audioPackage, menuId, coffeeStation, coffeeCookies, basePrice, addonsPrice, finalPrice: totalPrice, notes: notes || null });
+      // Only submit resources still present in the loaded list, so submit and the
+      // priced total stay consistent (a resource deactivated after booking drops out of both).
+      const resourcesInput = Object.entries(resourceQtys)
+        .filter(([resourceId]) => resources.some((r) => r.id === resourceId))
+        .map(([resourceId, quantityRequested]) => ({ resourceId, quantityRequested }));
+      await onSubmit({ guestId, spaceId, slotId, startDate, endDate, attendees, resources: resourcesInput, menuId, coffeeStation, coffeeCookies, basePrice, addonsPrice, finalPrice: totalPrice, notes: notes || null });
     } catch (err) {
       const msg = err instanceof Error ? err.message : es.common.unexpectedError;
-      const errMap: Record<string, string> = {
-        SALON_OVERLAP:          t.errors.salonOverlap,
-        PROJECTOR_UNAVAILABLE:  t.errors.projectorUnavailable,
-        SCREEN_UNAVAILABLE:     t.errors.screenUnavailable,
-        AUDIO_UNAVAILABLE:      t.errors.audioUnavailable,
-        INVALID_DATES:          t.errors.invalidDates,
-        PAST_START_DATE:        t.errors.pastStartDate,
-      };
-      setSubmitError(errMap[msg] ?? msg);
+      const unavailable = msg.match(/^RESOURCE_UNAVAILABLE:(.+)$/);
+      if (unavailable) {
+        const res = resources.find((r) => r.id === unavailable[1]);
+        setSubmitError(t.errors.resourceUnavailable(res?.name ?? "El recurso"));
+      } else {
+        const errMap: Record<string, string> = {
+          SALON_OVERLAP:   t.errors.salonOverlap,
+          INVALID_DATES:   t.errors.invalidDates,
+          PAST_START_DATE: t.errors.pastStartDate,
+        };
+        setSubmitError(errMap[msg] ?? msg);
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -220,35 +258,49 @@ export function SalonReservationForm({
           {errors.attendees && <p className="text-sm text-destructive">{errors.attendees}</p>}
         </div>
 
-        {/* Add-ons */}
+        {/* Equipment (dynamic resources) */}
         <div className="space-y-3 pt-1 border-t border-outline-variant">
-          <p className="text-label-md text-on-surface-variant uppercase pt-1">Equipamiento y servicios</p>
-          <div className="flex items-center gap-2">
-            <Checkbox id="projector" checked={includesProjector} onCheckedChange={(v) => setIncludesProjector(Boolean(v))} />
-            <Label htmlFor="projector">{t.form.projectorLabel}{config ? ` — ${formatCurrency(config.projector_price)}` : ""}</Label>
-          </div>
-          <div className="flex items-center gap-2">
-            <Checkbox id="screen" checked={includesScreen} onCheckedChange={(v) => setIncludesScreen(Boolean(v))} />
-            <Label htmlFor="screen">{t.form.screenLabel}{config ? ` — ${formatCurrency(config.screen_price)}` : ""}</Label>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>{t.form.audioLabel}</Label>
-              <Select value={audioPackage} onValueChange={(v) => setAudioPackage(v as AudioPackage)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{(["none", "basic", "complete"] as AudioPackage[]).map((v) => <SelectItem key={v} value={v}>{es.audioPackageLabels[v]}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>{t.form.menuLabel}</Label>
-              <Select value={menuId ?? "none"} onValueChange={(v) => setMenuId(v === "none" ? null : v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">{t.form.noMenu}</SelectItem>
-                  {menus.map((m) => <SelectItem key={m.id} value={m.id}>{m.name} — {formatCurrency(m.price_per_person)}/pax</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
+          <p className="text-label-md text-on-surface-variant uppercase pt-1">{t.form.equipmentLabel}</p>
+          {activeResources.length === 0 ? (
+            <p className="text-body-sm text-on-surface-variant">{t.form.noResourcesWarning}</p>
+          ) : activeResources.map((res) => {
+            const selected = res.id in resourceQtys;
+            return (
+              <div key={res.id} className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Checkbox id={`res-${res.id}`} checked={selected} onCheckedChange={(v) => toggleResource(res, Boolean(v))} />
+                  <Label htmlFor={`res-${res.id}`} className="cursor-pointer leading-tight">
+                    {res.name}
+                    {res.description && <span className="block text-label-md text-on-surface-variant">{res.description}</span>}
+                  </Label>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  {selected && res.quantity > 1 && (
+                    <div className="flex items-center gap-1">
+                      <span className="text-label-md text-on-surface-variant">{t.form.quantityLabel}</span>
+                      <Input type="number" min={1} max={res.quantity} value={resourceQtys[res.id]}
+                        onChange={(e) => setResourceQty(res, parseInt(e.target.value))}
+                        className="w-16 h-8 text-center" />
+                    </div>
+                  )}
+                  <span className="text-primary text-body-md font-medium whitespace-nowrap">{formatCurrency(res.price)}</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Catering */}
+        <div className="space-y-3 pt-1 border-t border-outline-variant">
+          <div className="space-y-2">
+            <Label>{t.form.menuLabel}</Label>
+            <Select value={menuId ?? "none"} onValueChange={(v) => setMenuId(v === "none" ? null : v)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">{t.form.noMenu}</SelectItem>
+                {menus.map((m) => <SelectItem key={m.id} value={m.id}>{m.name} — {formatCurrency(m.price_per_person)}/pax</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-2">
             <div className="flex items-center gap-2">
@@ -261,6 +313,7 @@ export function SalonReservationForm({
                 <Label htmlFor="cookies">{t.form.cookiesLabel}{config ? ` — ${formatCurrency(config.cookies_price)}` : ""}</Label>
               </div>
             )}
+            {errors.coffeeCookies && <p className="text-sm text-destructive">{errors.coffeeCookies}</p>}
           </div>
         </div>
 
@@ -274,12 +327,13 @@ export function SalonReservationForm({
         {numDays > 0 && pricePerDay > 0 && (
           <div className="rounded-lg bg-muted p-3 text-sm space-y-1 border-t border-outline-variant">
             <div className="flex justify-between text-on-surface-variant">
-              <span>{t.form.basePriceLabel} ({numDays} {numDays === 1 ? "día" : "días"} × {formatCurrency(pricePerDay)}):</span>
+              <span>{t.form.basePriceLabel} ({numDays} {numDays === 1 ? "día" : "días"} × {formatCurrency(pricePerDay)})</span>
               <span>{formatCurrency(basePrice)}</span>
             </div>
-            {addonsPrice > 0 && <div className="flex justify-between text-on-surface-variant"><span>{t.form.addonsPriceLabel}:</span><span>{formatCurrency(addonsPrice)}</span></div>}
+            {equipmentPrice > 0 && <div className="flex justify-between text-on-surface-variant"><span>{t.form.equipmentPriceLabel}</span><span>{formatCurrency(equipmentPrice)}</span></div>}
+            {cateringPrice > 0 && <div className="flex justify-between text-on-surface-variant"><span>{t.form.cateringPriceLabel}</span><span>{formatCurrency(cateringPrice)}</span></div>}
             <div className="flex justify-between font-semibold text-lg pt-1 border-t border-outline-variant">
-              <span>{t.form.totalLabel}:</span>
+              <span>{t.form.totalLabel}</span>
               <span className="text-primary">{formatCurrency(totalPrice)}</span>
             </div>
           </div>
