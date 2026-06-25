@@ -212,45 +212,24 @@ export type Database = {
       }
       salon_config: {
         Row: {
-          audio_basic_price: number
-          audio_complete_price: number
-          audio_count: number
           coffee_min_attendees: number
           coffee_price_per_person: number
           cookies_price: number
           id: string
-          projector_count: number
-          projector_price: number
-          screen_count: number
-          screen_price: number
           updated_at: string
         }
         Insert: {
-          audio_basic_price?: number
-          audio_complete_price?: number
-          audio_count?: number
           coffee_min_attendees?: number
           coffee_price_per_person?: number
           cookies_price?: number
           id?: string
-          projector_count?: number
-          projector_price?: number
-          screen_count?: number
-          screen_price?: number
           updated_at?: string
         }
         Update: {
-          audio_basic_price?: number
-          audio_complete_price?: number
-          audio_count?: number
           coffee_min_attendees?: number
           coffee_price_per_person?: number
           cookies_price?: number
           id?: string
-          projector_count?: number
-          projector_price?: number
-          screen_count?: number
-          screen_price?: number
           updated_at?: string
         }
         Relationships: []
@@ -279,11 +258,46 @@ export type Database = {
         }
         Relationships: []
       }
+      salon_reservation_resources: {
+        Row: {
+          id: string
+          quantity_requested: number
+          reservation_id: string
+          resource_id: string
+        }
+        Insert: {
+          id?: string
+          quantity_requested?: number
+          reservation_id: string
+          resource_id: string
+        }
+        Update: {
+          id?: string
+          quantity_requested?: number
+          reservation_id?: string
+          resource_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salon_reservation_resources_reservation_id_fkey"
+            columns: ["reservation_id"]
+            isOneToOne: false
+            referencedRelation: "salon_reservations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salon_reservation_resources_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: false
+            referencedRelation: "salon_resources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       salon_reservations: {
         Row: {
           addons_price: number
           attendees: number | null
-          audio_package: string
           base_price: number
           coffee_cookies: boolean
           coffee_station: boolean
@@ -293,8 +307,6 @@ export type Database = {
           final_price: number
           guest_id: string
           id: string
-          includes_projector: boolean
-          includes_screen: boolean
           menu_id: string | null
           notes: string | null
           slot_id: string
@@ -305,7 +317,6 @@ export type Database = {
         Insert: {
           addons_price?: number
           attendees?: number | null
-          audio_package?: string
           base_price?: number
           coffee_cookies?: boolean
           coffee_station?: boolean
@@ -315,8 +326,6 @@ export type Database = {
           final_price?: number
           guest_id: string
           id?: string
-          includes_projector?: boolean
-          includes_screen?: boolean
           menu_id?: string | null
           notes?: string | null
           slot_id: string
@@ -327,7 +336,6 @@ export type Database = {
         Update: {
           addons_price?: number
           attendees?: number | null
-          audio_package?: string
           base_price?: number
           coffee_cookies?: boolean
           coffee_station?: boolean
@@ -337,8 +345,6 @@ export type Database = {
           final_price?: number
           guest_id?: string
           id?: string
-          includes_projector?: boolean
-          includes_screen?: boolean
           menu_id?: string | null
           notes?: string | null
           slot_id?: string
@@ -376,6 +382,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      salon_resources: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          price: number
+          quantity: number
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          price?: number
+          quantity?: number
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          price?: number
+          quantity?: number
+        }
+        Relationships: []
       }
       salon_slots: {
         Row: {

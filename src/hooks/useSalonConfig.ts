@@ -3,16 +3,9 @@ import { supabase } from "@/integrations/supabase/client";
 
 export interface SalonConfig {
   id: string;
-  projector_price: number;
-  screen_price: number;
-  audio_basic_price: number;
-  audio_complete_price: number;
   coffee_price_per_person: number;
   coffee_min_attendees: number;
   cookies_price: number;
-  projector_count: number;
-  screen_count: number;
-  audio_count: number;
   updated_at: string;
 }
 
@@ -39,11 +32,7 @@ export function useSalonConfig(): UseSalonConfigResult {
         .select("*")
         .limit(1)
         .maybeSingle();
-
-      if (fetchError) {
-        setError(`Error al cargar configuración: ${fetchError.message}`);
-        return;
-      }
+      if (fetchError) { setError(`Error al cargar configuración: ${fetchError.message}`); return; }
       setConfig(data as SalonConfig | null);
     } finally {
       setLoading(false);
@@ -52,20 +41,13 @@ export function useSalonConfig(): UseSalonConfigResult {
 
   const saveConfig = useCallback(async (input: SalonConfigInput): Promise<void> => {
     const payload = { ...input, updated_at: new Date().toISOString() };
-
     if (config?.id) {
-      const { error: updateError } = await supabase
-        .from("salon_config")
-        .update(payload)
-        .eq("id", config.id);
+      const { error: updateError } = await supabase.from("salon_config").update(payload).eq("id", config.id);
       if (updateError) throw new Error(`Error al guardar: ${updateError.message}`);
     } else {
-      const { error: insertError } = await supabase
-        .from("salon_config")
-        .insert(payload);
+      const { error: insertError } = await supabase.from("salon_config").insert(payload);
       if (insertError) throw new Error(`Error al guardar: ${insertError.message}`);
     }
-
     await refresh();
   }, [config, refresh]);
 
