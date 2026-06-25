@@ -169,3 +169,44 @@ public.reservations
 - No hay Edge Functions todavía.
 - No hay tests automatizados.
 - No hay CI/CD propio — Lovable detecta push a `main` y despliega.
+
+---
+
+## Flujo de desarrollo (seguir este orden para cada feature)
+
+### Fase 0 — Define (texto, sin código, ~10 min)
+Responder estas cuatro preguntas antes de abrir cualquier archivo:
+1. ¿Qué hace el feature en una oración?
+2. ¿Qué roles pueden usarlo? (admin / receptionist / ambos)
+3. ¿Qué estados/statuses tiene el dato?
+4. ¿Qué edge cases conocemos ya?
+
+Si no se pueden responder las cuatro, no arrancar.
+
+### Fase 1 — Schema y RLS (BD primero)
+1. Diseñar tablas y columnas
+2. Definir políticas RLS (quién puede SELECT / INSERT / UPDATE)
+3. Definir funciones SECURITY DEFINER si hay lógica privilegiada
+4. Escribir y aplicar la migración vía Supabase MCP
+5. Verificar con query en Supabase que funciona
+
+### Fase 2 — Capa de datos (TypeScript)
+1. Regenerar types: `supabase gen types typescript --project-id kyjetjdzciczlqshjbcr > src/integrations/supabase/types.ts`
+2. Definir interfaces TypeScript del hook
+3. Escribir el hook: `useState` + `refresh` callback + mutaciones async con errores semánticos
+4. Probar queries en SQL editor de Supabase antes de conectar a UI
+
+### Fase 3 — UI
+1. Pantalla nueva → mockup en Stitch primero, luego portar
+2. Form / componente menor → directo en código
+3. Conectar al hook real desde el primer commit (nunca datos hardcodeados)
+4. Happy path primero, error states después
+
+### Fase 4 — Verificación
+1. `npx tsc --noEmit` — debe pasar sin errores
+2. Probar flujo completo como **admin**
+3. Probar flujo completo como **receptionist**
+4. Revisar edge cases de Fase 0
+5. Commit + push
+
+**Por qué este orden:** el error más caro en este stack es escribir UI antes de tener el schema. El contrato es BD define la verdad → hook la expone → UI la consume.
