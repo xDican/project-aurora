@@ -174,39 +174,92 @@ public.reservations
 
 ## Flujo de desarrollo (seguir este orden para cada feature)
 
-### Fase 0 — Define (texto, sin código, ~10 min)
-Responder estas cuatro preguntas antes de abrir cualquier archivo:
+El contrato es: **BD define la verdad → hook la expone → UI la consume.** Invertir ese orden genera bugs silenciosos y refactors costosos.
+
+---
+
+### Fase 0 — Define
+
+Antes de abrir cualquier archivo, responder estas cuatro preguntas en conversación:
+
 1. ¿Qué hace el feature en una oración?
 2. ¿Qué roles pueden usarlo? (admin / receptionist / ambos)
-3. ¿Qué estados/statuses tiene el dato?
+3. ¿Qué estados/statuses tiene el dato y cómo transicionan?
 4. ¿Qué edge cases conocemos ya?
 
-Si no se pueden responder las cuatro, no arrancar.
+**Criterio de salida:** si no se pueden responder las cuatro con claridad, no arrancar — cualquier código escrito sin esta claridad va a ser reescrito. Las respuestas a estas preguntas guían todas las decisiones de las fases siguientes.
 
-### Fase 1 — Schema y RLS (BD primero)
-1. Diseñar tablas y columnas
-2. Definir políticas RLS (quién puede SELECT / INSERT / UPDATE)
-3. Definir funciones SECURITY DEFINER si hay lógica privilegiada
-4. Escribir y aplicar la migración vía Supabase MCP
-5. Verificar con query en Supabase que funciona
+---
+
+### Fase 1 — Schema y RLS
+
+El objetivo es diseñar una BD que soporte exactamente lo que definimos en Fase 0, sin over-engineering.
+
+**1. Leer el schema existente antes de proponer nada.**
+Revisar las tablas actuales (`list_tables`, migraciones) para entender qué ya existe y si el feature nuevo puede reutilizar algo o necesita tablas nuevas. Proponer el diseño mínimo que resuelve el problema.
+
+**2. Diseñar columnas con criterio.**
+Cada columna debe justificarse con un caso de uso concreto. Si no hay un caso de uso claro, no va. Pensar en: ¿qué tipo de dato es realmente? ¿puede ser null? ¿tiene un default razonable? ¿necesita constraint?
+
+**3. Definir RLS pensando en los dos roles.**
+Para cada tabla nueva, preguntarse: ¿qué puede hacer un receptionist? ¿qué puede hacer un admin que el receptionist no puede? Las policies siguen el patrón establecido: `current_app_role() IS NOT NULL` para acceso general, `current_app_role() = 'admin'` para operaciones privilegiadas.
+
+**4. Decidir si la lógica va en Postgres o en el cliente.**
+Regla: si la operación requiere permisos elevados o afecta integridad de datos (archivar, cambiar estado con restricciones, validar overlap), va en función SECURITY DEFINER. Si es solo lectura o escritura simple con RLS suficiente, va directo desde el cliente.
+
+**5. Escribir y aplicar la migración.**
+Aplicar vía Supabase MCP (`apply_migration`). Verificar con una query real que las tablas, constraints y policies funcionan como se espera antes de avanzar.
+
+---
 
 ### Fase 2 — Capa de datos (TypeScript)
-1. Regenerar types: `supabase gen types typescript --project-id kyjetjdzciczlqshjbcr > src/integrations/supabase/types.ts`
-2. Definir interfaces TypeScript del hook
-3. Escribir el hook: `useState` + `refresh` callback + mutaciones async con errores semánticos
-4. Probar queries en SQL editor de Supabase antes de conectar a UI
+
+El objetivo es construir la interfaz entre la BD y la UI: tipos correctos, queries probadas, errores manejados.
+
+**1. Regenerar types de Supabase.**
+Después de cualquier migración: `supabase gen types typescript --project-id kyjetjdzciczlqshjbcr > src/integrations/supabase/types.ts`. Sin este paso, TypeScript trabaja con tipos desactualizados y los errores aparecen en runtime, no en compilación.
+
+**2. Definir las interfaces del hook antes de escribir el hook.**
+Qué expone el hook hacia afuera: el estado (lista, item, loading, error), y las mutaciones (create, update, cancel, etc.). Estas interfaces son el contrato con la UI — definirlas primero evita cambiarlas a mitad de la Fase 3.
+
+**3. Escribir el hook siguiendo el patrón establecido.**
+`useState` + `useCallback` para `refresh` + `useEffect` inicial. Las mutaciones lanzan errores semánticos en mayúsculas (`"ROOM_OVERLAP"`, `"PAST_CHECKIN"`) que la UI mapea a mensajes en `es.ts`. No mezclar lógica de presentación en el hook.
+
+**4. Probar las queries en Supabase antes de conectarlas a la UI.**
+Una query que falla en el SQL editor de Supabase falla igual en el hook. Mejor descubrirlo ahí que debuggearlo desde el navegador.
+
+---
 
 ### Fase 3 — UI
-1. Pantalla nueva → mockup en Stitch primero, luego portar
-2. Form / componente menor → directo en código
-3. Conectar al hook real desde el primer commit (nunca datos hardcodeados)
-4. Happy path primero, error states después
+
+El objetivo es construir la presentación sobre una capa de datos que ya funciona.
+
+**1. Evaluar si la pantalla necesita mockup.**
+Pantalla nueva con layout propio → mockup en Stitch primero, luego portar al código siguiendo el patrón establecido (mantener hooks reales, descartar campos inventados por el mockup). Componente menor o form dentro de una pantalla existente → directo en código.
+
+**2. Conectar al hook real desde el primer commit.**
+Nunca usar datos hardcodeados como paso intermedio — generan una deuda que se olvida. La UI arranca con datos reales o con estados de loading/empty correctos desde el principio.
+
+**3. Construir en orden: happy path → vacío → error → edge cases.**
+Primero el flujo que funciona, luego el estado vacío (`noData`), luego los errores del hook, luego los edge cases identificados en Fase 0.
+
+**4. Agregar strings a `es.ts` antes de usarlos en JSX.**
+Nunca texto hardcodeado en componentes. Si el string no existe en `es.ts`, agregarlo primero.
+
+---
 
 ### Fase 4 — Verificación
-1. `npx tsc --noEmit` — debe pasar sin errores
-2. Probar flujo completo como **admin**
-3. Probar flujo completo como **receptionist**
-4. Revisar edge cases de Fase 0
-5. Commit + push
 
-**Por qué este orden:** el error más caro en este stack es escribir UI antes de tener el schema. El contrato es BD define la verdad → hook la expone → UI la consume.
+El objetivo es confirmar que el feature funciona correctamente para ambos roles y que no rompe nada existente.
+
+**1. TypeScript limpio.**
+`npx tsc --noEmit` sin errores. Si hay errores, resolverlos antes de continuar — no ignorarlos.
+
+**2. Probar como admin, luego como receptionist.**
+El segundo rol es el más importante: admin casi siempre tiene permisos de sobra y oculta problemas de RLS. Los bugs reales aparecen cuando prueba el receptionist. Verificar específicamente las operaciones que el receptionist NO debería poder hacer.
+
+**3. Revisar los edge cases de Fase 0.**
+Volver a la lista y confirmar uno por uno que están cubiertos — en código o con validación en BD.
+
+**4. Commit + push.**
+Un commit por fase o por bloque lógico. Mensaje que explica el *por qué*, no el *qué*.
