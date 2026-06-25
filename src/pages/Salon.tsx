@@ -84,10 +84,21 @@ export default function Salon() {
       {error && <div className="p-4 rounded bg-destructive/10 text-destructive text-body-md">{error}</div>}
 
       <Tabs defaultValue="reservations">
-        <TabsList className="mb-4">
-          <TabsTrigger value="reservations">Reservas de Salón</TabsTrigger>
-          <TabsTrigger value="availability">{t.availability.tab}</TabsTrigger>
-          {isAdmin && <TabsTrigger value="config">Configuración</TabsTrigger>}
+        <TabsList className="mb-4 h-auto bg-surface-container-low border border-outline-variant rounded-lg p-1 gap-1">
+          {([
+            { value: "reservations", label: t.tabs.reservations, icon: "event_note" },
+            { value: "availability", label: t.tabs.availability, icon: "calendar_view_month" },
+            ...(isAdmin ? [{ value: "config", label: t.tabs.config, icon: "tune" }] : []),
+          ]).map((tab) => (
+            <TabsTrigger
+              key={tab.value}
+              value={tab.value}
+              className="gap-2 px-4 py-1.5 rounded-md text-on-surface-variant text-label-md data-[state=active]:bg-surface-container-lowest data-[state=active]:text-foreground data-[state=active]:shadow-sm hover:text-foreground"
+            >
+              <span className="material-symbols-outlined text-[18px]">{tab.icon}</span>
+              {tab.label}
+            </TabsTrigger>
+          ))}
         </TabsList>
 
         <TabsContent value="reservations">

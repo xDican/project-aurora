@@ -446,6 +446,12 @@ export const es = {
     reservationUpdated: "Reserva actualizada",
     noConfigWarning: "El salón no tiene precios configurados. Un admin debe configurarlos antes de crear reservas.",
 
+    tabs: {
+      reservations: "Reservas",
+      availability: "Disponibilidad",
+      config:       "Configuración",
+    },
+
     columns: {
       guest:     "Cliente",
       space:     "Espacio",
