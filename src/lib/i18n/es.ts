@@ -458,6 +458,20 @@ export const es = {
       actions:   "Acciones",
     },
 
+    availability: {
+      tab:          "Disponibilidad",
+      spaceLabel:   "Espacio",
+      noSpaces:     "No hay espacios configurados. Un admin debe crearlos primero.",
+      noSlots:      "Este espacio no tiene horarios configurados.",
+      weekdays:     ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"],
+      free:         "Libre",
+      partial:      "Parcial",
+      full:         "Lleno",
+      bookedSlots:  "Horarios ocupados",
+      freeSlots:    "Horarios libres",
+      allFree:      "Todos los horarios libres",
+    },
+
     form: {
       guestLabel:         "Cliente",
       spaceLabel:         "Espacio",

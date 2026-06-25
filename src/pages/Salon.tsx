@@ -16,6 +16,7 @@ import { useSalonSpaces } from "@/hooks/useSalonSpaces";
 import { useSalonResources } from "@/hooks/useSalonResources";
 import { SalonReservationForm } from "@/components/salon/SalonReservationForm";
 import { SalonConfigPanel } from "@/components/salon/SalonConfigPanel";
+import { SalonAvailabilityCalendar } from "@/components/salon/SalonAvailabilityCalendar";
 
 const t = es.salonPage;
 
@@ -85,6 +86,7 @@ export default function Salon() {
       <Tabs defaultValue="reservations">
         <TabsList className="mb-4">
           <TabsTrigger value="reservations">Reservas de Salón</TabsTrigger>
+          <TabsTrigger value="availability">{t.availability.tab}</TabsTrigger>
           {isAdmin && <TabsTrigger value="config">Configuración</TabsTrigger>}
         </TabsList>
 
@@ -158,6 +160,10 @@ export default function Salon() {
               </table>
             </div>
           )}
+        </TabsContent>
+
+        <TabsContent value="availability">
+          <SalonAvailabilityCalendar spaces={spaces} slots={slots} reservations={reservations} />
         </TabsContent>
 
         {isAdmin && (
