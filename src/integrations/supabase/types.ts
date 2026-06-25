@@ -14,6 +14,38 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_events: {
+        Row: {
+          created_at: string
+          id: string
+          path: string
+          role: Database["public"]["Enums"]["user_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          path: string
+          role: Database["public"]["Enums"]["user_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          path?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "app_events_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       guests: {
         Row: {
           archived_at: string | null
@@ -488,6 +520,10 @@ export type Database = {
       current_app_role: {
         Args: never
         Returns: Database["public"]["Enums"]["user_role"]
+      }
+      log_app_event: {
+        Args: { p_path: string }
+        Returns: undefined
       }
       report_kpis: {
         Args: { p_end: string; p_start: string }

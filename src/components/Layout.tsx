@@ -1,6 +1,7 @@
 import { ReactNode } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePageTracking } from "@/hooks/usePageTracking";
 import { es } from "@/lib/i18n/es";
 import {
   DropdownMenu,
@@ -36,6 +37,8 @@ export default function Layout({ children }: LayoutProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const { currentUser, session, role, signOut } = useAuth();
+
+  usePageTracking();
 
   const handleSignOut = async () => {
     await signOut();
