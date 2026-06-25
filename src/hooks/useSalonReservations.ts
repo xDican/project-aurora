@@ -194,7 +194,14 @@ export function useSalonReservations(): UseSalonReservationsResult {
     }
 
     if (input.resources.length > 0) {
-      await insertResources(data.id, input.resources);
+      try {
+        await insertResources(data.id, input.resources);
+      } catch (err) {
+        // Roll back the just-created reservation so a failed resource booking
+        // doesn't leave an orphan row with addons but no resources.
+        await supabase.from("salon_reservations").delete().eq("id", data.id);
+        throw err;
+      }
     }
 
     await refresh();
