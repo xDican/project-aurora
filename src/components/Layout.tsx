@@ -26,6 +26,7 @@ const navItems: Array<{
   { path: "/disponibilidad", label: "Disponibilidad", icon: "calendar_view_month" },
   { path: "/reservas", label: "Reservas", icon: "event_note" },
   { path: "/mapa", label: "Mapa", icon: "map" },
+  { path: "/salon", label: "Salón", icon: "event_seat" },
   { path: "/rooms", label: "Habitaciones", icon: "door_front", roles: ["admin"] },
   { path: "/guests", label: "Huéspedes", icon: "group" },
   { path: "/reportes", label: "Reportes", icon: "assessment", roles: ["admin"] },

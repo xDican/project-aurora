@@ -16,6 +16,7 @@ import Hoy from "./pages/Hoy";
 import Mapa from "./pages/Mapa";
 import Disponibilidad from "./pages/Disponibilidad";
 import Reportes from "./pages/Reportes";
+import Salon from "./pages/Salon";
 
 const queryClient = new QueryClient();
 
@@ -95,6 +96,16 @@ const App = () => (
                 <ProtectedRoute>
                   <Layout>
                     <Mapa />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/salon"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <Salon />
                   </Layout>
                 </ProtectedRoute>
               }
