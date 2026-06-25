@@ -10,6 +10,8 @@ export interface SalonReservationListItem {
   id: string;
   guestId: string;
   guestName: string;
+  spaceId: string;
+  spaceName: string;
   slotId: string;
   slotName: string;
   startDate: string;
@@ -33,6 +35,7 @@ export interface SalonReservationListItem {
 
 export interface NewSalonReservationInput {
   guestId: string;
+  spaceId: string;
   slotId: string;
   startDate: string;
   endDate: string;
@@ -69,6 +72,14 @@ function isValidAudio(s: string): s is AudioPackage {
   return ["none", "basic", "complete"].includes(s);
 }
 
+function mapInsertError(msg: string): string {
+  if (msg.includes("SALON_OVERLAP"))          return "SALON_OVERLAP";
+  if (msg.includes("PROJECTOR_UNAVAILABLE"))  return "PROJECTOR_UNAVAILABLE";
+  if (msg.includes("SCREEN_UNAVAILABLE"))     return "SCREEN_UNAVAILABLE";
+  if (msg.includes("AUDIO_UNAVAILABLE"))      return "AUDIO_UNAVAILABLE";
+  return msg;
+}
+
 export function useSalonReservations(): UseSalonReservationsResult {
   const [reservations, setReservations] = useState<SalonReservationListItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -78,21 +89,21 @@ export function useSalonReservations(): UseSalonReservationsResult {
     setLoading(true);
     setError(undefined);
     try {
-      const [resResult, slotsResult, guestsResult, menusResult] = await Promise.all([
-        supabase
-          .from("salon_reservations")
-          .select("*")
-          .order("start_date", { ascending: false }),
+      const [resResult, spacesResult, slotsResult, guestsResult, menusResult] = await Promise.all([
+        supabase.from("salon_reservations").select("*").order("start_date", { ascending: false }),
+        supabase.from("salon_spaces").select("id, name"),
         supabase.from("salon_slots").select("id, name"),
         supabase.from("guests").select("id, name").eq("is_active", true),
         supabase.from("salon_menus").select("id, name"),
       ]);
 
       if (resResult.error)    { setError(`Error al cargar reservas: ${resResult.error.message}`); return; }
+      if (spacesResult.error) { setError(`Error al cargar espacios: ${spacesResult.error.message}`); return; }
       if (slotsResult.error)  { setError(`Error al cargar slots: ${slotsResult.error.message}`); return; }
       if (guestsResult.error) { setError(`Error al cargar huéspedes: ${guestsResult.error.message}`); return; }
       if (menusResult.error)  { setError(`Error al cargar menús: ${menusResult.error.message}`); return; }
 
+      const spaceMap = new Map((spacesResult.data ?? []).map((s) => [s.id, s.name]));
       const slotMap  = new Map((slotsResult.data  ?? []).map((s) => [s.id, s.name]));
       const guestMap = new Map((guestsResult.data ?? []).map((g) => [g.id, g.name]));
       const menuMap  = new Map((menusResult.data  ?? []).map((m) => [m.id, m.name]));
@@ -101,6 +112,8 @@ export function useSalonReservations(): UseSalonReservationsResult {
         id:                r.id,
         guestId:           r.guest_id,
         guestName:         guestMap.get(r.guest_id) ?? "",
+        spaceId:           r.space_id ?? "",
+        spaceName:         r.space_id ? (spaceMap.get(r.space_id) ?? "") : "",
         slotId:            r.slot_id,
         slotName:          slotMap.get(r.slot_id) ?? "",
         startDate:         r.start_date,
@@ -135,6 +148,7 @@ export function useSalonReservations(): UseSalonReservationsResult {
 
     const { error: insertError } = await supabase.from("salon_reservations").insert({
       guest_id:           input.guestId,
+      space_id:           input.spaceId,
       slot_id:            input.slotId,
       start_date:         input.startDate,
       end_date:           input.endDate,
@@ -151,10 +165,7 @@ export function useSalonReservations(): UseSalonReservationsResult {
       notes:              input.notes,
     });
 
-    if (insertError) {
-      if (insertError.message.includes("SALON_OVERLAP")) throw new Error("SALON_OVERLAP");
-      throw new Error(`Error al crear reserva: ${insertError.message}`);
-    }
+    if (insertError) throw new Error(mapInsertError(insertError.message));
     await refresh();
   }, [refresh]);
 
@@ -169,6 +180,7 @@ export function useSalonReservations(): UseSalonReservationsResult {
       .from("salon_reservations")
       .update({
         guest_id:           input.guestId,
+        space_id:           input.spaceId,
         slot_id:            input.slotId,
         start_date:         input.startDate,
         end_date:           input.endDate,
@@ -186,32 +198,25 @@ export function useSalonReservations(): UseSalonReservationsResult {
       })
       .eq("id", id);
 
-    if (updateError) {
-      if (updateError.message.includes("SALON_OVERLAP")) throw new Error("SALON_OVERLAP");
-      throw new Error(`Error al actualizar reserva: ${updateError.message}`);
-    }
+    if (updateError) throw new Error(mapInsertError(updateError.message));
     await refresh();
   }, [reservations, refresh]);
 
   const cancelReservation = useCallback(async (id: string): Promise<void> => {
     const current = reservations.find((r) => r.id === id);
-    if (current && !["booked"].includes(current.status)) {
+    if (current && current.status !== "booked") {
       throw new Error(`No se puede cancelar: estado "${current.status}"`);
     }
     const { error: updateError } = await supabase
-      .from("salon_reservations")
-      .update({ status: "cancelled" })
-      .eq("id", id);
+      .from("salon_reservations").update({ status: "cancelled" }).eq("id", id);
     if (updateError) throw new Error(`Error al cancelar: ${updateError.message}`);
     await refresh();
   }, [reservations, refresh]);
 
   const markDone = useCallback(async (id: string): Promise<void> => {
     const { error: updateError } = await supabase
-      .from("salon_reservations")
-      .update({ status: "done" })
-      .eq("id", id);
-    if (updateError) throw new Error(`Error al marcar como completada: ${updateError.message}`);
+      .from("salon_reservations").update({ status: "done" }).eq("id", id);
+    if (updateError) throw new Error(`Error al completar: ${updateError.message}`);
     await refresh();
   }, [refresh]);
 

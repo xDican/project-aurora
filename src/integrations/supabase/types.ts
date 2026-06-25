@@ -1,4 +1,3 @@
-npm warn exec The following package was not found and will be installed: supabase@2.108.0
 export type Json =
   | string
   | number
@@ -215,33 +214,42 @@ export type Database = {
         Row: {
           audio_basic_price: number
           audio_complete_price: number
+          audio_count: number
           coffee_min_attendees: number
           coffee_price_per_person: number
           cookies_price: number
           id: string
+          projector_count: number
           projector_price: number
+          screen_count: number
           screen_price: number
           updated_at: string
         }
         Insert: {
           audio_basic_price?: number
           audio_complete_price?: number
+          audio_count?: number
           coffee_min_attendees?: number
           coffee_price_per_person?: number
           cookies_price?: number
           id?: string
+          projector_count?: number
           projector_price?: number
+          screen_count?: number
           screen_price?: number
           updated_at?: string
         }
         Update: {
           audio_basic_price?: number
           audio_complete_price?: number
+          audio_count?: number
           coffee_min_attendees?: number
           coffee_price_per_person?: number
           cookies_price?: number
           id?: string
+          projector_count?: number
           projector_price?: number
+          screen_count?: number
           screen_price?: number
           updated_at?: string
         }
@@ -290,6 +298,7 @@ export type Database = {
           menu_id: string | null
           notes: string | null
           slot_id: string
+          space_id: string | null
           start_date: string
           status: string
         }
@@ -311,6 +320,7 @@ export type Database = {
           menu_id?: string | null
           notes?: string | null
           slot_id: string
+          space_id?: string | null
           start_date: string
           status?: string
         }
@@ -332,6 +342,7 @@ export type Database = {
           menu_id?: string | null
           notes?: string | null
           slot_id?: string
+          space_id?: string | null
           start_date?: string
           status?: string
         }
@@ -355,6 +366,13 @@ export type Database = {
             columns: ["slot_id"]
             isOneToOne: false
             referencedRelation: "salon_slots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salon_reservations_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "salon_spaces"
             referencedColumns: ["id"]
           },
         ]
@@ -386,6 +404,69 @@ export type Database = {
           name?: string
           price_per_day?: number
           start_time?: string
+        }
+        Relationships: []
+      }
+      salon_space_rates: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          price_per_day: number
+          slot_id: string
+          space_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          price_per_day?: number
+          slot_id: string
+          space_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          price_per_day?: number
+          slot_id?: string
+          space_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salon_space_rates_slot_id_fkey"
+            columns: ["slot_id"]
+            isOneToOne: false
+            referencedRelation: "salon_slots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salon_space_rates_space_id_fkey"
+            columns: ["space_id"]
+            isOneToOne: false
+            referencedRelation: "salon_spaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      salon_spaces: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
         }
         Relationships: []
       }

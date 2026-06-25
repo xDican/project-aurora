@@ -10,6 +10,9 @@ export interface SalonConfig {
   coffee_price_per_person: number;
   coffee_min_attendees: number;
   cookies_price: number;
+  projector_count: number;
+  screen_count: number;
+  audio_count: number;
   updated_at: string;
 }
 

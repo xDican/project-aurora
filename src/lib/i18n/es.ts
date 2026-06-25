@@ -454,6 +454,7 @@ export const es = {
 
     columns: {
       guest:     "Cliente",
+      space:     "Espacio",
       slot:      "Slot",
       dates:     "Fechas",
       days:      "Días",
@@ -465,6 +466,7 @@ export const es = {
 
     form: {
       guestLabel:       "Cliente",
+      spaceLabel:       "Espacio",
       slotLabel:        "Slot",
       startDateLabel:   "Fecha inicio",
       endDateLabel:     "Fecha fin",
@@ -487,6 +489,7 @@ export const es = {
 
     validation: {
       guestRequired:      "Debe seleccionar un cliente",
+      spaceRequired:      "Debe seleccionar un espacio",
       slotRequired:       "Debe seleccionar un slot",
       startDateRequired:  "La fecha de inicio es obligatoria",
       endDateRequired:    "La fecha de fin es obligatoria",
@@ -508,11 +511,14 @@ export const es = {
     },
 
     errors: {
-      salonOverlap:    "El slot ya está reservado para ese rango de fechas.",
-      invalidDates:    "Las fechas no son válidas.",
-      pastStartDate:   "La fecha de inicio no puede ser anterior a hoy.",
-      notAllowed:      "No tienes permiso para esta acción.",
-      invalidDiscount: "El descuento debe ser entre 0 y 100.",
+      salonOverlap:           "Ese espacio ya está reservado para ese slot y rango de fechas.",
+      invalidDates:           "Las fechas no son válidas.",
+      pastStartDate:          "La fecha de inicio no puede ser anterior a hoy.",
+      notAllowed:             "No tienes permiso para esta acción.",
+      invalidDiscount:        "El descuento debe ser entre 0 y 100.",
+      projectorUnavailable:   "El proyector ya está reservado para ese horario.",
+      screenUnavailable:      "La pantalla ya está reservada para ese horario.",
+      audioUnavailable:       "El sistema de audio ya está reservado para ese horario.",
     },
 
     config: {
@@ -524,8 +530,21 @@ export const es = {
       coffeePricePerPerson: "Precio café / persona",
       coffeeMinAttendees:  "Mínimo de personas para café",
       cookiesPrice:        "Precio galletas",
+      projectorCount:      "Cantidad de proyectores",
+      screenCount:         "Cantidad de pantallas",
+      audioCount:          "Sistemas de audio disponibles",
       save:                "Guardar configuración",
       saved:               "Configuración guardada",
+    },
+
+    spaces: {
+      title:      "Espacios",
+      newSpace:   "Nuevo espacio",
+      name:       "Nombre",
+      noSpaces:   "No hay espacios configurados.",
+      created:    "Espacio creado",
+      updated:    "Espacio actualizado",
+      ratesTitle: "Tarifas por slot",
     },
 
     slots: {
