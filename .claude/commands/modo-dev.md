@@ -32,14 +32,30 @@ El contrato es: **BD define la verdad → hook la expone → UI la consume.** In
 
 ### Fase 0 — Define
 
-Antes de abrir cualquier archivo, responder estas cuatro preguntas en conversación:
+Antes de abrir cualquier archivo, recorrer estos seis puntos en conversación. El objetivo es llegar a Fase 1 con el schema casi diseñado, no con preguntas abiertas.
 
-1. ¿Qué hace el feature en una oración?
-2. ¿Qué roles pueden usarlo? (admin / receptionist / ambos)
-3. ¿Qué estados/statuses tiene el dato y cómo transicionan?
-4. ¿Qué edge cases conocemos ya?
+**1. Una oración:** ¿Qué hace el feature?
+Ancla el scope. Si no cabe en una oración, el feature es demasiado grande — fragmentarlo.
 
-**Criterio de salida:** si no se pueden responder las cuatro con claridad, no arrancar. Las respuestas guían todas las decisiones de las fases siguientes.
+**2. Actores:** ¿Quién lo usa y con qué permisos?
+Para cada rol (admin / receptionist): qué puede crear, editar, cancelar, configurar. Las diferencias de permiso entre roles se convierten directamente en políticas RLS.
+
+**3. Entidades y relaciones:** ¿Qué cosas maneja este feature y cómo se relacionan?
+Nombrar cada entidad y sus relaciones antes de pensar en columnas. Esto identifica las tablas necesarias y evita descubrir entidades faltantes en Fase 1. Preguntarse: ¿esta entidad ya existe en el schema actual o es nueva?
+
+**4. Ciclo de vida:** ¿Cuáles son los estados del dato y qué los dispara?
+Dibujar la transición: `estado_a → estado_b`. Para cada transición: ¿quién puede ejecutarla? ¿hay alguna condición que la bloquee? Las transiciones con condiciones complejas generalmente necesitan función SECURITY DEFINER.
+
+**5. Cálculos y reglas de negocio:** ¿Cómo se calculan los valores derivados? ¿Qué está permitido o prohibido?
+- Fórmulas de precio: escribirlas explícitamente con sus componentes
+- Constraints: qué combinaciones son inválidas (ej: galletas requiere café)
+- Para cada regla: ¿vive en BD (constraint/trigger) o en el cliente (validación de form)?
+- Los precios nunca se hardcodean — identificar qué campos el admin debe poder configurar
+
+**6. Casos límite:** ¿Qué puede salir mal o ser ambiguo?
+Después de haber pensado en entidades y reglas, los edge cases emergen solos. Listarlos explícitamente — cada uno se convierte en un caso de verificación en Fase 4.
+
+**Criterio de salida:** cada entidad del punto 3 tiene sus campos principales identificados y cada regla del punto 5 tiene claro si vive en BD o en el cliente. Si quedan ambigüedades, resolverlas antes de avanzar.
 
 ---
 
