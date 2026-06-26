@@ -431,12 +431,17 @@ export function SalonReservationForm({
                 const selected = res.id in resourceQtys;
                 const qty = resourceQtys[res.id] ?? 1;
                 return (
-                  <div key={res.id} className={`flex min-h-[3rem] items-center justify-between gap-2 px-3 py-2 rounded-lg border ${selected ? "bg-secondary-container/20 border-secondary-container" : "bg-surface-container-lowest border-outline-variant"}`}>
+                  <div key={res.id} className={`relative flex min-h-[3rem] items-center justify-between gap-2 px-3 pt-3 pb-2 rounded-lg border ${selected ? "bg-secondary-container/20 border-secondary-container" : "bg-surface-container-lowest border-outline-variant"}`}>
+                    <span className={cn(
+                      "pointer-events-none absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-pill px-2 py-0.5 text-label-md whitespace-nowrap tabular-nums shadow-sm transition-colors",
+                      selected ? "bg-primary text-white" : "border border-outline-variant bg-surface-container text-on-surface-variant"
+                    )}>
+                      {formatCurrency(selected ? res.price * qty : res.price)}
+                    </span>
                     <div className="flex items-center gap-2 min-w-0">
                       <Checkbox id={`res-${res.id}`} checked={selected} onCheckedChange={(v) => toggleResource(res, Boolean(v))} />
-                      <Label htmlFor={`res-${res.id}`} className="cursor-pointer flex items-center gap-2 min-w-0">
-                        <span className="truncate text-body-md text-on-surface">{res.name}</span>
-                        <span className="text-label-md text-on-surface-variant whitespace-nowrap">{formatCurrency(res.price)}</span>
+                      <Label htmlFor={`res-${res.id}`} className="cursor-pointer truncate text-body-md text-on-surface min-w-0">
+                        {res.name}
                       </Label>
                     </div>
                     {selected && res.quantity > 1 && (
