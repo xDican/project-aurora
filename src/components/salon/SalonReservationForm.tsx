@@ -73,7 +73,8 @@ export function SalonReservationForm({
   const [guestOverride, setGuestOverride] = useState<Guest | null>(initialValues?.initialGuest ?? null);
   const [spaceId, setSpaceId] = useState(initialValues?.spaceId ?? "");
   const [slotId, setSlotId] = useState(initialValues?.slotId ?? "");
-  const [startDate, setStartDate] = useState(initialValues?.startDate ?? "");
+  // Por defecto la reserva nueva arranca con la fecha de hoy (salvo edición/prefill).
+  const [startDate, setStartDate] = useState(initialValues?.startDate ?? new Date().toISOString().split("T")[0]);
   const [endDate, setEndDate] = useState(initialValues?.endDate ?? "");
   // "Varios días" abre la fecha fin; apagado, el evento es de un solo día (fin = inicio).
   const [multiDay, setMultiDay] = useState<boolean>(

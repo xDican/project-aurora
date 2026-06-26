@@ -224,7 +224,7 @@ export default function Salon() {
       </Tabs>
 
       <Dialog open={isFormOpen} onOpenChange={(v) => !v && closeForm()}>
-        <DialogContent className="max-w-[900px] max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-[1200px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <span className="material-symbols-outlined text-[20px]">event_seat</span>
