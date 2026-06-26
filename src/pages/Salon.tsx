@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { es } from "@/lib/i18n/es";
 import { formatCurrency } from "@/lib/currency";
@@ -16,7 +16,8 @@ import { useSalonSpaces } from "@/hooks/useSalonSpaces";
 import { useSalonResources } from "@/hooks/useSalonResources";
 import { SalonReservationForm } from "@/components/salon/SalonReservationForm";
 import { SalonConfigPanel } from "@/components/salon/SalonConfigPanel";
-import { SalonAvailabilityCalendar } from "@/components/salon/SalonAvailabilityCalendar";
+import { SalonAvailabilityBoard } from "@/components/salon/SalonAvailabilityBoard";
+import { SalonReservationDetailModal } from "@/components/salon/SalonReservationDetailModal";
 
 const t = es.salonPage;
 
@@ -42,40 +43,72 @@ export default function Salon() {
   const { resources } = useSalonResources(true);
   const { config } = useSalonConfig();
 
-  const [sheetOpen, setSheetOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
   const [editingReservation, setEditingReservation] = useState<SalonReservationListItem | null>(null);
+  const [viewingReservation, setViewingReservation] = useState<SalonReservationListItem | null>(null);
+  // Prefill al crear desde un horario libre del board: el contexto queda bloqueado.
+  const [prefill, setPrefill] = useState<{ spaceId: string; slotId: string; date: string } | null>(null);
 
-  const closeSheet = () => { setSheetOpen(false); setEditingReservation(null); };
+  const closeForm = () => { setCreateOpen(false); setEditingReservation(null); setPrefill(null); };
 
   const handleCreate = async (input: NewSalonReservationInput) => {
     await createReservation(input);
-    closeSheet();
+    closeForm();
     toast.success(t.reservationCreated);
   };
 
   const handleUpdate = async (input: NewSalonReservationInput) => {
     if (!editingReservation) return;
     await updateReservation(editingReservation.id, input);
-    closeSheet();
+    closeForm();
     toast.success(t.reservationUpdated);
   };
 
   const handleCancel = async (id: string) => {
-    try { await cancelReservation(id); toast.success(t.cancel.success); }
+    try { await cancelReservation(id); setViewingReservation(null); toast.success(t.cancel.success); }
     catch { toast.error(t.cancel.error); }
   };
 
   const handleMarkDone = async (id: string) => {
-    try { await markDone(id); toast.success("Reserva completada"); }
+    try { await markDone(id); setViewingReservation(null); toast.success("Reserva completada"); }
     catch { toast.error(es.common.unexpectedError); }
   };
 
-  const isSheetOpen = sheetOpen || editingReservation !== null;
+  const openEdit = (r: SalonReservationListItem) => { setViewingReservation(null); setEditingReservation(r); };
+
+  const isFormOpen = createOpen || editingReservation !== null || prefill !== null;
+
+  const formInitialValues = editingReservation ? {
+    guestId: editingReservation.guestId,
+    initialGuest: { id: editingReservation.guestId, name: editingReservation.guestName, created_at: "" },
+    spaceId: editingReservation.spaceId,
+    slotId: editingReservation.slotId,
+    startDate: editingReservation.startDate,
+    endDate: editingReservation.endDate,
+    attendees: editingReservation.attendees,
+    resources: editingReservation.resources.map((r) => ({ resourceId: r.resourceId, quantityRequested: r.quantityRequested })),
+    menuId: editingReservation.menuId,
+    coffeeStation: editingReservation.coffeeStation,
+    coffeeCookies: editingReservation.coffeeCookies,
+    notes: editingReservation.notes,
+  } : prefill ? {
+    guestId: "",
+    spaceId: prefill.spaceId,
+    slotId: prefill.slotId,
+    startDate: prefill.date,
+    endDate: prefill.date,
+    attendees: null,
+    resources: [],
+    menuId: null,
+    coffeeStation: false,
+    coffeeCookies: false,
+    notes: null,
+  } : undefined;
 
   return (
     <div className="space-y-stack_gap_md">
       <div className="flex justify-end">
-        <Button onClick={() => setSheetOpen(true)} className="gap-2">
+        <Button onClick={() => setCreateOpen(true)} className="gap-2">
           <span className="material-symbols-outlined text-[18px]">add</span>
           {t.newReservation}
         </Button>
@@ -123,7 +156,7 @@ export default function Salon() {
                 </thead>
                 <tbody className="divide-y divide-outline-variant">
                   {reservations.map((r) => (
-                    <tr key={r.id} className="hover:bg-surface-container-low transition-colors">
+                    <tr key={r.id} className="hover:bg-surface-container-low transition-colors cursor-pointer" onClick={() => setViewingReservation(r)}>
                       <td className="px-table_cell_padding_x py-table_cell_padding_y text-table-data text-foreground">{r.guestName || "—"}</td>
                       <td className="px-table_cell_padding_x py-table_cell_padding_y text-table-data text-foreground">{r.spaceName || "—"}</td>
                       <td className="px-table_cell_padding_x py-table_cell_padding_y text-body-md text-on-surface-variant">{r.slotName || "—"}</td>
@@ -136,7 +169,7 @@ export default function Salon() {
                         </span>
                       </td>
                       <td className="px-table_cell_padding_x py-table_cell_padding_y text-table-data text-foreground">{formatCurrency(r.finalPrice)}</td>
-                      <td className="px-table_cell_padding_x py-table_cell_padding_y">
+                      <td className="px-table_cell_padding_x py-table_cell_padding_y" onClick={(e) => e.stopPropagation()}>
                         {r.status === "booked" && (
                           <div className="flex items-center gap-1">
                             <button onClick={() => setEditingReservation(r)} className="p-1 text-on-surface-variant hover:text-primary transition-colors" title={es.common.edit}>
@@ -174,7 +207,13 @@ export default function Salon() {
         </TabsContent>
 
         <TabsContent value="availability">
-          <SalonAvailabilityCalendar spaces={spaces} slots={slots} reservations={reservations} />
+          <SalonAvailabilityBoard
+            spaces={spaces}
+            slots={slots}
+            reservations={reservations}
+            onReserve={(spaceId, slotId, date) => setPrefill({ spaceId, slotId, date })}
+            onView={(r) => setViewingReservation(r)}
+          />
         </TabsContent>
 
         {isAdmin && (
@@ -184,11 +223,14 @@ export default function Salon() {
         )}
       </Tabs>
 
-      <Sheet open={isSheetOpen} onOpenChange={(v) => !v && closeSheet()}>
-        <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
-          <SheetHeader className="mb-4">
-            <SheetTitle>{editingReservation ? t.editDialogTitle : t.newReservation}</SheetTitle>
-          </SheetHeader>
+      <Dialog open={isFormOpen} onOpenChange={(v) => !v && closeForm()}>
+        <DialogContent className="max-w-[720px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-[20px]">event_seat</span>
+              {editingReservation ? t.editDialogTitle : t.newReservation}
+            </DialogTitle>
+          </DialogHeader>
           <SalonReservationForm
             spaces={spaces}
             slots={slots}
@@ -196,26 +238,22 @@ export default function Salon() {
             resources={resources}
             config={config}
             onSubmit={editingReservation ? handleUpdate : handleCreate}
-            onCancel={closeSheet}
+            onCancel={closeForm}
             isAdmin={isAdmin}
             editingId={editingReservation?.id}
-            initialValues={editingReservation ? {
-              guestId: editingReservation.guestId,
-              initialGuest: { id: editingReservation.guestId, name: editingReservation.guestName, created_at: "" },
-              spaceId: editingReservation.spaceId,
-              slotId: editingReservation.slotId,
-              startDate: editingReservation.startDate,
-              endDate: editingReservation.endDate,
-              attendees: editingReservation.attendees,
-              resources: editingReservation.resources.map((r) => ({ resourceId: r.resourceId, quantityRequested: r.quantityRequested })),
-              menuId: editingReservation.menuId,
-              coffeeStation: editingReservation.coffeeStation,
-              coffeeCookies: editingReservation.coffeeCookies,
-              notes: editingReservation.notes,
-            } : undefined}
+            lockContext={prefill !== null}
+            initialValues={formInitialValues}
           />
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
+
+      <SalonReservationDetailModal
+        reservation={viewingReservation}
+        onClose={() => setViewingReservation(null)}
+        onEdit={openEdit}
+        onComplete={handleMarkDone}
+        onCancel={handleCancel}
+      />
     </div>
   );
 }
