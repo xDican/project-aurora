@@ -357,34 +357,26 @@ export function SalonReservationForm({
         {/* Catering */}
         <section className="space-y-2">
           <h3 className="text-label-bold uppercase tracking-wider text-on-surface-variant">{t.form.cateringTitle}</h3>
-          <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-4 grid grid-cols-1 md:grid-cols-2">
-            <div className="space-y-1 md:pr-6 md:border-r border-outline-variant">
-              <Label>{t.form.menuTypeLabel}</Label>
+          <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-4 space-y-3">
+            <div className="flex items-center gap-3">
+              <Label className="whitespace-nowrap">{t.form.menuTypeLabel}</Label>
               <Select value={menuId ?? "none"} onValueChange={(v) => setMenuId(v === "none" ? null : v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger className="flex-1"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">{t.form.noMenu}</SelectItem>
                   {menus.map((m) => <SelectItem key={m.id} value={m.id}>{m.name} — {formatCurrency(m.price_per_person)}/pax</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex flex-col gap-2 mt-4 md:mt-0 md:pl-6">
-              <div className="flex items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center gap-x-8 gap-y-2 border-t border-outline-variant pt-3">
+              <div className="flex items-center justify-between gap-3 flex-1 min-w-[200px]">
                 <div className="flex flex-col">
                   <span className="text-body-md text-on-surface">{t.form.coffeeLabel}</span>
                   {config && <span className="text-label-md text-on-surface-variant">{formatCurrency(config.coffee_station_price)} / {config.coffee_station_capacity} pax</span>}
                 </div>
                 <Switch checked={coffeeStation} onCheckedChange={(v) => { setCoffeeStation(v); if (!v) setCoffeeCookies(false); }} />
               </div>
-              {coffeeStation && attendees && config && (
-                <p className="text-label-md text-on-surface-variant">
-                  {t.form.coffeeStationsNote(
-                    Math.ceil(attendees / config.coffee_station_capacity),
-                    formatCurrency(Math.ceil(attendees / config.coffee_station_capacity) * config.coffee_station_price),
-                  )}
-                </p>
-              )}
-              <div className="flex items-center justify-between gap-2 pl-6">
+              <div className="flex items-center justify-between gap-3 flex-1 min-w-[200px]">
                 <div className="flex flex-col">
                   <span className="text-body-md text-on-surface">{t.form.cookiesLabel}</span>
                   {config && <span className="text-label-md text-on-surface-variant">{formatCurrency(config.cookies_price)}</span>}
@@ -392,6 +384,14 @@ export function SalonReservationForm({
                 <Switch checked={coffeeCookies} disabled={!coffeeStation} onCheckedChange={(v) => setCoffeeCookies(v)} />
               </div>
             </div>
+            {coffeeStation && attendees && config && (
+              <p className="text-label-md text-on-surface-variant">
+                {t.form.coffeeStationsNote(
+                  Math.ceil(attendees / config.coffee_station_capacity),
+                  formatCurrency(Math.ceil(attendees / config.coffee_station_capacity) * config.coffee_station_price),
+                )}
+              </p>
+            )}
           </div>
           {errors.coffeeCookies && <p className="text-sm text-destructive">{errors.coffeeCookies}</p>}
         </section>
