@@ -402,7 +402,7 @@ export function SalonReservationForm({
           {activeResources.length === 0 ? (
             <p className="text-body-sm text-on-surface-variant">{t.form.noResourcesWarning}</p>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
               {activeResources.map((res) => {
                 const selected = res.id in resourceQtys;
                 const qty = resourceQtys[res.id] ?? 1;
@@ -410,9 +410,9 @@ export function SalonReservationForm({
                   <div key={res.id} className={`flex items-center justify-between gap-2 p-3 rounded-lg border ${selected ? "bg-secondary-container/20 border-secondary-container" : "bg-surface-container-lowest border-outline-variant"}`}>
                     <div className="flex items-center gap-2 min-w-0">
                       <Checkbox id={`res-${res.id}`} checked={selected} onCheckedChange={(v) => toggleResource(res, Boolean(v))} />
-                      <Label htmlFor={`res-${res.id}`} className="cursor-pointer leading-tight min-w-0">
-                        <span className="block truncate text-body-md text-on-surface">{res.name}</span>
-                        <span className="block text-label-md text-on-surface-variant">{formatCurrency(res.price)}</span>
+                      <Label htmlFor={`res-${res.id}`} className="cursor-pointer flex items-center gap-2 min-w-0">
+                        <span className="truncate text-body-md text-on-surface">{res.name}</span>
+                        <span className="text-label-md text-on-surface-variant whitespace-nowrap">{formatCurrency(res.price)}</span>
                       </Label>
                     </div>
                     {selected && res.quantity > 1 && (
