@@ -10,6 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { AlertCircle, Loader2, Minus, Plus } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { es } from "@/lib/i18n/es";
+import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/currency";
 import { useGuests, type Guest } from "@/hooks/useGuests";
 import { GuestCombobox } from "@/components/reservations/GuestCombobox";
@@ -89,6 +90,7 @@ export function SalonReservationForm({
   const [coffeeStation, setCoffeeStation] = useState(initialValues?.coffeeStation ?? false);
   const [coffeeCookies, setCoffeeCookies] = useState(initialValues?.coffeeCookies ?? false);
   const [notes, setNotes] = useState(initialValues?.notes ?? "");
+  const [notesOpen, setNotesOpen] = useState<boolean>(() => Boolean(initialValues?.notes?.trim()));
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -360,16 +362,17 @@ export function SalonReservationForm({
           <h3 className="text-label-bold uppercase tracking-wider text-on-surface-variant">{t.form.cateringTitle}</h3>
           <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-4 space-y-3">
             <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-              <div className="flex items-center gap-3 flex-1 min-w-[260px]">
+              <div className="flex items-center gap-3">
                 <Label className="whitespace-nowrap">{t.form.menuTypeLabel}</Label>
                 <Select value={menuId ?? "none"} onValueChange={(v) => setMenuId(v === "none" ? null : v)}>
-                  <SelectTrigger className="flex-1"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="w-[220px]"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">{t.form.noMenu}</SelectItem>
                     {menus.map((m) => <SelectItem key={m.id} value={m.id}>{m.name} — {formatCurrency(m.price_per_person)}/pax</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
+              <div className="hidden sm:block h-8 w-px bg-outline-variant" />
               <div className="flex items-center gap-3">
                 <div className="flex flex-col">
                   <span className="text-body-md text-on-surface">{t.form.coffeeLabel}</span>
@@ -403,7 +406,7 @@ export function SalonReservationForm({
           {activeResources.length === 0 ? (
             <p className="text-body-sm text-on-surface-variant">{t.form.noResourcesWarning}</p>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
               {activeResources.map((res) => {
                 const selected = res.id in resourceQtys;
                 const qty = resourceQtys[res.id] ?? 1;
@@ -436,33 +439,59 @@ export function SalonReservationForm({
           )}
         </section>
 
-        {/* Notas */}
-        <div className="space-y-1">
-          <Label>{t.form.notesLabel}</Label>
-          <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={t.form.notesPlaceholder} rows={3} />
         </div>
 
-        </div>
-
-        {/* Footer: total + acciones (siempre visible) */}
-        <div className="shrink-0 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-outline-variant bg-surface-container-low px-6 py-4">
-          <div className="leading-tight">
-            <p className="text-body-sm text-on-surface-variant">{t.form.summaryLabel}</p>
-            <p className="text-headline-lg text-primary">
-              {t.form.totalLabel}: {formatCurrency(totalPrice)}
-              {numDays > 0 && pricePerDay > 0 && (
-                <span className="ml-2 text-body-sm font-normal text-on-surface-variant">
-                  ({numDays} {numDays === 1 ? "día" : "días"} × {formatCurrency(pricePerDay)})
-                </span>
-              )}
-            </p>
-          </div>
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>{es.common.cancel}</Button>
-            <Button type="submit" disabled={isSubmitting || !config} className="gap-2">
-              {isSubmitting ? <><Loader2 className="h-4 w-4 animate-spin" />{es.common.saving}</>
-                : <><span className="material-symbols-outlined text-[18px]">save</span>{isEditing ? t.form.saveChanges : es.common.save}</>}
-            </Button>
+        {/* Footer: notas colapsables + total + acciones (siempre visible) */}
+        <div className="shrink-0 border-t border-outline-variant bg-surface-container-low">
+          {notesOpen && (
+            <div className="px-6 pt-4">
+              <Textarea
+                autoFocus
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder={t.form.notesPlaceholder}
+                rows={2}
+                className="resize-none bg-surface-container-lowest"
+              />
+            </div>
+          )}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-6 py-4">
+            <div className="flex items-center gap-4">
+              <div className="leading-tight">
+                <p className="text-body-sm text-on-surface-variant">{t.form.summaryLabel}</p>
+                <p className="text-headline-lg text-primary">
+                  {t.form.totalLabel}: {formatCurrency(totalPrice)}
+                  {numDays > 0 && pricePerDay > 0 && (
+                    <span className="ml-2 text-body-sm font-normal text-on-surface-variant">
+                      ({numDays} {numDays === 1 ? "día" : "días"} × {formatCurrency(pricePerDay)})
+                    </span>
+                  )}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setNotesOpen((o) => !o)}
+                className={cn(
+                  "relative inline-flex items-center gap-1.5 rounded-pill border px-3 py-1.5 text-label-md transition-colors",
+                  notesOpen
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-outline-variant text-on-surface-variant hover:bg-surface-container"
+                )}
+              >
+                <span className="material-symbols-outlined text-[18px]">edit_note</span>
+                {t.form.notesLabel}
+                {notes.trim() && !notesOpen && (
+                  <span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-primary" />
+                )}
+              </button>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>{es.common.cancel}</Button>
+              <Button type="submit" disabled={isSubmitting || !config} className="gap-2">
+                {isSubmitting ? <><Loader2 className="h-4 w-4 animate-spin" />{es.common.saving}</>
+                  : <><span className="material-symbols-outlined text-[18px]">save</span>{isEditing ? t.form.saveChanges : es.common.save}</>}
+              </Button>
+            </div>
           </div>
         </div>
       </form>

@@ -82,12 +82,12 @@ export function GuestCombobox({
       <Command
         shouldFilter={false}
         className={cn(
-          "relative overflow-visible rounded-md border bg-transparent",
+          "relative h-10 overflow-visible rounded-md border bg-transparent [&_[cmdk-input-wrapper]]:h-full [&_[cmdk-input-wrapper]]:border-b-0",
           error && "border-destructive"
         )}
       >
         <CommandInput
-          className="h-10"
+          className="h-full py-0"
           placeholder={t.searchPlaceholder}
           value={searchQuery}
           onValueChange={onSearchChange}
