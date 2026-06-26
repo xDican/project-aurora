@@ -433,8 +433,8 @@ export function SalonReservationForm({
                 return (
                   <div key={res.id} className={`relative flex min-h-[3rem] items-center justify-between gap-2 px-3 pt-3 pb-2 rounded-lg border ${selected ? "bg-secondary-container/20 border-secondary-container" : "bg-surface-container-lowest border-outline-variant"}`}>
                     <span className={cn(
-                      "pointer-events-none absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-pill px-2 py-0.5 text-label-md whitespace-nowrap tabular-nums shadow-sm transition-colors",
-                      selected ? "bg-primary text-white" : "border border-outline-variant bg-surface-container text-on-surface-variant"
+                      "pointer-events-none absolute -top-2 left-1/2 -translate-x-1/2 rounded-pill border px-2 py-px text-label-md whitespace-nowrap tabular-nums transition-colors",
+                      selected ? "border-primary-container bg-primary-container text-on-primary-container" : "border-outline-variant bg-surface-container-lowest text-on-surface-variant"
                     )}>
                       {formatCurrency(selected ? res.price * qty : res.price)}
                     </span>
