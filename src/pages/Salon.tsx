@@ -46,7 +46,7 @@ export default function Salon() {
   const [createOpen, setCreateOpen] = useState(false);
   const [editingReservation, setEditingReservation] = useState<SalonReservationListItem | null>(null);
   const [viewingReservation, setViewingReservation] = useState<SalonReservationListItem | null>(null);
-  // Prefill al crear desde un horario libre del board: el contexto queda bloqueado.
+  // Prefill al crear desde un horario libre del board: espacio/slot/fecha quedan preseleccionados (editables).
   const [prefill, setPrefill] = useState<{ spaceId: string; slotId: string; date: string } | null>(null);
 
   const closeForm = () => { setCreateOpen(false); setEditingReservation(null); setPrefill(null); };
@@ -236,12 +236,12 @@ export default function Salon() {
             slots={slots}
             menus={menus}
             resources={resources}
+            reservations={reservations}
             config={config}
             onSubmit={editingReservation ? handleUpdate : handleCreate}
             onCancel={closeForm}
             isAdmin={isAdmin}
             editingId={editingReservation?.id}
-            lockContext={prefill !== null}
             initialValues={formInitialValues}
           />
         </DialogContent>

@@ -19,11 +19,14 @@ import type { SalonMenu } from "@/hooks/useSalonMenus";
 import type { SalonConfig } from "@/hooks/useSalonConfig";
 import type { SalonSpace } from "@/hooks/useSalonSpaces";
 import type { SalonResource } from "@/hooks/useSalonResources";
-import type { NewSalonReservationInput } from "@/hooks/useSalonReservations";
+import type { NewSalonReservationInput, SalonReservationListItem } from "@/hooks/useSalonReservations";
 
 const t = es.salonPage;
 
 const clamp = (n: number, min: number, max: number) => Math.min(Math.max(n, min), max);
+
+const PILL_FREE = "inline-flex items-center gap-1 px-2.5 py-0.5 rounded-pill text-label-md bg-[#dcfce7] text-[#166534]";
+const PILL_OCCUPIED = "inline-flex items-center gap-1 px-2.5 py-0.5 rounded-pill text-label-md bg-[#fef3c7] text-[#92400e]";
 
 interface InitialResource {
   resourceId: string;
@@ -50,21 +53,19 @@ interface SalonReservationFormProps {
   slots: SalonSlot[];
   menus: SalonMenu[];
   resources: SalonResource[];
+  reservations: SalonReservationListItem[];
   config: SalonConfig | null;
   onSubmit: (input: NewSalonReservationInput) => Promise<void>;
   onCancel: () => void;
   isAdmin?: boolean;
   editingId?: string;
   initialValues?: InitialValues;
-  // Cuando se crea desde un horario libre en Disponibilidad, el espacio/slot/fecha
-  // ya están elegidos: se muestran como chips de contexto en vez de campos editables.
-  lockContext?: boolean;
 }
 
 export function SalonReservationForm({
-  spaces, slots, menus, resources, config,
+  spaces, slots, menus, resources, reservations, config,
   onSubmit, onCancel,
-  isAdmin = false, editingId, initialValues, lockContext = false,
+  isAdmin = false, editingId, initialValues,
 }: SalonReservationFormProps) {
   const isEditing = Boolean(editingId);
 
@@ -74,6 +75,10 @@ export function SalonReservationForm({
   const [slotId, setSlotId] = useState(initialValues?.slotId ?? "");
   const [startDate, setStartDate] = useState(initialValues?.startDate ?? "");
   const [endDate, setEndDate] = useState(initialValues?.endDate ?? "");
+  // "Varios días" abre la fecha fin; apagado, el evento es de un solo día (fin = inicio).
+  const [multiDay, setMultiDay] = useState<boolean>(
+    () => Boolean(initialValues && initialValues.startDate !== initialValues.endDate),
+  );
   const [attendees, setAttendees] = useState<number | null>(initialValues?.attendees ?? null);
   // resourceId -> quantityRequested. Presence of a key means the resource is selected.
   const [resourceQtys, setResourceQtys] = useState<Record<string, number>>(
@@ -89,6 +94,9 @@ export function SalonReservationForm({
   const [isCreateGuestModalOpen, setIsCreateGuestModalOpen] = useState(false);
   const errorRef = useRef<HTMLDivElement>(null);
 
+  // Fecha fin efectiva: en evento de un día siempre espeja la fecha de inicio.
+  const effectiveEnd = multiDay ? endDate : startDate;
+
   useEffect(() => {
     if (submitError) errorRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
   }, [submitError]);
@@ -97,22 +105,44 @@ export function SalonReservationForm({
 
   const selectedGuest = (guestOverride?.id === guestId ? guestOverride : null) ?? searchedGuests.find((g) => g.id === guestId) ?? null;
   const selectedSlot = slots.find((s) => s.id === slotId) ?? null;
-  const selectedSpace = spaces.find((s) => s.id === spaceId) ?? null;
   const selectedMenu = menus.find((m) => m.id === menuId) ?? null;
 
-  const fmtChipDate = (d: string) =>
-    d ? new Date(d + "T00:00:00").toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit", year: "numeric" }) : "—";
-
   const activeResources = resources.filter((r) => r.is_active);
+  const activeSpaces = spaces.filter((s) => s.is_active);
+  const spaceSlots = useMemo(
+    () => slots.filter((s) => s.is_active && s.space_id === spaceId),
+    [slots, spaceId],
+  );
 
   // El precio base lo lleva el propio slot (un slot pertenece a un espacio).
   const pricePerDay = selectedSlot?.price_per_day ?? 0;
 
-  const { numDays, basePrice, addonsPrice, totalPrice } = useMemo(() => {
-    if (!startDate || !endDate || endDate < startDate || !selectedSlot || !spaceId) {
-      return { numDays: 0, basePrice: 0, equipmentPrice: 0, cateringPrice: 0, addonsPrice: 0, totalPrice: 0 };
+  // Disponibilidad por slot para el espacio + rango elegidos. Espeja la regla del
+  // trigger: un slot está ocupado si existe una reserva no cancelada (distinta de la
+  // que se edita) del mismo espacio+slot con rango de fechas solapado.
+  const slotConflicts = useMemo(() => {
+    const map: Record<string, SalonReservationListItem> = {};
+    if (!spaceId || !startDate || !effectiveEnd || effectiveEnd < startDate) return map;
+    for (const slot of spaceSlots) {
+      const conflict = reservations.find(
+        (r) =>
+          r.spaceId === spaceId &&
+          r.slotId === slot.id &&
+          r.status !== "cancelled" &&
+          r.id !== editingId &&
+          r.startDate <= effectiveEnd &&
+          r.endDate >= startDate,
+      );
+      if (conflict) map[slot.id] = conflict;
     }
-    const days = differenceInDays(parseISO(endDate), parseISO(startDate)) + 1;
+    return map;
+  }, [spaceId, startDate, effectiveEnd, spaceSlots, reservations, editingId]);
+
+  const { numDays, basePrice, addonsPrice, totalPrice } = useMemo(() => {
+    if (!startDate || !effectiveEnd || effectiveEnd < startDate || !selectedSlot || !spaceId) {
+      return { numDays: 0, basePrice: 0, addonsPrice: 0, totalPrice: 0 };
+    }
+    const days = differenceInDays(parseISO(effectiveEnd), parseISO(startDate)) + 1;
     const base = pricePerDay * days;
 
     // Equipment: each selected resource priced flat per unit (not per day)
@@ -135,15 +165,20 @@ export function SalonReservationForm({
     }
 
     const addons = equipment + catering;
-    return { numDays: days, basePrice: base, equipmentPrice: equipment, cateringPrice: catering, addonsPrice: addons, totalPrice: base + addons };
-  }, [startDate, endDate, selectedSlot, spaceId, pricePerDay, resourceQtys, resources, selectedMenu, attendees, coffeeStation, coffeeCookies, config]);
+    return { numDays: days, basePrice: base, addonsPrice: addons, totalPrice: base + addons };
+  }, [startDate, effectiveEnd, selectedSlot, spaceId, pricePerDay, resourceQtys, resources, selectedMenu, attendees, coffeeStation, coffeeCookies, config]);
 
-  // Limpia el slot solo cuando la selección actual no pertenece al espacio elegido.
-  // Así conserva el slot inicial al editar y lo borra únicamente ante un cambio real de espacio.
+  // Limpia el slot cuando la selección actual no pertenece al espacio elegido.
+  // Conserva el slot inicial al editar y lo borra solo ante un cambio real de espacio.
   useEffect(() => {
     if (!spaceId || slots.length === 0 || !slotId) return;
     if (!slots.some((s) => s.id === slotId && s.space_id === spaceId)) setSlotId("");
   }, [spaceId, slotId, slots]);
+
+  // Si el slot elegido pasa a estar ocupado (p. ej. al cambiar la fecha), lo deselecciona.
+  useEffect(() => {
+    if (slotId && slotConflicts[slotId]) setSlotId("");
+  }, [slotId, slotConflicts]);
 
   const toggleResource = (res: SalonResource, checked: boolean) => {
     setResourceQtys((prev) => {
@@ -164,8 +199,10 @@ export function SalonReservationForm({
     if (!spaceId) errs.spaceId = t.validation.spaceRequired;
     if (!slotId) errs.slotId = t.validation.slotRequired;
     if (!startDate) errs.startDate = t.validation.startDateRequired;
-    if (!endDate) errs.endDate = t.validation.endDateRequired;
-    if (startDate && endDate && endDate < startDate) errs.endDate = t.validation.dateRangeInvalid;
+    if (multiDay) {
+      if (!endDate) errs.endDate = t.validation.endDateRequired;
+      if (startDate && endDate && endDate < startDate) errs.endDate = t.validation.dateRangeInvalid;
+    }
     if (!isEditing) {
       const today = new Date().toISOString().split("T")[0];
       if (startDate && startDate < today) errs.startDate = t.validation.startDatePast;
@@ -187,7 +224,7 @@ export function SalonReservationForm({
       const resourcesInput = Object.entries(resourceQtys)
         .filter(([resourceId]) => resources.some((r) => r.id === resourceId))
         .map(([resourceId, quantityRequested]) => ({ resourceId, quantityRequested }));
-      await onSubmit({ guestId, spaceId, slotId, startDate, endDate, attendees, resources: resourcesInput, menuId, coffeeStation, coffeeCookies, basePrice, addonsPrice, finalPrice: totalPrice, notes: notes || null });
+      await onSubmit({ guestId, spaceId, slotId, startDate, endDate: effectiveEnd, attendees, resources: resourcesInput, menuId, coffeeStation, coffeeCookies, basePrice, addonsPrice, finalPrice: totalPrice, notes: notes || null });
     } catch (err) {
       const msg = err instanceof Error ? err.message : es.common.unexpectedError;
       const unavailable = msg.match(/^RESOURCE_UNAVAILABLE:(.+)$/);
@@ -207,8 +244,7 @@ export function SalonReservationForm({
     }
   };
 
-  const activeSpaces = spaces.filter((s) => s.is_active);
-  const spaceSlots = slots.filter((s) => s.is_active && s.space_id === spaceId);
+  const todayStr = new Date().toISOString().split("T")[0];
 
   return (
     <>
@@ -217,176 +253,201 @@ export function SalonReservationForm({
         {submitError && <Alert variant="destructive"><AlertCircle className="h-4 w-4" /><AlertDescription>{submitError}</AlertDescription></Alert>}
         {!config && <Alert><AlertCircle className="h-4 w-4" /><AlertDescription>{t.noConfigWarning}</AlertDescription></Alert>}
 
-        {/* Contexto: chips de solo lectura (creado desde un horario libre) o campos editables */}
-        {lockContext ? (
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-lg bg-surface-container-low px-4 py-3 text-body-md">
-            <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-[18px] text-on-surface-variant">meeting_room</span>
-              <span className="text-on-surface-variant">{t.form.contextSpace}:</span>
-              <span className="font-medium text-foreground">{selectedSpace?.name ?? "—"}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-[18px] text-on-surface-variant">calendar_today</span>
-              <span className="text-on-surface-variant">{t.form.contextDate}:</span>
-              <span className="font-medium text-foreground">{fmtChipDate(startDate)}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-[18px] text-on-surface-variant">schedule</span>
-              <span className="text-on-surface-variant">{t.form.contextSlot}:</span>
-              <span className="font-medium text-foreground">
-                {selectedSlot ? `${selectedSlot.start_time.slice(0, 5)} – ${selectedSlot.end_time.slice(0, 5)}` : "—"}
-              </span>
-            </div>
+        {/* Cliente + Asistentes */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 rounded-xl border border-outline-variant/50 bg-surface-container-low p-4">
+          <div className="space-y-1">
+            <Label>{t.form.guestLabel} *</Label>
+            <GuestCombobox guests={searchedGuests} selectedGuestId={guestId} selectedGuest={selectedGuest} onSelect={setGuestId}
+              onOpenCreateModal={() => setIsCreateGuestModalOpen(true)} searchQuery={guestSearchQuery} onSearchChange={setGuestSearchQuery}
+              isSearching={isSearchingGuests} error={errors.guestId} searchError={guestSearchError} />
           </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Space */}
-            <div className="space-y-2">
-              <Label>{t.form.spaceLabel} *</Label>
-              <Select value={spaceId} onValueChange={setSpaceId}>
-                <SelectTrigger className={errors.spaceId ? "border-destructive" : ""}><SelectValue placeholder="Seleccionar espacio" /></SelectTrigger>
-                <SelectContent>{activeSpaces.map((sp) => <SelectItem key={sp.id} value={sp.id}>{sp.name}</SelectItem>)}</SelectContent>
-              </Select>
-              {errors.spaceId && <p className="text-sm text-destructive">{errors.spaceId}</p>}
+          <div className="space-y-1">
+            <Label>{t.form.attendeesLabel}</Label>
+            <div className="relative">
+              <Input type="number" min={1} value={attendees ?? ""} placeholder="0"
+                onChange={(e) => setAttendees(e.target.value ? parseInt(e.target.value) : null)}
+                className={errors.attendees ? "border-destructive pr-9" : "pr-9"} />
+              <span className="material-symbols-outlined absolute right-3 top-2.5 text-[20px] text-on-surface-variant pointer-events-none">groups</span>
             </div>
-            {/* Slot */}
-            <div className="space-y-2">
-              <Label>{t.form.slotLabel} *</Label>
-              <Select value={slotId} onValueChange={setSlotId} disabled={!spaceId}>
-                <SelectTrigger className={errors.slotId ? "border-destructive" : ""}><SelectValue placeholder={spaceId ? "Seleccionar slot" : "Selecciona un espacio primero"} /></SelectTrigger>
-                <SelectContent>
-                  {spaceSlots.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>{s.name} ({s.start_time.slice(0, 5)}–{s.end_time.slice(0, 5)}) — {formatCurrency(s.price_per_day)}/día</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.slotId && <p className="text-sm text-destructive">{errors.slotId}</p>}
-              {spaceId && spaceSlots.length === 0 && (
-                <p className="text-sm text-on-surface-variant">{t.form.noSlotsForSpace}</p>
-              )}
-            </div>
-            {/* Dates */}
-            <div className="space-y-2">
-              <Label>{t.form.startDateLabel} *</Label>
-              <Input type="date" value={startDate} min={isEditing ? undefined : new Date().toISOString().split("T")[0]}
-                onChange={(e) => setStartDate(e.target.value)} className={errors.startDate ? "border-destructive" : ""} />
-              {errors.startDate && <p className="text-sm text-destructive">{errors.startDate}</p>}
-            </div>
-            <div className="space-y-2">
+            {errors.attendees && <p className="text-sm text-destructive">{errors.attendees}</p>}
+          </div>
+        </div>
+
+        {/* Espacio + Fecha + Varios días */}
+        <div className="flex flex-wrap items-end gap-4 rounded-xl border border-outline-variant/50 bg-surface-container-low p-4">
+          <div className="flex-1 min-w-[150px] space-y-1">
+            <Label>{t.form.spaceLabel} *</Label>
+            <Select value={spaceId} onValueChange={setSpaceId}>
+              <SelectTrigger className={errors.spaceId ? "border-destructive" : ""}><SelectValue placeholder="Seleccionar espacio" /></SelectTrigger>
+              <SelectContent>{activeSpaces.map((sp) => <SelectItem key={sp.id} value={sp.id}>{sp.name}</SelectItem>)}</SelectContent>
+            </Select>
+            {errors.spaceId && <p className="text-sm text-destructive">{errors.spaceId}</p>}
+          </div>
+          <div className="flex-1 min-w-[150px] space-y-1">
+            <Label>{t.form.dateLabel} *</Label>
+            <Input type="date" value={startDate} min={isEditing ? undefined : todayStr}
+              onChange={(e) => setStartDate(e.target.value)} className={errors.startDate ? "border-destructive" : ""} />
+            {errors.startDate && <p className="text-sm text-destructive">{errors.startDate}</p>}
+          </div>
+          {multiDay && (
+            <div className="flex-1 min-w-[150px] space-y-1">
               <Label>{t.form.endDateLabel} *</Label>
               <Input type="date" value={endDate} min={startDate || undefined}
                 onChange={(e) => setEndDate(e.target.value)} className={errors.endDate ? "border-destructive" : ""} />
               {errors.endDate && <p className="text-sm text-destructive">{errors.endDate}</p>}
             </div>
+          )}
+          <div className="flex items-center gap-3 rounded-lg border border-outline-variant bg-surface-container-lowest px-4 h-[38px]">
+            <span className="text-body-md text-on-surface-variant whitespace-nowrap">{t.form.variosDias}</span>
+            <Switch checked={multiDay} onCheckedChange={(v) => { setMultiDay(v); if (v && !endDate) setEndDate(startDate); }} />
           </div>
-        )}
+        </div>
 
-        {/* Cuerpo en 2 columnas */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5">
-          {/* IZQUIERDA: Datos del evento */}
-          <div className="space-y-4">
-            <p className="text-label-bold uppercase text-on-surface-variant">{t.form.eventDataTitle}</p>
-            <div className="space-y-2">
-              <Label>{t.form.guestLabel} *</Label>
-              <GuestCombobox guests={searchedGuests} selectedGuestId={guestId} selectedGuest={selectedGuest} onSelect={setGuestId}
-                onOpenCreateModal={() => setIsCreateGuestModalOpen(true)} searchQuery={guestSearchQuery} onSearchChange={setGuestSearchQuery}
-                isSearching={isSearchingGuests} error={errors.guestId} searchError={guestSearchError} />
-            </div>
-            <div className="space-y-2">
-              <Label>{t.form.attendeesLabel}</Label>
-              <Input type="number" min={1} value={attendees ?? ""} placeholder="Ej: 50"
-                onChange={(e) => setAttendees(e.target.value ? parseInt(e.target.value) : null)}
-                className={errors.attendees ? "border-destructive" : ""} />
-              {errors.attendees && <p className="text-sm text-destructive">{errors.attendees}</p>}
-            </div>
-            <div className="space-y-2">
-              <Label>{t.form.notesLabel}</Label>
-              <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={t.form.notesPlaceholder} rows={3} />
-            </div>
-          </div>
-
-          {/* DERECHA: Equipamiento + Catering */}
-          <div className="space-y-4">
-            <div className="space-y-3">
-              <p className="text-label-bold uppercase text-on-surface-variant">{t.form.equipmentLabel}</p>
-              {activeResources.length === 0 ? (
-                <p className="text-body-sm text-on-surface-variant">{t.form.noResourcesWarning}</p>
-              ) : activeResources.map((res) => {
-                const selected = res.id in resourceQtys;
-                const qty = resourceQtys[res.id] ?? 1;
-                return (
-                  <div key={res.id} className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <Checkbox id={`res-${res.id}`} checked={selected} onCheckedChange={(v) => toggleResource(res, Boolean(v))} />
-                      <Label htmlFor={`res-${res.id}`} className="cursor-pointer leading-tight">
-                        {res.name}
-                        {res.description && <span className="block text-label-md text-on-surface-variant">{res.description}</span>}
-                      </Label>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      {selected && res.quantity > 1 && (
-                        <div className="flex items-center gap-1">
-                          <button type="button" onClick={() => setResourceQty(res, qty - 1)} disabled={qty <= 1} aria-label="Restar"
-                            className="grid h-6 w-6 place-items-center rounded-md border border-outline-variant text-on-surface-variant hover:bg-surface-container-low disabled:opacity-40">
-                            <Minus className="h-3.5 w-3.5" />
-                          </button>
-                          <span className="w-6 text-center text-body-md tabular-nums">{qty}</span>
-                          <button type="button" onClick={() => setResourceQty(res, qty + 1)} disabled={qty >= res.quantity} aria-label="Sumar"
-                            className="grid h-6 w-6 place-items-center rounded-md border border-outline-variant text-on-surface-variant hover:bg-surface-container-low disabled:opacity-40">
-                            <Plus className="h-3.5 w-3.5" />
-                          </button>
+        {/* Horarios disponibles */}
+        <section className="space-y-3">
+          <h3 className="text-label-bold uppercase tracking-wider text-on-surface-variant">{t.form.horariosTitle}</h3>
+          {!spaceId ? (
+            <p className="text-body-sm text-on-surface-variant">{t.form.pickSpaceForSlots}</p>
+          ) : spaceSlots.length === 0 ? (
+            <p className="text-body-sm text-on-surface-variant">{t.form.noSlotsForSpace}</p>
+          ) : !startDate ? (
+            <p className="text-body-sm text-on-surface-variant">{t.form.pickDateForSlots}</p>
+          ) : (
+            <div className="flex flex-row flex-wrap gap-3">
+              {spaceSlots.map((slot) => {
+                const conflict = slotConflicts[slot.id];
+                const timeRange = `${slot.start_time.slice(0, 5)} – ${slot.end_time.slice(0, 5)}`;
+                if (conflict) {
+                  return (
+                    <div key={slot.id} className="flex-1 min-w-[180px] flex flex-col gap-3 p-4 rounded-lg border border-outline-variant bg-surface-container opacity-60 cursor-not-allowed">
+                      <div className="flex flex-col">
+                        <span className="text-table-data text-on-surface line-through">{slot.name}</span>
+                        <span className="text-body-sm text-on-surface-variant">{timeRange}</span>
+                      </div>
+                      <div className="flex flex-col gap-1 mt-auto">
+                        <span className="text-body-sm text-on-surface-variant font-medium truncate">{conflict.guestName}</span>
+                        <div className="flex items-center justify-between">
+                          <span className="text-label-bold text-on-surface">{formatCurrency(slot.price_per_day)}</span>
+                          <span className={PILL_OCCUPIED}><span className="w-1.5 h-1.5 rounded-full bg-[#92400e]" />{t.board.occupied}</span>
                         </div>
-                      )}
-                      <span className="text-primary text-body-md font-medium whitespace-nowrap">{formatCurrency(res.price)}</span>
+                      </div>
                     </div>
-                  </div>
+                  );
+                }
+                const selected = slotId === slot.id;
+                return (
+                  <label key={slot.id} className={`flex-1 min-w-[180px] flex flex-col gap-3 p-4 rounded-lg bg-surface-container-lowest cursor-pointer transition-colors ${selected ? "border-2 border-primary" : "border border-outline-variant hover:bg-surface-container-low"}`}>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex flex-col">
+                        <span className="text-table-data text-on-surface">{slot.name}</span>
+                        <span className="text-body-sm text-on-surface-variant">{timeRange}</span>
+                      </div>
+                      <input type="radio" name="slot" checked={selected} onChange={() => setSlotId(slot.id)} className="h-4 w-4 mt-0.5 text-primary focus:ring-primary" />
+                    </div>
+                    <div className="flex items-center justify-between mt-auto">
+                      <span className="text-label-bold text-on-surface">{formatCurrency(slot.price_per_day)}</span>
+                      <span className={PILL_FREE}><span className="w-1.5 h-1.5 rounded-full bg-[#166534]" />{t.board.free}</span>
+                    </div>
+                  </label>
                 );
               })}
             </div>
+          )}
+          {errors.slotId && <p className="text-sm text-destructive">{errors.slotId}</p>}
+        </section>
 
-            <div className="space-y-3 pt-3 border-t border-outline-variant">
-              <p className="text-label-bold uppercase text-on-surface-variant">{t.form.cateringTitle}</p>
-              <div className="space-y-2">
-                <Label>{t.form.menuLabel}</Label>
-                <Select value={menuId ?? "none"} onValueChange={(v) => setMenuId(v === "none" ? null : v)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">{t.form.noMenu}</SelectItem>
-                    {menus.map((m) => <SelectItem key={m.id} value={m.id}>{m.name} — {formatCurrency(m.price_per_person)}/pax</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
+        {/* Catering */}
+        <section className="space-y-3">
+          <h3 className="text-label-bold uppercase tracking-wider text-on-surface-variant">{t.form.cateringTitle}</h3>
+          <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-4 grid grid-cols-1 md:grid-cols-2">
+            <div className="space-y-1 md:pr-6 md:border-r border-outline-variant">
+              <Label>{t.form.menuTypeLabel}</Label>
+              <Select value={menuId ?? "none"} onValueChange={(v) => setMenuId(v === "none" ? null : v)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">{t.form.noMenu}</SelectItem>
+                  {menus.map((m) => <SelectItem key={m.id} value={m.id}>{m.name} — {formatCurrency(m.price_per_person)}/pax</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex flex-col gap-2 mt-4 md:mt-0 md:pl-6">
               <div className="flex items-center justify-between gap-2">
-                <Label htmlFor="coffee" className="cursor-pointer leading-tight">
-                  {t.form.coffeeLabel}
-                  {config && <span className="block text-label-md text-on-surface-variant">{formatCurrency(config.coffee_station_price)} / {config.coffee_station_capacity} pax</span>}
-                </Label>
-                <Switch id="coffee" checked={coffeeStation} onCheckedChange={(v) => { setCoffeeStation(Boolean(v)); if (!v) setCoffeeCookies(false); }} />
+                <div className="flex flex-col">
+                  <span className="text-body-md text-on-surface">{t.form.coffeeLabel}</span>
+                  {config && <span className="text-label-md text-on-surface-variant">{formatCurrency(config.coffee_station_price)} / {config.coffee_station_capacity} pax</span>}
+                </div>
+                <Switch checked={coffeeStation} onCheckedChange={(v) => { setCoffeeStation(v); if (!v) setCoffeeCookies(false); }} />
               </div>
               {coffeeStation && attendees && config && (
-                <p className="text-sm text-on-surface-variant">
+                <p className="text-label-md text-on-surface-variant">
                   {t.form.coffeeStationsNote(
                     Math.ceil(attendees / config.coffee_station_capacity),
                     formatCurrency(Math.ceil(attendees / config.coffee_station_capacity) * config.coffee_station_price),
                   )}
                 </p>
               )}
-              {coffeeStation && (
-                <div className="flex items-center justify-between gap-2">
-                  <Label htmlFor="cookies" className="cursor-pointer">{t.form.cookiesLabel}{config ? ` — ${formatCurrency(config.cookies_price)}` : ""}</Label>
-                  <Switch id="cookies" checked={coffeeCookies} onCheckedChange={(v) => setCoffeeCookies(Boolean(v))} />
+              <div className="flex items-center justify-between gap-2 pl-6">
+                <div className="flex flex-col">
+                  <span className="text-body-md text-on-surface">{t.form.cookiesLabel}</span>
+                  {config && <span className="text-label-md text-on-surface-variant">{formatCurrency(config.cookies_price)}</span>}
                 </div>
-              )}
-              {errors.coffeeCookies && <p className="text-sm text-destructive">{errors.coffeeCookies}</p>}
+                <Switch checked={coffeeCookies} disabled={!coffeeStation} onCheckedChange={(v) => setCoffeeCookies(v)} />
+              </div>
             </div>
           </div>
+          {errors.coffeeCookies && <p className="text-sm text-destructive">{errors.coffeeCookies}</p>}
+        </section>
+
+        {/* Equipamiento */}
+        <section className="space-y-3">
+          <h3 className="text-label-bold uppercase tracking-wider text-on-surface-variant">{t.form.equipmentLabel}</h3>
+          {activeResources.length === 0 ? (
+            <p className="text-body-sm text-on-surface-variant">{t.form.noResourcesWarning}</p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {activeResources.map((res) => {
+                const selected = res.id in resourceQtys;
+                const qty = resourceQtys[res.id] ?? 1;
+                return (
+                  <div key={res.id} className={`flex items-center justify-between gap-2 p-3 rounded-lg border ${selected ? "bg-secondary-container/20 border-secondary-container" : "bg-surface-container-lowest border-outline-variant"}`}>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Checkbox id={`res-${res.id}`} checked={selected} onCheckedChange={(v) => toggleResource(res, Boolean(v))} />
+                      <Label htmlFor={`res-${res.id}`} className="cursor-pointer leading-tight min-w-0">
+                        <span className="block truncate text-body-md text-on-surface">{res.name}</span>
+                        <span className="block text-label-md text-on-surface-variant">{formatCurrency(res.price)}</span>
+                      </Label>
+                    </div>
+                    {selected && res.quantity > 1 && (
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button type="button" onClick={() => setResourceQty(res, qty - 1)} disabled={qty <= 1} aria-label="Restar"
+                          className="grid h-6 w-6 place-items-center rounded-md border border-outline-variant text-on-surface-variant hover:bg-surface-container-low disabled:opacity-40">
+                          <Minus className="h-3.5 w-3.5" />
+                        </button>
+                        <span className="w-6 text-center text-body-md tabular-nums">{qty}</span>
+                        <button type="button" onClick={() => setResourceQty(res, qty + 1)} disabled={qty >= res.quantity} aria-label="Sumar"
+                          className="grid h-6 w-6 place-items-center rounded-md border border-outline-variant text-on-surface-variant hover:bg-surface-container-low disabled:opacity-40">
+                          <Plus className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
+        {/* Notas */}
+        <div className="space-y-1">
+          <Label>{t.form.notesLabel}</Label>
+          <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={t.form.notesPlaceholder} rows={3} />
         </div>
 
         {/* Footer: total + acciones */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-outline-variant pt-4">
+        <div className="-mx-6 -mb-6 mt-1 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-outline-variant bg-surface-container-low px-6 py-4">
           <div className="leading-tight">
-            <p className="text-label-md uppercase text-on-surface-variant">{t.form.summaryLabel}</p>
-            <p className="text-headline-md text-primary">
+            <p className="text-body-sm text-on-surface-variant">{t.form.summaryLabel}</p>
+            <p className="text-headline-lg text-primary">
               {t.form.totalLabel}: {formatCurrency(totalPrice)}
               {numDays > 0 && pricePerDay > 0 && (
                 <span className="ml-2 text-body-sm font-normal text-on-surface-variant">
