@@ -496,29 +496,26 @@ export function SalonReservationForm({
                       <Minus className="h-4 w-4" />
                     </button>
 
-                    {/* Nombre + cantidad (mezcla) + subtotal */}
+                    {/* Nombre arriba; cantidad editable + precio unitario abajo */}
                     <div className="relative z-10 flex min-w-0 flex-1 flex-col items-center justify-center px-1 py-1.5 text-center">
-                      <span className="flex max-w-full items-center gap-1.5">
-                        <span className="truncate text-body-md text-on-surface">{res.name}</span>
-                        {selected && (res.quantity > 1 ? (
-                          <span className="flex shrink-0 cursor-text items-center rounded-pill bg-primary pl-1.5 pr-1 text-label-md font-medium text-white transition-all duration-150 hover:bg-primary/90 focus-within:bg-white focus-within:text-primary focus-within:ring-1 focus-within:ring-primary focus-within:hover:bg-white active:scale-110">
-                            ×
-                            <input
-                              type="number"
-                              min={1}
-                              max={res.quantity}
-                              value={qty}
-                              onFocus={(e) => e.target.select()}
-                              onChange={(e) => setResourceQty(res, parseInt(e.target.value))}
-                              aria-label="Cantidad"
-                              className="w-6 cursor-text border-b border-dashed border-white/70 bg-transparent text-center caret-white tabular-nums outline-none focus:border-solid focus:border-primary focus:caret-primary [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                            />
-                          </span>
-                        ) : (
-                          <span className="shrink-0 rounded-pill bg-primary px-1.5 text-label-md font-medium text-white tabular-nums">×1</span>
-                        ))}
-                      </span>
-                      <span className="text-label-md text-on-surface-variant tabular-nums">{formatCurrency(selected ? res.price * qty : res.price)}</span>
+                      <span title={res.name} className="max-w-full truncate text-body-md text-on-surface">{res.name}</span>
+                      {selected && res.quantity > 1 ? (
+                        <span className="flex items-center gap-1 text-label-md text-on-surface-variant tabular-nums">
+                          <input
+                            type="number"
+                            min={1}
+                            max={res.quantity}
+                            value={qty}
+                            onFocus={(e) => e.target.select()}
+                            onChange={(e) => setResourceQty(res, parseInt(e.target.value))}
+                            aria-label="Cantidad"
+                            className="w-8 cursor-text border-b border-dashed border-on-surface-variant/60 bg-transparent text-center font-medium text-on-surface tabular-nums outline-none transition-colors hover:border-on-surface focus:border-solid focus:border-primary focus:text-primary [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                          />
+                          <span>× {formatCurrency(res.price)}</span>
+                        </span>
+                      ) : (
+                        <span className="text-label-md text-on-surface-variant tabular-nums">{formatCurrency(res.price)}</span>
+                      )}
                     </div>
 
                     {/* + en el borde derecho */}
