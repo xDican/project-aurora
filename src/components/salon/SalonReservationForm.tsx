@@ -478,7 +478,7 @@ export function SalonReservationForm({
           {activeResources.length === 0 ? (
             <p className="text-body-sm text-on-surface-variant">{t.form.noResourcesWarning}</p>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
               {activeResources.map((res) => {
                 const selected = res.id in resourceQtys;
                 const qty = selected ? (resourceQtys[res.id] ?? 1) : 0;
