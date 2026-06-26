@@ -505,14 +505,28 @@ export function SalonReservationForm({
         {/* Footer: notas (overlay) + total + acciones (siempre visible) */}
         <div className="relative shrink-0 border-t border-outline-variant bg-surface-container-low">
           {notesOpen && (
-            <div className="absolute inset-x-0 bottom-full z-20 border-t border-outline-variant bg-surface-container-low px-6 py-4 shadow-[0_-8px_20px_-8px_rgba(0,0,0,0.18)]">
+            <div className="absolute bottom-full left-6 z-30 mb-2 w-[340px] max-w-[calc(100%-3rem)] rounded-xl border border-outline-variant bg-surface-container-lowest p-3 shadow-[0_10px_34px_-8px_rgba(0,0,0,0.28)]">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="flex items-center gap-1.5 text-label-bold text-on-surface-variant">
+                  <span className="material-symbols-outlined text-[18px]">edit_note</span>
+                  {t.form.notesLabel}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setNotesOpen(false)}
+                  aria-label={es.common.cancel}
+                  className="grid h-6 w-6 place-items-center rounded-md text-on-surface-variant hover:bg-surface-container"
+                >
+                  <span className="material-symbols-outlined text-[18px]">close</span>
+                </button>
+              </div>
               <Textarea
                 autoFocus
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder={t.form.notesPlaceholder}
-                rows={2}
-                className="resize-none bg-surface-container-lowest"
+                rows={4}
+                className="resize-none bg-surface-container-low"
               />
             </div>
           )}
