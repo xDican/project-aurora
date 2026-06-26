@@ -468,7 +468,7 @@ export function SalonReservationForm({
                       <span className="flex max-w-full items-center gap-1.5">
                         <span className="truncate text-body-md text-on-surface">{res.name}</span>
                         {selected && (res.quantity > 1 ? (
-                          <span className="flex shrink-0 items-center rounded-pill bg-primary pl-1.5 pr-0.5 text-label-md font-medium text-white">
+                          <span className="flex shrink-0 cursor-text items-center rounded-pill bg-primary pl-1.5 pr-1 text-label-md font-medium text-white transition-shadow hover:bg-primary/90 focus-within:ring-2 focus-within:ring-primary/40">
                             ×
                             <input
                               type="number"
@@ -478,7 +478,7 @@ export function SalonReservationForm({
                               onFocus={(e) => e.target.select()}
                               onChange={(e) => setResourceQty(res, parseInt(e.target.value))}
                               aria-label="Cantidad"
-                              className="w-6 bg-transparent text-center tabular-nums outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                              className="w-6 cursor-text border-b border-dashed border-white/70 bg-transparent text-center caret-white tabular-nums outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                             />
                           </span>
                         ) : (
