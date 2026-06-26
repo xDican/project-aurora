@@ -248,13 +248,13 @@ export function SalonReservationForm({
 
   return (
     <>
-      <form onSubmit={handleSubmit} className="space-y-5">
+      <form onSubmit={handleSubmit} className="space-y-4">
         <div ref={errorRef} />
         {submitError && <Alert variant="destructive"><AlertCircle className="h-4 w-4" /><AlertDescription>{submitError}</AlertDescription></Alert>}
         {!config && <Alert><AlertCircle className="h-4 w-4" /><AlertDescription>{t.noConfigWarning}</AlertDescription></Alert>}
 
         {/* Cliente + Asistentes */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 rounded-xl border border-outline-variant/50 bg-surface-container-low p-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 rounded-xl border border-outline-variant/50 bg-surface-container-low p-3">
           <div className="space-y-1">
             <Label>{t.form.guestLabel} *</Label>
             <GuestCombobox guests={searchedGuests} selectedGuestId={guestId} selectedGuest={selectedGuest} onSelect={setGuestId}
@@ -274,7 +274,7 @@ export function SalonReservationForm({
         </div>
 
         {/* Espacio + Fecha + Varios días */}
-        <div className="flex flex-wrap items-end gap-4 rounded-xl border border-outline-variant/50 bg-surface-container-low p-4">
+        <div className="flex flex-wrap items-end gap-4 rounded-xl border border-outline-variant/50 bg-surface-container-low p-3">
           <div className="flex-1 min-w-[150px] space-y-1">
             <Label>{t.form.spaceLabel} *</Label>
             <Select value={spaceId} onValueChange={setSpaceId}>
@@ -304,7 +304,7 @@ export function SalonReservationForm({
         </div>
 
         {/* Horarios disponibles */}
-        <section className="space-y-3">
+        <section className="space-y-2">
           <h3 className="text-label-bold uppercase tracking-wider text-on-surface-variant">{t.form.horariosTitle}</h3>
           {!spaceId ? (
             <p className="text-body-sm text-on-surface-variant">{t.form.pickSpaceForSlots}</p>
@@ -313,38 +313,35 @@ export function SalonReservationForm({
           ) : !startDate ? (
             <p className="text-body-sm text-on-surface-variant">{t.form.pickDateForSlots}</p>
           ) : (
-            <div className="flex flex-row flex-wrap gap-3">
+            <div className="flex flex-row flex-wrap gap-2">
               {spaceSlots.map((slot) => {
                 const conflict = slotConflicts[slot.id];
-                const timeRange = `${slot.start_time.slice(0, 5)} – ${slot.end_time.slice(0, 5)}`;
+                const timeRange = `${slot.start_time.slice(0, 5)}–${slot.end_time.slice(0, 5)}`;
                 if (conflict) {
                   return (
-                    <div key={slot.id} className="flex-1 min-w-[180px] flex flex-col gap-3 p-4 rounded-lg border border-outline-variant bg-surface-container opacity-60 cursor-not-allowed">
-                      <div className="flex flex-col">
-                        <span className="text-table-data text-on-surface line-through">{slot.name}</span>
-                        <span className="text-body-sm text-on-surface-variant">{timeRange}</span>
+                    <div key={slot.id} className="flex-1 min-w-[160px] flex items-center justify-between gap-3 px-3 py-2 rounded-lg border border-outline-variant bg-surface-container opacity-60 cursor-not-allowed">
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-table-data text-on-surface line-through truncate">{slot.name}</span>
+                        <span className="text-label-md text-on-surface-variant truncate">{timeRange} · {conflict.guestName}</span>
                       </div>
-                      <div className="flex flex-col gap-1 mt-auto">
-                        <span className="text-body-sm text-on-surface-variant font-medium truncate">{conflict.guestName}</span>
-                        <div className="flex items-center justify-between">
-                          <span className="text-label-bold text-on-surface">{formatCurrency(slot.price_per_day)}</span>
-                          <span className={PILL_OCCUPIED}><span className="w-1.5 h-1.5 rounded-full bg-[#92400e]" />{t.board.occupied}</span>
-                        </div>
+                      <div className="flex flex-col items-end gap-0.5 shrink-0">
+                        <span className="text-label-bold text-on-surface">{formatCurrency(slot.price_per_day)}</span>
+                        <span className={PILL_OCCUPIED}><span className="w-1.5 h-1.5 rounded-full bg-[#92400e]" />{t.board.occupied}</span>
                       </div>
                     </div>
                   );
                 }
                 const selected = slotId === slot.id;
                 return (
-                  <label key={slot.id} className={`flex-1 min-w-[180px] flex flex-col gap-3 p-4 rounded-lg bg-surface-container-lowest cursor-pointer transition-colors ${selected ? "border-2 border-primary" : "border border-outline-variant hover:bg-surface-container-low"}`}>
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex flex-col">
-                        <span className="text-table-data text-on-surface">{slot.name}</span>
-                        <span className="text-body-sm text-on-surface-variant">{timeRange}</span>
+                  <label key={slot.id} className={`flex-1 min-w-[160px] flex items-center justify-between gap-3 px-3 py-2 rounded-lg bg-surface-container-lowest cursor-pointer transition-colors ${selected ? "border-2 border-primary" : "border border-outline-variant hover:bg-surface-container-low"}`}>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <input type="radio" name="slot" checked={selected} onChange={() => setSlotId(slot.id)} className="h-4 w-4 shrink-0 text-primary focus:ring-primary" />
+                      <div className="flex flex-col min-w-0">
+                        <span className="text-table-data text-on-surface truncate">{slot.name}</span>
+                        <span className="text-label-md text-on-surface-variant">{timeRange}</span>
                       </div>
-                      <input type="radio" name="slot" checked={selected} onChange={() => setSlotId(slot.id)} className="h-4 w-4 mt-0.5 text-primary focus:ring-primary" />
                     </div>
-                    <div className="flex items-center justify-between mt-auto">
+                    <div className="flex flex-col items-end gap-0.5 shrink-0">
                       <span className="text-label-bold text-on-surface">{formatCurrency(slot.price_per_day)}</span>
                       <span className={PILL_FREE}><span className="w-1.5 h-1.5 rounded-full bg-[#166534]" />{t.board.free}</span>
                     </div>
@@ -357,7 +354,7 @@ export function SalonReservationForm({
         </section>
 
         {/* Catering */}
-        <section className="space-y-3">
+        <section className="space-y-2">
           <h3 className="text-label-bold uppercase tracking-wider text-on-surface-variant">{t.form.cateringTitle}</h3>
           <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-4 grid grid-cols-1 md:grid-cols-2">
             <div className="space-y-1 md:pr-6 md:border-r border-outline-variant">
@@ -399,7 +396,7 @@ export function SalonReservationForm({
         </section>
 
         {/* Equipamiento */}
-        <section className="space-y-3">
+        <section className="space-y-2">
           <h3 className="text-label-bold uppercase tracking-wider text-on-surface-variant">{t.form.equipmentLabel}</h3>
           {activeResources.length === 0 ? (
             <p className="text-body-sm text-on-surface-variant">{t.form.noResourcesWarning}</p>
