@@ -185,7 +185,7 @@ export function SalonReservationForm({
     }
 
     // Catering: menú por asistente por día; café por estación por día (una estación
-    // cubre hasta `coffee_station_capacity` personas); galletas por asistente.
+    // cubre hasta `coffee_station_capacity` personas); galletas por asistente por día.
     let catering = 0;
     if (config) {
       if (selectedMenu && attendees) catering += selectedMenu.price_per_person * attendees * days;
@@ -193,7 +193,7 @@ export function SalonReservationForm({
         const stations = Math.ceil(attendees / config.coffee_station_capacity);
         catering += stations * config.coffee_station_price * days;
       }
-      if (coffeeCookies && coffeeStation && attendees) catering += config.cookies_price * attendees;
+      if (coffeeCookies && coffeeStation && attendees) catering += config.cookies_price * attendees * days;
     }
 
     const addons = equipment + catering;
