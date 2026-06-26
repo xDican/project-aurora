@@ -258,7 +258,7 @@ export function SalonReservationForm({
         {!config && <Alert><AlertCircle className="h-4 w-4" /><AlertDescription>{t.noConfigWarning}</AlertDescription></Alert>}
 
         {/* Cliente + Asistentes */}
-        <div className="flex flex-wrap items-start gap-4 rounded-xl border border-outline-variant/50 bg-surface-container-low p-3">
+        <div className="flex flex-wrap items-stretch gap-4 rounded-xl border border-outline-variant/50 bg-surface-container-low p-3">
           <div className="flex-1 min-w-[220px] space-y-1">
             <Label>{t.form.guestLabel} *</Label>
             <GuestCombobox guests={searchedGuests} selectedGuestId={guestId} selectedGuest={selectedGuest} onSelect={setGuestId}
@@ -268,7 +268,7 @@ export function SalonReservationForm({
 
           <div className="hidden sm:block w-px self-stretch bg-outline-variant" />
 
-          <div className="w-[160px] space-y-1">
+          <div className="flex-1 min-w-[160px] space-y-1">
             <Label>{t.form.attendeesLabel}</Label>
             <div className="relative">
               <Input type="number" min={1} value={attendees ?? ""} placeholder="0"
@@ -281,8 +281,8 @@ export function SalonReservationForm({
         </div>
 
         {/* Espacio + Fecha */}
-        <div className="flex flex-wrap items-end gap-4 rounded-xl border border-outline-variant/50 bg-surface-container-low p-3">
-          <div className="space-y-1">
+        <div className="flex flex-wrap items-stretch gap-4 rounded-xl border border-outline-variant/50 bg-surface-container-low p-3">
+          <div className="flex-1 min-w-[200px] space-y-1">
             <Label>{t.form.spaceLabel} *</Label>
             <Select value={spaceId} onValueChange={setSpaceId}>
               <SelectTrigger className={cn("w-[220px]", errors.spaceId && "border-destructive")}><SelectValue placeholder="Seleccionar espacio" /></SelectTrigger>
@@ -293,7 +293,7 @@ export function SalonReservationForm({
 
           <div className="hidden sm:block w-px self-stretch bg-outline-variant" />
 
-          <div className="space-y-1">
+          <div className="flex-1 min-w-[200px] space-y-1">
             <div className="flex items-center gap-3">
               <Label>{t.form.dateLabel} *</Label>
               <div className="flex items-center gap-2">
