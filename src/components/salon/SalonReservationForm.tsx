@@ -249,7 +249,8 @@ export function SalonReservationForm({
 
   return (
     <>
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
         <div ref={errorRef} />
         {submitError && <Alert variant="destructive"><AlertCircle className="h-4 w-4" /><AlertDescription>{submitError}</AlertDescription></Alert>}
         {!config && <Alert><AlertCircle className="h-4 w-4" /><AlertDescription>{t.noConfigWarning}</AlertDescription></Alert>}
@@ -358,25 +359,25 @@ export function SalonReservationForm({
         <section className="space-y-2">
           <h3 className="text-label-bold uppercase tracking-wider text-on-surface-variant">{t.form.cateringTitle}</h3>
           <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-4 space-y-3">
-            <div className="flex items-center gap-3">
-              <Label className="whitespace-nowrap">{t.form.menuTypeLabel}</Label>
-              <Select value={menuId ?? "none"} onValueChange={(v) => setMenuId(v === "none" ? null : v)}>
-                <SelectTrigger className="flex-1"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">{t.form.noMenu}</SelectItem>
-                  {menus.map((m) => <SelectItem key={m.id} value={m.id}>{m.name} — {formatCurrency(m.price_per_person)}/pax</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex flex-wrap items-center gap-x-8 gap-y-2 border-t border-outline-variant pt-3">
-              <div className="flex items-center justify-between gap-3 flex-1 min-w-[200px]">
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+              <div className="flex items-center gap-3 flex-1 min-w-[260px]">
+                <Label className="whitespace-nowrap">{t.form.menuTypeLabel}</Label>
+                <Select value={menuId ?? "none"} onValueChange={(v) => setMenuId(v === "none" ? null : v)}>
+                  <SelectTrigger className="flex-1"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">{t.form.noMenu}</SelectItem>
+                    {menus.map((m) => <SelectItem key={m.id} value={m.id}>{m.name} — {formatCurrency(m.price_per_person)}/pax</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center gap-3">
                 <div className="flex flex-col">
                   <span className="text-body-md text-on-surface">{t.form.coffeeLabel}</span>
                   {config && <span className="text-label-md text-on-surface-variant">{formatCurrency(config.coffee_station_price)} / {config.coffee_station_capacity} pax</span>}
                 </div>
                 <Switch checked={coffeeStation} onCheckedChange={(v) => { setCoffeeStation(v); if (!v) setCoffeeCookies(false); }} />
               </div>
-              <div className="flex items-center justify-between gap-3 flex-1 min-w-[200px]">
+              <div className="flex items-center gap-3">
                 <div className="flex flex-col">
                   <span className="text-body-md text-on-surface">{t.form.cookiesLabel}</span>
                   {config && <span className="text-label-md text-on-surface-variant">{formatCurrency(config.cookies_price)}</span>}
@@ -441,8 +442,10 @@ export function SalonReservationForm({
           <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={t.form.notesPlaceholder} rows={3} />
         </div>
 
-        {/* Footer: total + acciones */}
-        <div className="-mx-6 -mb-6 mt-1 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-outline-variant bg-surface-container-low px-6 py-4">
+        </div>
+
+        {/* Footer: total + acciones (siempre visible) */}
+        <div className="shrink-0 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-t border-outline-variant bg-surface-container-low px-6 py-4">
           <div className="leading-tight">
             <p className="text-body-sm text-on-surface-variant">{t.form.summaryLabel}</p>
             <p className="text-headline-lg text-primary">

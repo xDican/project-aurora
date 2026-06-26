@@ -224,8 +224,8 @@ export default function Salon() {
       </Tabs>
 
       <Dialog open={isFormOpen} onOpenChange={(v) => !v && closeForm()}>
-        <DialogContent className="max-w-[1200px] max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
+        <DialogContent className="max-w-[1200px] max-h-[90vh] p-0 gap-0 flex flex-col overflow-hidden">
+          <DialogHeader className="shrink-0 border-b border-outline-variant px-6 py-4">
             <DialogTitle className="flex items-center gap-2">
               <span className="material-symbols-outlined text-[20px]">event_seat</span>
               {editingReservation ? t.editDialogTitle : t.newReservation}

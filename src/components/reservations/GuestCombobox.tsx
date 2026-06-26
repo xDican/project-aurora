@@ -40,32 +40,26 @@ export function GuestCombobox({
 }: GuestComboboxProps) {
   const t = es.guestCombobox;
 
-  // If a guest is selected, show a chip with their name
+  // If a guest is selected, show a compact single-line field (same height as a
+  // regular input) with their name and a clear button.
   if (selectedGuestId && selectedGuest) {
     return (
       <div className="space-y-1">
         <div
           className={cn(
-            "flex items-center justify-between gap-2 p-3 border rounded-md bg-muted/30",
+            "flex h-10 items-center justify-between gap-2 rounded-md border bg-muted/30 pl-3 pr-1",
             error && "border-destructive"
           )}
         >
-          <div className="flex items-center gap-2">
-            <User className="h-4 w-4 text-muted-foreground" />
-            <div className="flex flex-col">
-              <span className="font-medium">{selectedGuest.name}</span>
-              <span className="text-xs text-muted-foreground">
-                {selectedGuest.document && `📄 ${selectedGuest.document}`}
-                {selectedGuest.document && selectedGuest.phone && " • "}
-                {selectedGuest.phone && `📞 ${selectedGuest.phone}`}
-              </span>
-            </div>
+          <div className="flex items-center gap-2 min-w-0">
+            <User className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <span className="truncate font-medium">{selectedGuest.name}</span>
           </div>
           <Button
             type="button"
             variant="ghost"
             size="sm"
-            className="h-8 w-8 p-0"
+            className="h-7 w-7 p-0 shrink-0"
             onClick={() => {
               onSelect("");
               onSearchChange("");
@@ -93,6 +87,7 @@ export function GuestCombobox({
         )}
       >
         <CommandInput
+          className="h-10"
           placeholder={t.searchPlaceholder}
           value={searchQuery}
           onValueChange={onSearchChange}
