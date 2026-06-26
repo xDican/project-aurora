@@ -541,6 +541,8 @@ export const es = {
       coffeeLabel:        "Estación de café permanente",
       coffeeStationsNote: (stations: number, total: string) =>
         `${stations} ${stations === 1 ? "estación" : "estaciones"} · ${total}`,
+      coffeeStationsCount: (stations: number) =>
+        `${stations} ${stations === 1 ? "estación" : "estaciones"}`,
       cookiesLabel:       "Incluir galletas",
       notesLabel:         "Notas",
       notesPlaceholder:   "Requerimientos especiales, disposición, etc.",

@@ -380,11 +380,9 @@ export function SalonReservationForm({
               {/* N° de estaciones (en el hueco) + café + galletas, todo en una sola línea */}
               <div className="flex flex-1 items-center justify-between gap-4">
                 {coffeeStation && attendees && config ? (
-                  <span className="rounded-pill bg-secondary-container/30 px-2.5 py-1 text-label-md text-on-surface whitespace-nowrap">
-                    {t.form.coffeeStationsNote(
-                      Math.ceil(attendees / config.coffee_station_capacity),
-                      formatCurrency(Math.ceil(attendees / config.coffee_station_capacity) * config.coffee_station_price),
-                    )}
+                  <span className="flex flex-col items-center rounded-pill bg-secondary-container/30 px-2.5 py-1 text-label-md leading-tight text-on-surface">
+                    <span className="whitespace-nowrap">{t.form.coffeeStationsCount(Math.ceil(attendees / config.coffee_station_capacity))}</span>
+                    <span className="whitespace-nowrap font-medium">{formatCurrency(Math.ceil(attendees / config.coffee_station_capacity) * config.coffee_station_price)}</span>
                   </span>
                 ) : (
                   <span aria-hidden />
