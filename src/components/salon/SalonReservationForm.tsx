@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { AlertCircle, Loader2, Minus, Plus } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -183,17 +182,26 @@ export function SalonReservationForm({
     if (slotId && slotConflicts[slotId]) setSlotId("");
   }, [slotId, slotConflicts]);
 
-  const toggleResource = (res: SalonResource, checked: boolean) => {
+  // El stepper ES la selección: + desde 0 selecciona (qty 1); − en 1 deselecciona.
+  const incResource = (res: SalonResource) => {
     setResourceQtys((prev) => {
-      const next = { ...prev };
-      if (checked) next[res.id] = prev[res.id] ?? 1;
-      else delete next[res.id];
-      return next;
+      const current = prev[res.id];
+      if (current === undefined) return { ...prev, [res.id]: 1 };
+      return { ...prev, [res.id]: clamp(current + 1, 1, res.quantity) };
     });
   };
 
-  const setResourceQty = (res: SalonResource, value: number) => {
-    setResourceQtys((prev) => ({ ...prev, [res.id]: clamp(value || 1, 1, res.quantity) }));
+  const decResource = (res: SalonResource) => {
+    setResourceQtys((prev) => {
+      const current = prev[res.id];
+      if (current === undefined) return prev;
+      if (current <= 1) {
+        const next = { ...prev };
+        delete next[res.id];
+        return next;
+      }
+      return { ...prev, [res.id]: current - 1 };
+    });
   };
 
   const validate = (): boolean => {
@@ -431,34 +439,38 @@ export function SalonReservationForm({
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
               {activeResources.map((res) => {
                 const selected = res.id in resourceQtys;
-                const qty = resourceQtys[res.id] ?? 1;
+                const qty = selected ? (resourceQtys[res.id] ?? 1) : 0;
+                const fillPct = selected ? (qty / res.quantity) * 100 : 0;
                 return (
-                  <div key={res.id} className={`relative flex min-h-[3rem] items-center justify-between gap-2 px-3 pt-3 pb-2 rounded-lg border ${selected ? "bg-secondary-container/20 border-secondary-container" : "bg-surface-container-lowest border-outline-variant"}`}>
-                    <span className={cn(
-                      "pointer-events-none absolute -top-2 left-1/2 -translate-x-1/2 rounded-pill border px-2 py-px text-label-md whitespace-nowrap tabular-nums transition-colors",
-                      selected ? "border-primary-container bg-primary-container text-on-primary-container" : "border-outline-variant bg-surface-container-lowest text-on-surface-variant"
-                    )}>
-                      {formatCurrency(selected ? res.price * qty : res.price)}
-                    </span>
-                    <div className="flex items-center gap-2 min-w-0">
-                      <Checkbox id={`res-${res.id}`} checked={selected} onCheckedChange={(v) => toggleResource(res, Boolean(v))} />
-                      <Label htmlFor={`res-${res.id}`} className="cursor-pointer truncate text-body-md text-on-surface min-w-0">
-                        {res.name}
-                      </Label>
+                  <div key={res.id} className={cn(
+                    "relative flex min-h-[3rem] items-stretch overflow-hidden rounded-lg border transition-colors",
+                    selected ? "border-primary/50" : "border-outline-variant"
+                  )}>
+                    {/* Relleno proporcional a las unidades usadas del stock */}
+                    <div className="pointer-events-none absolute inset-y-0 left-0 bg-primary-container/40 transition-all duration-200" style={{ width: `${fillPct}%` }} />
+
+                    {/* − en el borde izquierdo */}
+                    <button type="button" onClick={() => decResource(res)} disabled={!selected} aria-label="Restar"
+                      className="relative z-10 grid w-9 shrink-0 place-items-center text-on-surface-variant hover:bg-surface-container disabled:opacity-30 disabled:hover:bg-transparent">
+                      <Minus className="h-4 w-4" />
+                    </button>
+
+                    {/* Nombre + cantidad (mezcla) + subtotal */}
+                    <div className="relative z-10 flex min-w-0 flex-1 flex-col items-center justify-center px-1 py-1.5 text-center">
+                      <span className="flex max-w-full items-center gap-1.5">
+                        <span className="truncate text-body-md text-on-surface">{res.name}</span>
+                        {selected && res.quantity > 1 && (
+                          <span className="shrink-0 rounded-pill bg-primary px-1.5 text-label-md font-medium text-white tabular-nums">×{qty}</span>
+                        )}
+                      </span>
+                      <span className="text-label-md text-on-surface-variant tabular-nums">{formatCurrency(selected ? res.price * qty : res.price)}</span>
                     </div>
-                    {selected && res.quantity > 1 && (
-                      <div className="flex items-center gap-1 shrink-0">
-                        <button type="button" onClick={() => setResourceQty(res, qty - 1)} disabled={qty <= 1} aria-label="Restar"
-                          className="grid h-6 w-6 place-items-center rounded-md border border-outline-variant text-on-surface-variant hover:bg-surface-container-low disabled:opacity-40">
-                          <Minus className="h-3.5 w-3.5" />
-                        </button>
-                        <span className="w-6 text-center text-body-md tabular-nums">{qty}</span>
-                        <button type="button" onClick={() => setResourceQty(res, qty + 1)} disabled={qty >= res.quantity} aria-label="Sumar"
-                          className="grid h-6 w-6 place-items-center rounded-md border border-outline-variant text-on-surface-variant hover:bg-surface-container-low disabled:opacity-40">
-                          <Plus className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    )}
+
+                    {/* + en el borde derecho */}
+                    <button type="button" onClick={() => incResource(res)} disabled={qty >= res.quantity} aria-label="Sumar"
+                      className="relative z-10 grid w-9 shrink-0 place-items-center text-on-surface-variant hover:bg-surface-container disabled:opacity-30 disabled:hover:bg-transparent">
+                      <Plus className="h-4 w-4" />
+                    </button>
                   </div>
                 );
               })}
