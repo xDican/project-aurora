@@ -377,29 +377,33 @@ export function SalonReservationForm({
               {/* Divisor centrado entre ambas categorías */}
               <div className="hidden sm:block w-px self-stretch bg-outline-variant" />
 
-              {/* Estación de café + galletas + N° de estaciones, en una sola línea a la derecha */}
-              <div className="flex flex-1 flex-wrap items-center justify-end gap-x-4 gap-y-2">
-                {coffeeStation && attendees && config && (
+              {/* N° de estaciones (en el hueco) + café + galletas, todo en una sola línea */}
+              <div className="flex flex-1 items-center justify-between gap-4">
+                {coffeeStation && attendees && config ? (
                   <span className="rounded-pill bg-secondary-container/30 px-2.5 py-1 text-label-md text-on-surface whitespace-nowrap">
                     {t.form.coffeeStationsNote(
                       Math.ceil(attendees / config.coffee_station_capacity),
                       formatCurrency(Math.ceil(attendees / config.coffee_station_capacity) * config.coffee_station_price),
                     )}
                   </span>
+                ) : (
+                  <span aria-hidden />
                 )}
-                <div className="flex items-center gap-2">
-                  <div className="flex flex-col items-end leading-tight">
-                    <span className="text-body-md text-on-surface">{t.form.coffeeLabel}</span>
-                    {config && <span className="text-label-md text-on-surface-variant">{formatCurrency(config.coffee_station_price)} / {config.coffee_station_capacity} pax</span>}
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <div className="flex flex-col items-end leading-tight">
+                      <span className="text-body-md text-on-surface whitespace-nowrap">{t.form.coffeeLabel}</span>
+                      {config && <span className="text-label-md text-on-surface-variant whitespace-nowrap">{formatCurrency(config.coffee_station_price)} / {config.coffee_station_capacity} pax</span>}
+                    </div>
+                    <Switch checked={coffeeStation} onCheckedChange={(v) => { setCoffeeStation(v); if (!v) setCoffeeCookies(false); }} />
                   </div>
-                  <Switch checked={coffeeStation} onCheckedChange={(v) => { setCoffeeStation(v); if (!v) setCoffeeCookies(false); }} />
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="flex flex-col items-end leading-tight">
-                    <span className="text-body-md text-on-surface">{t.form.cookiesLabel}</span>
-                    {config && <span className="text-label-md text-on-surface-variant">{formatCurrency(config.cookies_price)}</span>}
+                  <div className="flex items-center gap-2">
+                    <div className="flex flex-col items-end leading-tight">
+                      <span className="text-body-md text-on-surface whitespace-nowrap">{t.form.cookiesLabel}</span>
+                      {config && <span className="text-label-md text-on-surface-variant whitespace-nowrap">{formatCurrency(config.cookies_price)}</span>}
+                    </div>
+                    <Switch checked={coffeeCookies} disabled={!coffeeStation} onCheckedChange={(v) => setCoffeeCookies(v)} />
                   </div>
-                  <Switch checked={coffeeCookies} disabled={!coffeeStation} onCheckedChange={(v) => setCoffeeCookies(v)} />
                 </div>
               </div>
             </div>
