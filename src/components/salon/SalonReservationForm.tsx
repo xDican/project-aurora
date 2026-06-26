@@ -204,6 +204,14 @@ export function SalonReservationForm({
     });
   };
 
+  // Edición manual de la cantidad (solo si ya está seleccionado).
+  const setResourceQty = (res: SalonResource, value: number) => {
+    setResourceQtys((prev) => {
+      if (!(res.id in prev)) return prev;
+      return { ...prev, [res.id]: clamp(value || 1, 1, res.quantity) };
+    });
+  };
+
   const validate = (): boolean => {
     const errs: Record<string, string> = {};
     if (!guestId) errs.guestId = t.validation.guestRequired;
@@ -459,9 +467,23 @@ export function SalonReservationForm({
                     <div className="relative z-10 flex min-w-0 flex-1 flex-col items-center justify-center px-1 py-1.5 text-center">
                       <span className="flex max-w-full items-center gap-1.5">
                         <span className="truncate text-body-md text-on-surface">{res.name}</span>
-                        {selected && res.quantity > 1 && (
-                          <span className="shrink-0 rounded-pill bg-primary px-1.5 text-label-md font-medium text-white tabular-nums">×{qty}</span>
-                        )}
+                        {selected && (res.quantity > 1 ? (
+                          <span className="flex shrink-0 items-center rounded-pill bg-primary pl-1.5 pr-0.5 text-label-md font-medium text-white">
+                            ×
+                            <input
+                              type="number"
+                              min={1}
+                              max={res.quantity}
+                              value={qty}
+                              onFocus={(e) => e.target.select()}
+                              onChange={(e) => setResourceQty(res, parseInt(e.target.value))}
+                              aria-label="Cantidad"
+                              className="w-6 bg-transparent text-center tabular-nums outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                            />
+                          </span>
+                        ) : (
+                          <span className="shrink-0 rounded-pill bg-primary px-1.5 text-label-md font-medium text-white tabular-nums">×1</span>
+                        ))}
                       </span>
                       <span className="text-label-md text-on-surface-variant tabular-nums">{formatCurrency(selected ? res.price * qty : res.price)}</span>
                     </div>
