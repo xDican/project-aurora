@@ -351,16 +351,16 @@ export function SalonReservationForm({
               <span className="text-label-md text-on-surface-variant whitespace-nowrap">{t.form.variosDias}</span>
               <Switch checked={multiDay} onCheckedChange={(v) => { setMultiDay(v); if (v && !endDate) setEndDate(startDate); }} />
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex min-w-0 flex-1 items-center gap-1.5">
               <Input type="date" value={startDate} min={isEditing ? undefined : todayStr}
                 onChange={(e) => setStartDate(e.target.value)}
-                className={cn(multiDay ? "w-[140px]" : "w-[160px]", errors.startDate && "border-destructive")} />
+                className={cn("min-w-0 flex-1", !multiDay && "max-w-[180px]", errors.startDate && "border-destructive")} />
               {multiDay && (
                 <>
-                  <span className="text-on-surface-variant">→</span>
+                  <span className="shrink-0 text-on-surface-variant">→</span>
                   <Input type="date" value={endDate} min={startDate || undefined}
                     onChange={(e) => setEndDate(e.target.value)}
-                    className={cn("w-[140px]", errors.endDate && "border-destructive")} />
+                    className={cn("min-w-0 flex-1", errors.endDate && "border-destructive")} />
                 </>
               )}
             </div>
@@ -440,17 +440,9 @@ export function SalonReservationForm({
               {/* Divisor centrado entre ambas categorías */}
               <div className="hidden sm:block w-px self-stretch bg-outline-variant" />
 
-              {/* N° de estaciones (en el hueco) + café + galletas, todo en una sola línea */}
-              <div className="flex flex-1 items-center justify-between gap-4">
-                {coffeeStation && attendees && config ? (
-                  <span className="flex flex-col items-center rounded-pill bg-secondary-container/30 px-2.5 py-1 text-label-md leading-tight text-on-surface">
-                    <span className="whitespace-nowrap">{t.form.coffeeStationsCount(Math.ceil(attendees / config.coffee_station_capacity))}</span>
-                    <span className="whitespace-nowrap font-medium">{formatCurrency(Math.ceil(attendees / config.coffee_station_capacity) * config.coffee_station_price)}</span>
-                  </span>
-                ) : (
-                  <span aria-hidden />
-                )}
-                <div className="flex items-center gap-4">
+              {/* Café + galletas en una línea; badge de estaciones colgando del borde inferior */}
+              <div className="flex flex-1 items-center justify-end">
+                <div className="relative flex items-center gap-4">
                   <div className="flex items-center gap-2">
                     <div className="flex flex-col items-end leading-tight">
                       <span className="text-body-md text-on-surface whitespace-nowrap">{t.form.coffeeLabel}</span>
@@ -465,6 +457,11 @@ export function SalonReservationForm({
                     </div>
                     <Switch checked={coffeeCookies} disabled={!coffeeStation} onCheckedChange={(v) => setCoffeeCookies(v)} />
                   </div>
+                  {coffeeStation && attendees && config && (
+                    <span className="absolute left-1/2 top-full z-10 mt-1.5 -translate-x-1/2 whitespace-nowrap rounded-pill border border-secondary-container bg-secondary-container px-2.5 py-0.5 text-label-md leading-none text-on-surface shadow-sm">
+                      {t.form.coffeeStationsCount(Math.ceil(attendees / config.coffee_station_capacity))} · {formatCurrency(Math.ceil(attendees / config.coffee_station_capacity) * config.coffee_station_price)}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
