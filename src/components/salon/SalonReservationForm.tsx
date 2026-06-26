@@ -326,41 +326,41 @@ export function SalonReservationForm({
           </div>
         </div>
 
-        {/* Espacio + Fecha */}
-        <div className="flex flex-wrap items-stretch gap-4 rounded-xl border border-outline-variant/50 bg-surface-container-low p-3">
-          <div className="flex-1 min-w-[200px] space-y-1">
-            <Label>{t.form.spaceLabel} *</Label>
-            <Select value={spaceId} onValueChange={setSpaceId}>
-              <SelectTrigger className={cn("w-[220px]", errors.spaceId && "border-destructive")}><SelectValue placeholder="Seleccionar espacio" /></SelectTrigger>
-              <SelectContent>{activeSpaces.map((sp) => <SelectItem key={sp.id} value={sp.id}>{sp.name}</SelectItem>)}</SelectContent>
-            </Select>
-            {errors.spaceId && <p className="text-sm text-destructive">{errors.spaceId}</p>}
+        {/* Espacio + Fecha (labels en línea, una fila por mitad) */}
+        <div className="flex flex-wrap items-center gap-4 rounded-xl border border-outline-variant/50 bg-surface-container-low p-3">
+          <div className="flex min-w-[220px] flex-1 items-center gap-3">
+            <Label className="shrink-0 whitespace-nowrap">{t.form.spaceLabel} *</Label>
+            <div className="min-w-0 flex-1 space-y-1">
+              <Select value={spaceId} onValueChange={setSpaceId}>
+                <SelectTrigger className={cn("w-full", errors.spaceId && "border-destructive")}><SelectValue placeholder="Seleccionar espacio" /></SelectTrigger>
+                <SelectContent>{activeSpaces.map((sp) => <SelectItem key={sp.id} value={sp.id}>{sp.name}</SelectItem>)}</SelectContent>
+              </Select>
+              {errors.spaceId && <p className="text-sm text-destructive">{errors.spaceId}</p>}
+            </div>
           </div>
 
-          <div className="hidden sm:block w-px self-stretch bg-outline-variant" />
+          <div className="hidden self-stretch w-px bg-outline-variant sm:block" />
 
-          <div className="flex-1 min-w-[200px] space-y-1">
-            <div className="flex items-center gap-3">
-              <Label>{t.form.dateLabel} *</Label>
-              <div className="flex items-center gap-2">
-                <span className="text-label-md text-on-surface-variant whitespace-nowrap">{t.form.variosDias}</span>
-                <Switch checked={multiDay} onCheckedChange={(v) => { setMultiDay(v); if (v && !endDate) setEndDate(startDate); }} />
-              </div>
+          <div className="flex min-w-[260px] flex-1 flex-wrap items-center gap-x-3 gap-y-2">
+            <Label className="shrink-0 whitespace-nowrap">{t.form.dateLabel} *</Label>
+            <div className="flex shrink-0 items-center gap-2">
+              <span className="text-label-md text-on-surface-variant whitespace-nowrap">{t.form.variosDias}</span>
+              <Switch checked={multiDay} onCheckedChange={(v) => { setMultiDay(v); if (v && !endDate) setEndDate(startDate); }} />
             </div>
             <div className="flex items-center gap-2">
               <Input type="date" value={startDate} min={isEditing ? undefined : todayStr}
                 onChange={(e) => setStartDate(e.target.value)}
-                className={cn(multiDay ? "w-[150px]" : "w-[200px]", errors.startDate && "border-destructive")} />
+                className={cn(multiDay ? "w-[140px]" : "w-[160px]", errors.startDate && "border-destructive")} />
               {multiDay && (
                 <>
                   <span className="text-on-surface-variant">→</span>
                   <Input type="date" value={endDate} min={startDate || undefined}
                     onChange={(e) => setEndDate(e.target.value)}
-                    className={cn("w-[150px]", errors.endDate && "border-destructive")} />
+                    className={cn("w-[140px]", errors.endDate && "border-destructive")} />
                 </>
               )}
             </div>
-            {(errors.startDate || errors.endDate) && <p className="text-sm text-destructive">{errors.startDate || errors.endDate}</p>}
+            {(errors.startDate || errors.endDate) && <p className="w-full text-sm text-destructive">{errors.startDate || errors.endDate}</p>}
           </div>
         </div>
 
