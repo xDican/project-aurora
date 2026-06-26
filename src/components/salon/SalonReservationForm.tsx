@@ -321,6 +321,7 @@ export function SalonReservationForm({
         {/* Horarios disponibles */}
         <section className="space-y-2">
           <h3 className="text-label-bold uppercase tracking-wider text-on-surface-variant">{t.form.horariosTitle}</h3>
+          <div className="flex min-h-[60px] flex-col justify-center">
           {!spaceId ? (
             <p className="text-body-sm text-on-surface-variant">{t.form.pickSpaceForSlots}</p>
           ) : spaceSlots.length === 0 ? (
@@ -365,6 +366,7 @@ export function SalonReservationForm({
               })}
             </div>
           )}
+          </div>
           {errors.slotId && <p className="text-sm text-destructive">{errors.slotId}</p>}
         </section>
 
