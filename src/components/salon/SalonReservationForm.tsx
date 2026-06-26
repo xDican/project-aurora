@@ -156,7 +156,7 @@ export function SalonReservationForm({
     }
 
     // Catering: menú por asistente por día; café por estación (una estación cubre
-    // hasta `coffee_station_capacity` personas, precio plano); galletas flat.
+    // hasta `coffee_station_capacity` personas, precio plano); galletas por asistente.
     let catering = 0;
     if (config) {
       if (selectedMenu && attendees) catering += selectedMenu.price_per_person * attendees * days;
@@ -164,7 +164,7 @@ export function SalonReservationForm({
         const stations = Math.ceil(attendees / config.coffee_station_capacity);
         catering += stations * config.coffee_station_price;
       }
-      if (coffeeCookies && coffeeStation) catering += config.cookies_price;
+      if (coffeeCookies && coffeeStation && attendees) catering += config.cookies_price * attendees;
     }
 
     const addons = equipment + catering;
@@ -258,14 +258,17 @@ export function SalonReservationForm({
         {!config && <Alert><AlertCircle className="h-4 w-4" /><AlertDescription>{t.noConfigWarning}</AlertDescription></Alert>}
 
         {/* Cliente + Asistentes */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 rounded-xl border border-outline-variant/50 bg-surface-container-low p-3">
-          <div className="space-y-1">
+        <div className="flex flex-wrap items-start gap-4 rounded-xl border border-outline-variant/50 bg-surface-container-low p-3">
+          <div className="flex-1 min-w-[220px] space-y-1">
             <Label>{t.form.guestLabel} *</Label>
             <GuestCombobox guests={searchedGuests} selectedGuestId={guestId} selectedGuest={selectedGuest} onSelect={setGuestId}
               onOpenCreateModal={() => setIsCreateGuestModalOpen(true)} searchQuery={guestSearchQuery} onSearchChange={setGuestSearchQuery}
               isSearching={isSearchingGuests} error={errors.guestId} searchError={guestSearchError} />
           </div>
-          <div className="space-y-1">
+
+          <div className="hidden sm:block w-px self-stretch bg-outline-variant" />
+
+          <div className="w-[160px] space-y-1">
             <Label>{t.form.attendeesLabel}</Label>
             <div className="relative">
               <Input type="number" min={1} value={attendees ?? ""} placeholder="0"
@@ -277,33 +280,41 @@ export function SalonReservationForm({
           </div>
         </div>
 
-        {/* Espacio + Fecha + Varios días */}
+        {/* Espacio + Fecha */}
         <div className="flex flex-wrap items-end gap-4 rounded-xl border border-outline-variant/50 bg-surface-container-low p-3">
-          <div className="flex-1 min-w-[150px] space-y-1">
+          <div className="space-y-1">
             <Label>{t.form.spaceLabel} *</Label>
             <Select value={spaceId} onValueChange={setSpaceId}>
-              <SelectTrigger className={errors.spaceId ? "border-destructive" : ""}><SelectValue placeholder="Seleccionar espacio" /></SelectTrigger>
+              <SelectTrigger className={cn("w-[220px]", errors.spaceId && "border-destructive")}><SelectValue placeholder="Seleccionar espacio" /></SelectTrigger>
               <SelectContent>{activeSpaces.map((sp) => <SelectItem key={sp.id} value={sp.id}>{sp.name}</SelectItem>)}</SelectContent>
             </Select>
             {errors.spaceId && <p className="text-sm text-destructive">{errors.spaceId}</p>}
           </div>
-          <div className="flex-1 min-w-[150px] space-y-1">
-            <Label>{t.form.dateLabel} *</Label>
-            <Input type="date" value={startDate} min={isEditing ? undefined : todayStr}
-              onChange={(e) => setStartDate(e.target.value)} className={errors.startDate ? "border-destructive" : ""} />
-            {errors.startDate && <p className="text-sm text-destructive">{errors.startDate}</p>}
-          </div>
-          {multiDay && (
-            <div className="flex-1 min-w-[150px] space-y-1">
-              <Label>{t.form.endDateLabel} *</Label>
-              <Input type="date" value={endDate} min={startDate || undefined}
-                onChange={(e) => setEndDate(e.target.value)} className={errors.endDate ? "border-destructive" : ""} />
-              {errors.endDate && <p className="text-sm text-destructive">{errors.endDate}</p>}
+
+          <div className="hidden sm:block w-px self-stretch bg-outline-variant" />
+
+          <div className="space-y-1">
+            <div className="flex items-center gap-3">
+              <Label>{t.form.dateLabel} *</Label>
+              <div className="flex items-center gap-2">
+                <span className="text-label-md text-on-surface-variant whitespace-nowrap">{t.form.variosDias}</span>
+                <Switch checked={multiDay} onCheckedChange={(v) => { setMultiDay(v); if (v && !endDate) setEndDate(startDate); }} />
+              </div>
             </div>
-          )}
-          <div className="flex items-center gap-3 rounded-lg border border-outline-variant bg-surface-container-lowest px-4 h-[38px]">
-            <span className="text-body-md text-on-surface-variant whitespace-nowrap">{t.form.variosDias}</span>
-            <Switch checked={multiDay} onCheckedChange={(v) => { setMultiDay(v); if (v && !endDate) setEndDate(startDate); }} />
+            <div className="flex items-center gap-2">
+              <Input type="date" value={startDate} min={isEditing ? undefined : todayStr}
+                onChange={(e) => setStartDate(e.target.value)}
+                className={cn(multiDay ? "w-[150px]" : "w-[200px]", errors.startDate && "border-destructive")} />
+              {multiDay && (
+                <>
+                  <span className="text-on-surface-variant">→</span>
+                  <Input type="date" value={endDate} min={startDate || undefined}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className={cn("w-[150px]", errors.endDate && "border-destructive")} />
+                </>
+              )}
+            </div>
+            {(errors.startDate || errors.endDate) && <p className="text-sm text-destructive">{errors.startDate || errors.endDate}</p>}
           </div>
         </div>
 
@@ -398,7 +409,7 @@ export function SalonReservationForm({
                   <div className="flex items-center gap-2">
                     <div className="flex flex-col items-end leading-tight">
                       <span className="text-body-md text-on-surface whitespace-nowrap">{t.form.cookiesLabel}</span>
-                      {config && <span className="text-label-md text-on-surface-variant whitespace-nowrap">{formatCurrency(config.cookies_price)}</span>}
+                      {config && <span className="text-label-md text-on-surface-variant whitespace-nowrap">{formatCurrency(config.cookies_price)} / pax</span>}
                     </div>
                     <Switch checked={coffeeCookies} disabled={!coffeeStation} onCheckedChange={(v) => setCoffeeCookies(v)} />
                   </div>
@@ -450,10 +461,10 @@ export function SalonReservationForm({
 
         </div>
 
-        {/* Footer: notas colapsables + total + acciones (siempre visible) */}
-        <div className="shrink-0 border-t border-outline-variant bg-surface-container-low">
+        {/* Footer: notas (overlay) + total + acciones (siempre visible) */}
+        <div className="relative shrink-0 border-t border-outline-variant bg-surface-container-low">
           {notesOpen && (
-            <div className="px-6 pt-4">
+            <div className="absolute inset-x-0 bottom-full z-20 border-t border-outline-variant bg-surface-container-low px-6 py-4 shadow-[0_-8px_20px_-8px_rgba(0,0,0,0.18)]">
               <Textarea
                 autoFocus
                 value={notes}
