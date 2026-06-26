@@ -303,26 +303,30 @@ export function SalonReservationForm({
         {submitError && <Alert variant="destructive"><AlertCircle className="h-4 w-4" /><AlertDescription>{submitError}</AlertDescription></Alert>}
         {!config && <Alert><AlertCircle className="h-4 w-4" /><AlertDescription>{t.noConfigWarning}</AlertDescription></Alert>}
 
-        {/* Cliente + Asistentes */}
-        <div className="flex flex-wrap items-stretch gap-4 rounded-xl border border-outline-variant/50 bg-surface-container-low p-3">
-          <div className="flex-1 min-w-[220px] space-y-1">
-            <Label>{t.form.guestLabel} *</Label>
-            <GuestCombobox guests={searchedGuests} selectedGuestId={guestId} selectedGuest={selectedGuest} onSelect={setGuestId}
-              onOpenCreateModal={() => setIsCreateGuestModalOpen(true)} searchQuery={guestSearchQuery} onSearchChange={setGuestSearchQuery}
-              isSearching={isSearchingGuests} error={errors.guestId} searchError={guestSearchError} />
+        {/* Cliente + Asistentes (labels en línea, una fila por mitad) */}
+        <div className="flex flex-wrap items-center gap-4 rounded-xl border border-outline-variant/50 bg-surface-container-low p-3">
+          <div className="flex min-w-[260px] flex-1 items-center gap-3">
+            <Label className="shrink-0 whitespace-nowrap">{t.form.guestLabel} *</Label>
+            <div className="min-w-0 flex-1">
+              <GuestCombobox guests={searchedGuests} selectedGuestId={guestId} selectedGuest={selectedGuest} onSelect={setGuestId}
+                onOpenCreateModal={() => setIsCreateGuestModalOpen(true)} searchQuery={guestSearchQuery} onSearchChange={setGuestSearchQuery}
+                isSearching={isSearchingGuests} error={errors.guestId} searchError={guestSearchError} />
+            </div>
           </div>
 
-          <div className="hidden sm:block w-px self-stretch bg-outline-variant" />
+          <div className="hidden self-stretch w-px bg-outline-variant sm:block" />
 
-          <div className="flex-1 min-w-[160px] space-y-1">
-            <Label>{t.form.attendeesLabel}</Label>
-            <div className="relative">
-              <Input type="number" min={1} value={attendees ?? ""} placeholder="0"
-                onChange={(e) => setAttendees(e.target.value ? parseInt(e.target.value) : null)}
-                className={errors.attendees ? "border-destructive pr-9" : "pr-9"} />
-              <span className="material-symbols-outlined absolute right-3 top-2.5 text-[20px] text-on-surface-variant pointer-events-none">groups</span>
+          <div className="flex min-w-[200px] flex-1 items-center gap-3">
+            <Label className="shrink-0 whitespace-nowrap">{t.form.attendeesLabel}</Label>
+            <div className="min-w-0 flex-1 space-y-1">
+              <div className="relative">
+                <Input type="number" min={1} value={attendees ?? ""} placeholder="0"
+                  onChange={(e) => setAttendees(e.target.value ? parseInt(e.target.value) : null)}
+                  className={errors.attendees ? "border-destructive pr-9" : "pr-9"} />
+                <span className="material-symbols-outlined absolute right-3 top-2.5 text-[20px] text-on-surface-variant pointer-events-none">groups</span>
+              </div>
+              {errors.attendees && <p className="text-sm text-destructive">{errors.attendees}</p>}
             </div>
-            {errors.attendees && <p className="text-sm text-destructive">{errors.attendees}</p>}
           </div>
         </div>
 
