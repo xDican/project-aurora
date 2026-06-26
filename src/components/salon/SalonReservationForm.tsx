@@ -468,7 +468,7 @@ export function SalonReservationForm({
                       <span className="flex max-w-full items-center gap-1.5">
                         <span className="truncate text-body-md text-on-surface">{res.name}</span>
                         {selected && (res.quantity > 1 ? (
-                          <span className="flex shrink-0 cursor-text items-center rounded-pill bg-primary pl-1.5 pr-1 text-label-md font-medium text-white transition-colors hover:bg-primary/90 focus-within:bg-white focus-within:text-primary focus-within:ring-1 focus-within:ring-primary">
+                          <span className="flex shrink-0 cursor-text items-center rounded-pill bg-primary pl-1.5 pr-1 text-label-md font-medium text-white transition-all duration-150 hover:bg-primary/90 focus-within:bg-white focus-within:text-primary focus-within:ring-1 focus-within:ring-primary focus-within:hover:bg-white active:scale-110">
                             ×
                             <input
                               type="number"
