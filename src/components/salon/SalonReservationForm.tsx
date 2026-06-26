@@ -360,42 +360,49 @@ export function SalonReservationForm({
         {/* Catering */}
         <section className="space-y-2">
           <h3 className="text-label-bold uppercase tracking-wider text-on-surface-variant">{t.form.cateringTitle}</h3>
-          <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-4 space-y-3">
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-              <div className="flex items-center gap-3">
+          <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-4">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-stretch">
+              {/* Tipo de menú */}
+              <div className="flex flex-1 items-center gap-3">
                 <Label className="whitespace-nowrap">{t.form.menuTypeLabel}</Label>
                 <Select value={menuId ?? "none"} onValueChange={(v) => setMenuId(v === "none" ? null : v)}>
-                  <SelectTrigger className="w-[220px]"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="w-[240px] [&>span]:flex-1 [&>span]:text-left"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">{t.form.noMenu}</SelectItem>
                     {menus.map((m) => <SelectItem key={m.id} value={m.id}>{m.name} — {formatCurrency(m.price_per_person)}/pax</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
-              <div className="hidden sm:block h-8 w-px bg-outline-variant" />
-              <div className="flex items-center gap-3">
-                <div className="flex flex-col">
-                  <span className="text-body-md text-on-surface">{t.form.coffeeLabel}</span>
-                  {config && <span className="text-label-md text-on-surface-variant">{formatCurrency(config.coffee_station_price)} / {config.coffee_station_capacity} pax</span>}
+
+              {/* Divisor centrado entre ambas categorías */}
+              <div className="hidden sm:block w-px self-stretch bg-outline-variant" />
+
+              {/* Estación de café + galletas + N° de estaciones, en una sola línea a la derecha */}
+              <div className="flex flex-1 flex-wrap items-center justify-end gap-x-4 gap-y-2">
+                {coffeeStation && attendees && config && (
+                  <span className="rounded-pill bg-secondary-container/30 px-2.5 py-1 text-label-md text-on-surface whitespace-nowrap">
+                    {t.form.coffeeStationsNote(
+                      Math.ceil(attendees / config.coffee_station_capacity),
+                      formatCurrency(Math.ceil(attendees / config.coffee_station_capacity) * config.coffee_station_price),
+                    )}
+                  </span>
+                )}
+                <div className="flex items-center gap-2">
+                  <div className="flex flex-col items-end leading-tight">
+                    <span className="text-body-md text-on-surface">{t.form.coffeeLabel}</span>
+                    {config && <span className="text-label-md text-on-surface-variant">{formatCurrency(config.coffee_station_price)} / {config.coffee_station_capacity} pax</span>}
+                  </div>
+                  <Switch checked={coffeeStation} onCheckedChange={(v) => { setCoffeeStation(v); if (!v) setCoffeeCookies(false); }} />
                 </div>
-                <Switch checked={coffeeStation} onCheckedChange={(v) => { setCoffeeStation(v); if (!v) setCoffeeCookies(false); }} />
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="flex flex-col">
-                  <span className="text-body-md text-on-surface">{t.form.cookiesLabel}</span>
-                  {config && <span className="text-label-md text-on-surface-variant">{formatCurrency(config.cookies_price)}</span>}
+                <div className="flex items-center gap-2">
+                  <div className="flex flex-col items-end leading-tight">
+                    <span className="text-body-md text-on-surface">{t.form.cookiesLabel}</span>
+                    {config && <span className="text-label-md text-on-surface-variant">{formatCurrency(config.cookies_price)}</span>}
+                  </div>
+                  <Switch checked={coffeeCookies} disabled={!coffeeStation} onCheckedChange={(v) => setCoffeeCookies(v)} />
                 </div>
-                <Switch checked={coffeeCookies} disabled={!coffeeStation} onCheckedChange={(v) => setCoffeeCookies(v)} />
               </div>
             </div>
-            {coffeeStation && attendees && config && (
-              <p className="text-label-md text-on-surface-variant">
-                {t.form.coffeeStationsNote(
-                  Math.ceil(attendees / config.coffee_station_capacity),
-                  formatCurrency(Math.ceil(attendees / config.coffee_station_capacity) * config.coffee_station_price),
-                )}
-              </p>
-            )}
           </div>
           {errors.coffeeCookies && <p className="text-sm text-destructive">{errors.coffeeCookies}</p>}
         </section>
@@ -411,7 +418,7 @@ export function SalonReservationForm({
                 const selected = res.id in resourceQtys;
                 const qty = resourceQtys[res.id] ?? 1;
                 return (
-                  <div key={res.id} className={`flex items-center justify-between gap-2 p-3 rounded-lg border ${selected ? "bg-secondary-container/20 border-secondary-container" : "bg-surface-container-lowest border-outline-variant"}`}>
+                  <div key={res.id} className={`flex min-h-[3rem] items-center justify-between gap-2 px-3 py-2 rounded-lg border ${selected ? "bg-secondary-container/20 border-secondary-container" : "bg-surface-container-lowest border-outline-variant"}`}>
                     <div className="flex items-center gap-2 min-w-0">
                       <Checkbox id={`res-${res.id}`} checked={selected} onCheckedChange={(v) => toggleResource(res, Boolean(v))} />
                       <Label htmlFor={`res-${res.id}`} className="cursor-pointer flex items-center gap-2 min-w-0">
