@@ -93,6 +93,36 @@ export function SalonReservationForm({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const notesPanelRef = useRef<HTMLDivElement>(null);
+  const notesToggleRef = useRef<HTMLButtonElement>(null);
+
+  // Bloc de notas: cerrar al clic fuera y con ESC (interceptando antes que el
+  // modal en fase de captura para que la primera ESC solo cierre el bloc).
+  useEffect(() => {
+    if (!notesOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        setNotesOpen(false);
+      }
+    };
+    const onPointer = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (
+        notesPanelRef.current && !notesPanelRef.current.contains(target) &&
+        notesToggleRef.current && !notesToggleRef.current.contains(target)
+      ) {
+        setNotesOpen(false);
+      }
+    };
+    document.addEventListener("keydown", onKey, true);
+    document.addEventListener("mousedown", onPointer, true);
+    return () => {
+      document.removeEventListener("keydown", onKey, true);
+      document.removeEventListener("mousedown", onPointer, true);
+    };
+  }, [notesOpen]);
   const [isCreateGuestModalOpen, setIsCreateGuestModalOpen] = useState(false);
   const errorRef = useRef<HTMLDivElement>(null);
 
@@ -505,7 +535,7 @@ export function SalonReservationForm({
         {/* Footer: notas (overlay) + total + acciones (siempre visible) */}
         <div className="relative shrink-0 border-t border-outline-variant bg-surface-container-low">
           {notesOpen && (
-            <div className="absolute bottom-full left-6 z-30 mb-2 w-[340px] max-w-[calc(100%-3rem)] rounded-xl border border-outline-variant bg-surface-container-lowest p-3 shadow-[0_10px_34px_-8px_rgba(0,0,0,0.28)]">
+            <div ref={notesPanelRef} className="absolute bottom-full left-6 z-30 mb-2 w-[340px] max-w-[calc(100%-3rem)] rounded-xl border border-outline-variant bg-surface-container-lowest p-3 shadow-[0_10px_34px_-8px_rgba(0,0,0,0.28)]">
               <div className="mb-2 flex items-center justify-between">
                 <span className="flex items-center gap-1.5 text-label-bold text-on-surface-variant">
                   <span className="material-symbols-outlined text-[18px]">edit_note</span>
@@ -544,6 +574,7 @@ export function SalonReservationForm({
                 </p>
               </div>
               <button
+                ref={notesToggleRef}
                 type="button"
                 onClick={() => setNotesOpen((o) => !o)}
                 className={cn(
