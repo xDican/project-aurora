@@ -184,14 +184,14 @@ export function SalonReservationForm({
       if (res) equipment += res.price * qty;
     }
 
-    // Catering: menú por asistente por día; café por estación (una estación cubre
-    // hasta `coffee_station_capacity` personas, precio plano); galletas por asistente.
+    // Catering: menú por asistente por día; café por estación por día (una estación
+    // cubre hasta `coffee_station_capacity` personas); galletas por asistente.
     let catering = 0;
     if (config) {
       if (selectedMenu && attendees) catering += selectedMenu.price_per_person * attendees * days;
       if (coffeeStation && attendees) {
         const stations = Math.ceil(attendees / config.coffee_station_capacity);
-        catering += stations * config.coffee_station_price;
+        catering += stations * config.coffee_station_price * days;
       }
       if (coffeeCookies && coffeeStation && attendees) catering += config.cookies_price * attendees;
     }
@@ -461,7 +461,7 @@ export function SalonReservationForm({
                   </div>
                   {coffeeStation && attendees && config && (
                     <span className="absolute left-1/2 top-full z-10 mt-1.5 -translate-x-1/2 whitespace-nowrap rounded-pill border border-secondary-container bg-secondary-container px-2.5 py-0.5 text-label-md leading-none text-on-surface shadow-sm">
-                      {t.form.coffeeStationsCount(Math.ceil(attendees / config.coffee_station_capacity))} · {formatCurrency(Math.ceil(attendees / config.coffee_station_capacity) * config.coffee_station_price)}
+                      {t.form.coffeeStationsCount(Math.ceil(attendees / config.coffee_station_capacity))} · {formatCurrency(Math.ceil(attendees / config.coffee_station_capacity) * config.coffee_station_price * (numDays || 1))}
                     </span>
                   )}
                 </div>
