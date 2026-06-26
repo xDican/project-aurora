@@ -354,12 +354,14 @@ export function SalonReservationForm({
             <div className="flex min-w-0 flex-1 items-center gap-1.5">
               <Input type="date" value={startDate} min={isEditing ? undefined : todayStr}
                 onChange={(e) => setStartDate(e.target.value)}
+                onClick={(e) => e.currentTarget.showPicker?.()}
                 className={cn("min-w-0 flex-1", !multiDay && "max-w-[180px]", errors.startDate && "border-destructive")} />
               {multiDay && (
                 <>
                   <span className="shrink-0 text-on-surface-variant">→</span>
                   <Input type="date" value={endDate} min={startDate || undefined}
                     onChange={(e) => setEndDate(e.target.value)}
+                    onClick={(e) => e.currentTarget.showPicker?.()}
                     className={cn("min-w-0 flex-1", errors.endDate && "border-destructive")} />
                 </>
               )}
