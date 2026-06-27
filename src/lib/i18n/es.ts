@@ -112,6 +112,15 @@ export const es = {
     saveGuest: "Guardar huésped",
   },
 
+  companyCombobox: {
+    placeholder: "Buscar empresa...",
+    searchPlaceholder: "Buscar por nombre o RTN...",
+    noResults: "No se encontraron empresas",
+    createNew: "Crear nueva empresa",
+    creatingNew: "Nueva empresa",
+    saveCompany: "Guardar empresa",
+  },
+
   guestsPage: {
     title: "Huéspedes",
     addGuest: "Agregar huésped",
@@ -130,6 +139,7 @@ export const es = {
       document: "Documento",
       phone: "Teléfono",
       email: "Correo",
+      company: "Empresa",
     },
     form: {
       nameLabel: "Nombre",
@@ -140,6 +150,8 @@ export const es = {
       phonePlaceholder: "Número de teléfono (opcional)",
       emailLabel: "Correo electrónico",
       emailPlaceholder: "correo@ejemplo.com (opcional)",
+      companyLabel: "Empresa",
+      companyPlaceholder: "Sin empresa (opcional)",
     },
     validation: {
       nameRequired: "El nombre es obligatorio",
@@ -155,6 +167,53 @@ export const es = {
       error: "No se pudo archivar el huésped. Intenta de nuevo.",
       hasActiveReservations: "No se puede archivar el huésped porque tiene reservas futuras activas.",
       notAllowed: "No tienes permisos para archivar huéspedes.",
+    },
+  },
+
+  empresasPage: {
+    title: "Empresas",
+    addCompany: "Agregar empresa",
+    editCompany: "Editar empresa",
+    newCompany: "Nueva empresa",
+    noCompanies: "No hay empresas registradas todavía.",
+    addFirstCompany: "Agregar tu primera empresa",
+    companyCreated: "Empresa creada exitosamente",
+    companyUpdated: "Empresa actualizada exitosamente",
+    searchPlaceholder: "Buscar por nombre o RTN",
+    notAllowed: "No tienes permisos para esta acción.",
+    columns: {
+      name: "Nombre",
+      rtn: "RTN",
+      phone: "Teléfono",
+      email: "Correo",
+    },
+    form: {
+      nameLabel: "Nombre",
+      namePlaceholder: "Razón social de la empresa",
+      rtnLabel: "RTN",
+      rtnPlaceholder: "14 dígitos",
+      phoneLabel: "Teléfono",
+      phonePlaceholder: "Número de teléfono (opcional)",
+      emailLabel: "Correo electrónico",
+      emailPlaceholder: "correo@ejemplo.com (opcional)",
+      addressLabel: "Dirección",
+      addressPlaceholder: "Dirección de la empresa (opcional)",
+    },
+    validation: {
+      nameRequired: "El nombre es obligatorio",
+      rtnInvalid: "El RTN debe tener 14 dígitos",
+      rtnTaken: "Ya existe una empresa activa con ese RTN",
+      emailInvalid: "El formato del correo electrónico no es válido",
+    },
+    archive: {
+      button: "Archivar",
+      dialogTitle: "Archivar empresa",
+      dialogMessage: "Esta empresa no se podrá usar en nuevos huéspedes ni reservas, pero se mantendrá en el historial. ¿Deseas continuar?",
+      confirm: "Confirmar",
+      back: "Volver",
+      success: "Empresa archivada correctamente",
+      error: "No se pudo archivar la empresa. Intenta de nuevo.",
+      notAllowed: "No tienes permisos para archivar empresas.",
     },
   },
 

@@ -2,80 +2,78 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { type Guest } from "@/hooks/useGuests";
 import { type Company } from "@/hooks/useCompanies";
-import { CompanyCombobox } from "@/components/companies/CompanyCombobox";
 import { es } from "@/lib/i18n/es";
 
-interface GuestFormProps {
-  guest?: Guest | null;
-  onSubmit: (data: GuestFormData) => Promise<void>;
+interface CompanyFormProps {
+  company?: Company | null;
+  onSubmit: (data: CompanyFormData) => Promise<void>;
   onCancel: () => void;
   isLoading?: boolean;
   error?: string | null;
 }
 
-export interface GuestFormData {
+export interface CompanyFormData {
   name: string;
-  document: string | null;
+  rtn: string;
   phone: string | null;
   email: string | null;
-  company_id: string | null;
+  address: string | null;
 }
 
-const { guestsPage, common } = es;
+const { empresasPage, common } = es;
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export function GuestForm({ guest, onSubmit, onCancel, isLoading, error }: GuestFormProps) {
-  const [formData, setFormData] = useState<GuestFormData>({
+export function CompanyForm({ company, onSubmit, onCancel, isLoading, error }: CompanyFormProps) {
+  const [formData, setFormData] = useState({
     name: "",
-    document: "",
+    rtn: "",
     phone: "",
     email: "",
-    company_id: null,
+    address: "",
   });
-  const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (guest) {
+    if (company) {
       setFormData({
-        name: guest.name,
-        document: guest.document || "",
-        phone: guest.phone || "",
-        email: guest.email || "",
-        company_id: guest.company_id ?? null,
+        name: company.name,
+        rtn: company.rtn || "",
+        phone: company.phone || "",
+        email: company.email || "",
+        address: company.address || "",
       });
-      setSelectedCompany(
-        guest.company_id
-          ? ({ id: guest.company_id, name: guest.company_name ?? "" } as Company)
-          : null
-      );
     }
-  }, [guest]);
+  }, [company]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setValidationError(null);
 
     if (!formData.name.trim()) {
-      setValidationError(guestsPage.validation.nameRequired);
+      setValidationError(empresasPage.validation.nameRequired);
+      return;
+    }
+
+    const rtn = formData.rtn.replace(/\D/g, "");
+    if (rtn.length !== 14) {
+      setValidationError(empresasPage.validation.rtnInvalid);
       return;
     }
 
     const emailValue = formData.email?.trim();
     if (emailValue && !emailRegex.test(emailValue)) {
-      setValidationError(guestsPage.validation.emailInvalid);
+      setValidationError(empresasPage.validation.emailInvalid);
       return;
     }
 
     await onSubmit({
       name: formData.name.trim(),
-      document: formData.document?.trim() || null,
+      rtn,
       phone: formData.phone?.trim() || null,
       email: emailValue || null,
-      company_id: formData.company_id,
+      address: formData.address?.trim() || null,
     });
   };
 
@@ -88,57 +86,57 @@ export function GuestForm({ guest, onSubmit, onCancel, isLoading, error }: Guest
       )}
 
       <div className="space-y-2">
-        <Label htmlFor="name">{guestsPage.form.nameLabel} *</Label>
+        <Label htmlFor="company-name">{empresasPage.form.nameLabel} *</Label>
         <Input
-          id="name"
+          id="company-name"
           value={formData.name}
           onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
-          placeholder={guestsPage.form.namePlaceholder}
+          placeholder={empresasPage.form.namePlaceholder}
           required
         />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="document">{guestsPage.form.documentLabel}</Label>
+        <Label htmlFor="company-rtn">{empresasPage.form.rtnLabel} *</Label>
         <Input
-          id="document"
-          value={formData.document || ""}
-          onChange={(e) => setFormData((prev) => ({ ...prev, document: e.target.value }))}
-          placeholder={guestsPage.form.documentPlaceholder}
+          id="company-rtn"
+          inputMode="numeric"
+          value={formData.rtn}
+          onChange={(e) => setFormData((prev) => ({ ...prev, rtn: e.target.value }))}
+          placeholder={empresasPage.form.rtnPlaceholder}
+          required
         />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="phone">{guestsPage.form.phoneLabel}</Label>
+        <Label htmlFor="company-phone">{empresasPage.form.phoneLabel}</Label>
         <Input
-          id="phone"
+          id="company-phone"
           type="tel"
-          value={formData.phone || ""}
+          value={formData.phone}
           onChange={(e) => setFormData((prev) => ({ ...prev, phone: e.target.value }))}
-          placeholder={guestsPage.form.phonePlaceholder}
+          placeholder={empresasPage.form.phonePlaceholder}
         />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="email">{guestsPage.form.emailLabel}</Label>
+        <Label htmlFor="company-email">{empresasPage.form.emailLabel}</Label>
         <Input
-          id="email"
+          id="company-email"
           type="email"
-          value={formData.email || ""}
+          value={formData.email}
           onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
-          placeholder={guestsPage.form.emailPlaceholder}
+          placeholder={empresasPage.form.emailPlaceholder}
         />
       </div>
 
       <div className="space-y-2">
-        <Label>{guestsPage.form.companyLabel}</Label>
-        <CompanyCombobox
-          value={formData.company_id ?? ""}
-          selectedCompany={selectedCompany}
-          onChange={(companyId, company) => {
-            setFormData((prev) => ({ ...prev, company_id: companyId || null }));
-            setSelectedCompany(company ?? null);
-          }}
+        <Label htmlFor="company-address">{empresasPage.form.addressLabel}</Label>
+        <Input
+          id="company-address"
+          value={formData.address}
+          onChange={(e) => setFormData((prev) => ({ ...prev, address: e.target.value }))}
+          placeholder={empresasPage.form.addressPlaceholder}
         />
       </div>
 

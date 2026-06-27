@@ -1,4 +1,5 @@
-import { Check, Plus, User, X, Building2 } from "lucide-react";
+import { useState } from "react";
+import { Check, Plus, Building2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,39 +11,29 @@ import {
   CommandList,
   CommandSeparator,
 } from "@/components/ui/command";
-import { type Guest } from "@/hooks/useGuests";
+import { useCompanies, type Company } from "@/hooks/useCompanies";
+import { CreateCompanyModal } from "./CreateCompanyModal";
 import { es } from "@/lib/i18n/es";
 
-interface GuestComboboxProps {
-  guests: Guest[];
-  selectedGuestId: string;
-  selectedGuest?: Guest | null;
-  onSelect: (guestId: string) => void;
-  onOpenCreateModal: () => void;
-  searchQuery: string;
-  onSearchChange: (query: string) => void;
-  isSearching?: boolean;
+interface CompanyComboboxProps {
+  value: string;
+  selectedCompany?: Company | null;
+  onChange: (companyId: string, company?: Company | null) => void;
   error?: string;
-  searchError?: string;
 }
 
-export function GuestCombobox({
-  guests,
-  selectedGuestId,
-  selectedGuest,
-  onSelect,
-  onOpenCreateModal,
-  searchQuery,
-  onSearchChange,
-  isSearching,
-  error,
-  searchError,
-}: GuestComboboxProps) {
-  const t = es.guestCombobox;
+export function CompanyCombobox({ value, selectedCompany, onChange, error }: CompanyComboboxProps) {
+  const t = es.companyCombobox;
+  const { companies, loading, error: searchError, search, setSearch } = useCompanies();
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
 
-  // If a guest is selected, show a compact single-line field (same height as a
-  // regular input) with their name and a clear button.
-  if (selectedGuestId && selectedGuest) {
+  const handleCompanyCreated = (company: Company) => {
+    onChange(company.id, company);
+    setSearch("");
+  };
+
+  // Selected state: compact single-line chip (same height as a regular input).
+  if (value && selectedCompany) {
     return (
       <div className="space-y-1">
         <div
@@ -52,14 +43,8 @@ export function GuestCombobox({
           )}
         >
           <div className="flex items-center gap-2 min-w-0">
-            <User className="h-4 w-4 shrink-0 text-muted-foreground" />
-            <span className="truncate font-medium">{selectedGuest.name}</span>
-            {selectedGuest.company_name && (
-              <span className="flex items-center gap-1 shrink-0 text-xs text-muted-foreground">
-                <Building2 className="h-3 w-3" />
-                <span className="truncate max-w-[10rem]">{selectedGuest.company_name}</span>
-              </span>
-            )}
+            <Building2 className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <span className="truncate font-medium">{selectedCompany.name}</span>
           </div>
           <Button
             type="button"
@@ -67,8 +52,8 @@ export function GuestCombobox({
             size="sm"
             className="h-7 w-7 p-0 shrink-0"
             onClick={() => {
-              onSelect("");
-              onSearchChange("");
+              onChange("", null);
+              setSearch("");
             }}
           >
             <X className="h-4 w-4" />
@@ -79,9 +64,7 @@ export function GuestCombobox({
     );
   }
 
-  // Show search input directly. The results panel only appears while typing and
-  // floats over the elements below (absolute) so it doesn't push the layout down.
-  const isTyping = searchQuery.trim().length > 0;
+  const isTyping = search.trim().length > 0;
 
   return (
     <div className="space-y-1">
@@ -95,14 +78,14 @@ export function GuestCombobox({
         <CommandInput
           className="h-full py-0"
           placeholder={t.searchPlaceholder}
-          value={searchQuery}
-          onValueChange={onSearchChange}
+          value={search}
+          onValueChange={setSearch}
         />
         {isTyping && (
           <CommandList className="absolute top-full inset-x-0 z-50 mt-1 max-h-64 rounded-md border bg-popover shadow-md">
             <CommandGroup>
               <CommandItem
-                onSelect={onOpenCreateModal}
+                onSelect={() => setIsCreateOpen(true)}
                 className="text-primary cursor-pointer"
               >
                 <Plus className="mr-2 h-4 w-4" />
@@ -111,7 +94,7 @@ export function GuestCombobox({
             </CommandGroup>
 
             <CommandSeparator />
-            {isSearching ? (
+            {loading ? (
               <div className="py-4 text-center text-sm text-muted-foreground">
                 {es.common.loading}
               </div>
@@ -119,36 +102,28 @@ export function GuestCombobox({
               <div className="py-4 text-center text-sm text-destructive">
                 {searchError}
               </div>
-            ) : guests.length === 0 ? (
+            ) : companies.length === 0 ? (
               <CommandEmpty>{t.noResults}</CommandEmpty>
             ) : (
-              <CommandGroup heading={es.guestsPage.title}>
-                {guests.map((guest) => (
+              <CommandGroup heading={es.empresasPage.title}>
+                {companies.map((company) => (
                   <CommandItem
-                    key={guest.id}
-                    value={guest.id}
-                    onSelect={() => onSelect(guest.id)}
+                    key={company.id}
+                    value={company.id}
+                    onSelect={() => onChange(company.id, company)}
                     className="cursor-pointer"
                   >
                     <Check
                       className={cn(
                         "mr-2 h-4 w-4",
-                        selectedGuestId === guest.id ? "opacity-100" : "opacity-0"
+                        value === company.id ? "opacity-100" : "opacity-0"
                       )}
                     />
                     <div className="flex flex-col">
-                      <span className="font-medium">{guest.name}</span>
+                      <span className="font-medium">{company.name}</span>
                       <span className="text-xs text-muted-foreground">
-                        {guest.document && `📄 ${guest.document}`}
-                        {guest.document && guest.phone && " • "}
-                        {guest.phone && `📞 ${guest.phone}`}
+                        RTN {company.rtn}
                       </span>
-                      {guest.company_name && (
-                        <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <Building2 className="h-3 w-3" />
-                          {guest.company_name}
-                        </span>
-                      )}
                     </div>
                   </CommandItem>
                 ))}
@@ -158,6 +133,12 @@ export function GuestCombobox({
         )}
       </Command>
       {error && <p className="text-sm text-destructive">{error}</p>}
+
+      <CreateCompanyModal
+        open={isCreateOpen}
+        onOpenChange={setIsCreateOpen}
+        onCompanyCreated={handleCompanyCreated}
+      />
     </div>
   );
 }

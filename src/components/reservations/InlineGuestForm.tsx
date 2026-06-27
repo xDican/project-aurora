@@ -5,6 +5,8 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import { type GuestFormData } from "@/components/guests/GuestForm";
+import { type Company } from "@/hooks/useCompanies";
+import { CompanyCombobox } from "@/components/companies/CompanyCombobox";
 import { es } from "@/lib/i18n/es";
 
 interface InlineGuestFormProps {
@@ -28,7 +30,9 @@ export function InlineGuestForm({
     document: "",
     phone: "",
     email: "",
+    company_id: null as string | null,
   });
+  const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -54,6 +58,7 @@ export function InlineGuestForm({
       document: formData.document.trim() || null,
       phone: formData.phone.trim() || null,
       email: formData.email.trim() || null,
+      company_id: formData.company_id,
     });
   };
 
@@ -115,6 +120,19 @@ export function InlineGuestForm({
           onChange={(e) => setFormData({ ...formData, email: e.target.value })}
           placeholder={t.form.emailPlaceholder}
           className="h-9"
+        />
+      </div>
+
+      {/* Company - full width */}
+      <div className="space-y-1">
+        <Label className="text-xs">{t.form.companyLabel}</Label>
+        <CompanyCombobox
+          value={formData.company_id ?? ""}
+          selectedCompany={selectedCompany}
+          onChange={(companyId, company) => {
+            setFormData({ ...formData, company_id: companyId || null });
+            setSelectedCompany(company ?? null);
+          }}
         />
       </div>
 

@@ -5,46 +5,54 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { InlineGuestForm } from "./InlineGuestForm";
-import { type Guest } from "@/hooks/useGuests";
-import { type GuestFormData } from "@/components/guests/GuestForm";
+import { CompanyForm, type CompanyFormData } from "./CompanyForm";
+import { type Company } from "@/hooks/useCompanies";
 import { supabase } from "@/integrations/supabase/client";
 import { es } from "@/lib/i18n/es";
 
-interface CreateGuestModalProps {
+interface CreateCompanyModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onGuestCreated: (guest: Guest) => void;
+  onCompanyCreated: (company: Company) => void;
 }
 
-export function CreateGuestModal({
+export function CreateCompanyModal({
   open,
   onOpenChange,
-  onGuestCreated,
-}: CreateGuestModalProps) {
+  onCompanyCreated,
+}: CreateCompanyModalProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = async (data: GuestFormData) => {
+  const handleSubmit = async (data: CompanyFormData) => {
     setError(null);
     setIsLoading(true);
 
     try {
-      const { data: newGuest, error: insertError } = await supabase
-        .from("guests")
+      const { data: newCompany, error: insertError } = await supabase
+        .from("companies")
         .insert({
           name: data.name,
-          document: data.document,
+          rtn: data.rtn,
           phone: data.phone,
           email: data.email,
-          company_id: data.company_id,
+          address: data.address,
         })
         .select()
         .single();
 
-      if (insertError) throw new Error(insertError.message);
+      if (insertError) {
+        const msg = insertError.message;
+        if (msg.includes("companies_rtn_active_unique") || msg.includes("duplicate key")) {
+          throw new Error(es.empresasPage.validation.rtnTaken);
+        }
+        if (msg.includes("companies_rtn_digits") || msg.includes("violates check constraint")) {
+          throw new Error(es.empresasPage.validation.rtnInvalid);
+        }
+        throw new Error(msg);
+      }
 
-      onGuestCreated(newGuest as Guest);
+      onCompanyCreated(newCompany as Company);
       onOpenChange(false);
     } catch (err) {
       const message = err instanceof Error ? err.message : es.common.unexpectedError;
@@ -65,9 +73,9 @@ export function CreateGuestModal({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{es.guestCombobox.creatingNew}</DialogTitle>
+          <DialogTitle>{es.companyCombobox.creatingNew}</DialogTitle>
         </DialogHeader>
-        <InlineGuestForm
+        <CompanyForm
           onSubmit={handleSubmit}
           onCancel={() => onOpenChange(false)}
           isLoading={isLoading}

@@ -185,6 +185,7 @@ export default function Guests() {
                 <th className="px-table_cell_padding_x py-table_cell_padding_y text-label-bold text-on-surface-variant">{guestsPage.columns.document}</th>
                 <th className="px-table_cell_padding_x py-table_cell_padding_y text-label-bold text-on-surface-variant">{guestsPage.columns.phone}</th>
                 <th className="px-table_cell_padding_x py-table_cell_padding_y text-label-bold text-on-surface-variant">{guestsPage.columns.email}</th>
+                <th className="px-table_cell_padding_x py-table_cell_padding_y text-label-bold text-on-surface-variant">{guestsPage.columns.company}</th>
                 <th className="px-table_cell_padding_x py-table_cell_padding_y text-label-bold text-on-surface-variant text-right">{common.actions}</th>
               </tr>
             </thead>
@@ -205,6 +206,16 @@ export default function Guests() {
                     </td>
                     <td className="px-table_cell_padding_x py-table_cell_padding_y text-body-sm text-on-surface-variant">
                       {displayValue(guest.email)}
+                    </td>
+                    <td className="px-table_cell_padding_x py-table_cell_padding_y text-body-sm">
+                      {guest.company_name ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-secondary-container px-2 py-0.5 text-label-md text-on-secondary-container">
+                          <span className="material-symbols-outlined text-[14px]">domain</span>
+                          {guest.company_name}
+                        </span>
+                      ) : (
+                        <span className="text-on-surface-variant">—</span>
+                      )}
                     </td>
                     <td className="px-table_cell_padding_x py-table_cell_padding_y text-right">
                       <div className="flex items-center justify-end gap-1">

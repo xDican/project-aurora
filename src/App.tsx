@@ -11,6 +11,7 @@ import NotFound from "./pages/NotFound";
 import DebugDbTest from "./pages/DebugDbTest";
 import Rooms from "./pages/Rooms";
 import Guests from "./pages/Guests";
+import Empresas from "./pages/Empresas";
 import Reservas from "./pages/Reservas";
 import Hoy from "./pages/Hoy";
 import Mapa from "./pages/Mapa";
@@ -76,6 +77,16 @@ const App = () => (
                 <ProtectedRoute>
                   <Layout>
                     <Guests />
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/empresas"
+              element={
+                <ProtectedRoute allowedRoles={["admin"]}>
+                  <Layout>
+                    <Empresas />
                   </Layout>
                 </ProtectedRoute>
               }
