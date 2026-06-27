@@ -7,11 +7,13 @@ export interface Guest {
   document?: string | null;
   phone?: string | null;
   email?: string | null;
+  company_id?: string | null;
+  company_name?: string | null;
   created_at: string;
 }
 
-export type CreateGuestPayload = Omit<Guest, "id" | "created_at">;
-export type UpdateGuestPayload = Partial<Omit<Guest, "id" | "created_at">>;
+export type CreateGuestPayload = Omit<Guest, "id" | "created_at" | "company_name">;
+export type UpdateGuestPayload = Partial<Omit<Guest, "id" | "created_at" | "company_name">>;
 
 export interface UseGuestsResult {
   guests: Guest[];
@@ -26,12 +28,15 @@ export interface UseGuestsResult {
 }
 
 function parseGuest(raw: Record<string, unknown>): Guest {
+  const company = raw.companies as { name?: string } | null | undefined;
   return {
     id: String(raw.id ?? ""),
     name: String(raw.name ?? ""),
     document: raw.document as string | null | undefined,
     phone: raw.phone as string | null | undefined,
     email: raw.email as string | null | undefined,
+    company_id: raw.company_id as string | null | undefined,
+    company_name: company?.name ?? null,
     created_at: String(raw.created_at ?? ""),
   };
 }
@@ -49,7 +54,7 @@ export function useGuests(): UseGuestsResult {
     try {
       let query = supabase
         .from("guests")
-        .select("*")
+        .select("*, companies(name)")
         .eq("is_active", true)
         .order("created_at", { ascending: false });
 
@@ -85,6 +90,7 @@ export function useGuests(): UseGuestsResult {
       document: payload.document ?? null,
       phone: payload.phone ?? null,
       email: payload.email ?? null,
+      company_id: payload.company_id ?? null,
     };
 
     const { error: insertError } = await supabase.from("guests").insert(insertData);
@@ -109,6 +115,7 @@ export function useGuests(): UseGuestsResult {
       p_name: payload.name ?? currentGuest?.name ?? "",
       p_phone: payload.phone ?? currentGuest?.phone ?? null,
       p_email: payload.email ?? currentGuest?.email ?? null,
+      p_company_id: payload.company_id !== undefined ? payload.company_id : (currentGuest?.company_id ?? null),
     });
 
     if (error) {
