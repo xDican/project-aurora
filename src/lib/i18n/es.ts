@@ -181,6 +181,8 @@ export const es = {
     companyUpdated: "Empresa actualizada exitosamente",
     searchPlaceholder: "Buscar por nombre o RTN",
     notAllowed: "No tienes permisos para esta acción.",
+    editWindowExpired: "Ya pasó la ventana de edición. Pide a un admin que la edite.",
+    editDisabledTooltip: "Solo admin puede editar empresas antiguas",
     columns: {
       name: "Nombre",
       rtn: "RTN",

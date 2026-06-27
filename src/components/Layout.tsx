@@ -30,7 +30,7 @@ const navItems: Array<{
   { path: "/salon", label: "Salón", icon: "event_seat" },
   { path: "/rooms", label: "Habitaciones", icon: "door_front", roles: ["admin"] },
   { path: "/guests", label: "Huéspedes", icon: "group" },
-  { path: "/empresas", label: "Empresas", icon: "domain", roles: ["admin"] },
+  { path: "/empresas", label: "Empresas", icon: "domain" },
   { path: "/reportes", label: "Reportes", icon: "assessment", roles: ["admin"] },
 ];
 

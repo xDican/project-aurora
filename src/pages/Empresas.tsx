@@ -18,13 +18,23 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { CompanyForm, type CompanyFormData } from "@/components/companies/CompanyForm";
 import { toast } from "sonner";
 import { useCompanies, type Company } from "@/hooks/useCompanies";
+import { useAuth } from "@/contexts/AuthContext";
 import { Loader2 } from "lucide-react";
 import { es } from "@/lib/i18n/es";
 
 const { empresasPage, common } = es;
+
+// 15 minutes in milliseconds
+const EDIT_WINDOW_MS = 15 * 60 * 1000;
 
 export default function Empresas() {
   const {
@@ -37,6 +47,14 @@ export default function Empresas() {
     updateCompany,
     archiveCompany,
   } = useCompanies();
+  const { role } = useAuth();
+  const isAdmin = role === "admin";
+
+  const canEditCompany = (company: Company): boolean => {
+    if (isAdmin) return true;
+    const createdAt = new Date(company.created_at).getTime();
+    return Date.now() - createdAt <= EDIT_WINDOW_MS;
+  };
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCompany, setEditingCompany] = useState<Company | null>(null);
@@ -64,6 +82,7 @@ export default function Empresas() {
   const mapFormError = (code: string): string => {
     if (code === "RTN_TAKEN") return empresasPage.validation.rtnTaken;
     if (code === "RTN_INVALID") return empresasPage.validation.rtnInvalid;
+    if (code === "EDIT_WINDOW_EXPIRED") return empresasPage.editWindowExpired;
     if (code === "NOT_ALLOWED") return empresasPage.notAllowed;
     return code;
   };
@@ -177,42 +196,59 @@ export default function Empresas() {
                   </td>
                   <td className="px-table_cell_padding_x py-table_cell_padding_y text-right">
                     <div className="flex items-center justify-end gap-1">
-                      <button
-                        onClick={() => openEditModal(company)}
-                        title={es.common.edit}
-                        className="p-1 rounded text-on-surface-variant hover:text-primary hover:bg-primary-container/20 transition-colors"
-                      >
-                        <span className="material-symbols-outlined text-[20px]">edit</span>
-                      </button>
+                      {canEditCompany(company) ? (
+                        <button
+                          onClick={() => openEditModal(company)}
+                          title={es.common.edit}
+                          className="p-1 rounded text-on-surface-variant hover:text-primary hover:bg-primary-container/20 transition-colors"
+                        >
+                          <span className="material-symbols-outlined text-[20px]">edit</span>
+                        </button>
+                      ) : (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button disabled className="p-1 rounded text-outline-variant cursor-not-allowed">
+                                <span className="material-symbols-outlined text-[20px]">edit</span>
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              {empresasPage.editDisabledTooltip}
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
 
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <button
-                            title={common.actions}
-                            className="p-1 rounded text-on-surface-variant hover:text-destructive hover:bg-error-container/20 transition-colors"
-                          >
-                            <span className="material-symbols-outlined text-[20px]">archive</span>
-                          </button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>
-                              {empresasPage.archive.dialogTitle}
-                            </AlertDialogTitle>
-                            <AlertDialogDescription>
-                              {empresasPage.archive.dialogMessage}
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>
-                              {empresasPage.archive.back}
-                            </AlertDialogCancel>
-                            <AlertDialogAction onClick={() => handleArchive(company.id)}>
-                              {empresasPage.archive.confirm}
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                      {isAdmin && (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <button
+                              title={common.actions}
+                              className="p-1 rounded text-on-surface-variant hover:text-destructive hover:bg-error-container/20 transition-colors"
+                            >
+                              <span className="material-symbols-outlined text-[20px]">archive</span>
+                            </button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>
+                                {empresasPage.archive.dialogTitle}
+                              </AlertDialogTitle>
+                              <AlertDialogDescription>
+                                {empresasPage.archive.dialogMessage}
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>
+                                {empresasPage.archive.back}
+                              </AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleArchive(company.id)}>
+                                {empresasPage.archive.confirm}
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      )}
                     </div>
                   </td>
                 </tr>

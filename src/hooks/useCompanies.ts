@@ -115,24 +115,32 @@ export function useCompanies(): UseCompaniesResult {
       throw new Error("Se requiere el ID de la empresa para actualizar");
     }
 
-    const { error: updateError } = await supabase
-      .from("companies")
-      .update({
-        ...(payload.name !== undefined ? { name: payload.name } : {}),
-        ...(payload.rtn !== undefined ? { rtn: payload.rtn } : {}),
-        ...(payload.phone !== undefined ? { phone: payload.phone } : {}),
-        ...(payload.email !== undefined ? { email: payload.email } : {}),
-        ...(payload.address !== undefined ? { address: payload.address } : {}),
-      })
-      .eq("id", id);
+    // Edit goes through a SECURITY DEFINER function: admin always, receptionist
+    // only within the 15-min window. RLS UPDATE stays admin-only.
+    const current = companies.find((c) => c.id === id);
 
-    if (updateError) {
-      const code = mapCompanyError(updateError.message);
-      throw new Error(code ?? `Error al actualizar empresa: ${updateError.message}`);
+    const { error: rpcError } = await supabase.rpc("update_company_recent", {
+      p_company_id: id,
+      p_name: payload.name ?? current?.name ?? "",
+      p_rtn: payload.rtn ?? current?.rtn ?? "",
+      p_phone: payload.phone !== undefined ? payload.phone : (current?.phone ?? null),
+      p_email: payload.email !== undefined ? payload.email : (current?.email ?? null),
+      p_address: payload.address !== undefined ? payload.address : (current?.address ?? null),
+    });
+
+    if (rpcError) {
+      if (rpcError.message.includes("edit window expired")) {
+        throw new Error("EDIT_WINDOW_EXPIRED");
+      }
+      if (rpcError.message.includes("not allowed")) {
+        throw new Error("NOT_ALLOWED");
+      }
+      const code = mapCompanyError(rpcError.message);
+      throw new Error(code ?? `Error al actualizar empresa: ${rpcError.message}`);
     }
 
     await refresh();
-  }, [refresh]);
+  }, [companies, refresh]);
 
   const archiveCompany = useCallback(async (id: string): Promise<void> => {
     if (!id) {

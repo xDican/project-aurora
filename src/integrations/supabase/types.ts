@@ -660,9 +660,21 @@ export type Database = {
       unarchive_company: { Args: { p_company_id: string }; Returns: undefined }
       unarchive_guest: { Args: { p_guest_id: string }; Returns: undefined }
       unarchive_room: { Args: { p_room_id: string }; Returns: undefined }
+      update_company_recent: {
+        Args: {
+          p_address?: string
+          p_company_id: string
+          p_email?: string
+          p_name: string
+          p_phone?: string
+          p_rtn: string
+        }
+        Returns: undefined
+      }
       update_guest_recent: {
         Args: {
           p_company_id?: string
+          p_document?: string
           p_email: string
           p_guest_id: string
           p_name: string

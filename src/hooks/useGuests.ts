@@ -115,6 +115,7 @@ export function useGuests(): UseGuestsResult {
       p_name: payload.name ?? currentGuest?.name ?? "",
       p_phone: payload.phone ?? currentGuest?.phone ?? null,
       p_email: payload.email ?? currentGuest?.email ?? null,
+      p_document: payload.document !== undefined ? payload.document : (currentGuest?.document ?? null),
       p_company_id: payload.company_id !== undefined ? payload.company_id : (currentGuest?.company_id ?? null),
     });
 
