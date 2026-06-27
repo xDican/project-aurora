@@ -46,9 +46,46 @@ export type Database = {
           },
         ]
       }
+      companies: {
+        Row: {
+          address: string | null
+          archived_at: string | null
+          created_at: string
+          email: string | null
+          id: string
+          is_active: boolean
+          name: string
+          phone: string | null
+          rtn: string
+        }
+        Insert: {
+          address?: string | null
+          archived_at?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          phone?: string | null
+          rtn: string
+        }
+        Update: {
+          address?: string | null
+          archived_at?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          phone?: string | null
+          rtn?: string
+        }
+        Relationships: []
+      }
       guests: {
         Row: {
           archived_at: string | null
+          company_id: string | null
           created_at: string
           document: string | null
           email: string | null
@@ -59,6 +96,7 @@ export type Database = {
         }
         Insert: {
           archived_at?: string | null
+          company_id?: string | null
           created_at?: string
           document?: string | null
           email?: string | null
@@ -69,6 +107,7 @@ export type Database = {
         }
         Update: {
           archived_at?: string | null
+          company_id?: string | null
           created_at?: string
           document?: string | null
           email?: string | null
@@ -77,13 +116,22 @@ export type Database = {
           name?: string
           phone?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "guests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       reservations: {
         Row: {
           base_price: number
           check_in_date: string
           check_out_date: string
+          company_id: string | null
           created_at: string
           discount: number
           final_price: number
@@ -98,6 +146,7 @@ export type Database = {
           base_price: number
           check_in_date: string
           check_out_date: string
+          company_id?: string | null
           created_at?: string
           discount?: number
           final_price: number
@@ -112,6 +161,7 @@ export type Database = {
           base_price?: number
           check_in_date?: string
           check_out_date?: string
+          company_id?: string | null
           created_at?: string
           discount?: number
           final_price?: number
@@ -123,6 +173,13 @@ export type Database = {
           status?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "reservations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "reservations_guest_fk"
             columns: ["guest_id"]
@@ -308,6 +365,7 @@ export type Database = {
           base_price: number
           coffee_cookies: boolean
           coffee_station: boolean
+          company_id: string | null
           created_at: string
           discount: number
           end_date: string
@@ -327,6 +385,7 @@ export type Database = {
           base_price?: number
           coffee_cookies?: boolean
           coffee_station?: boolean
+          company_id?: string | null
           created_at?: string
           discount?: number
           end_date: string
@@ -346,6 +405,7 @@ export type Database = {
           base_price?: number
           coffee_cookies?: boolean
           coffee_station?: boolean
+          company_id?: string | null
           created_at?: string
           discount?: number
           end_date?: string
@@ -360,6 +420,13 @@ export type Database = {
           status?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "salon_reservations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "salon_reservations_guest_fk"
             columns: ["guest_id"]
@@ -515,24 +582,25 @@ export type Database = {
         Args: { p_discount: number; p_reservation_id: string }
         Returns: undefined
       }
+      archive_company: { Args: { p_company_id: string }; Returns: undefined }
       archive_guest: { Args: { p_guest_id: string }; Returns: undefined }
       archive_room: { Args: { p_room_id: string }; Returns: undefined }
       create_salon_reservation: {
         Args: {
-          p_guest_id: string
-          p_space_id: string
-          p_slot_id: string
-          p_start_date: string
-          p_end_date: string
-          p_attendees: number | null
-          p_menu_id: string | null
-          p_coffee_station: boolean
-          p_coffee_cookies: boolean
-          p_base_price: number
           p_addons_price: number
+          p_attendees: number
+          p_base_price: number
+          p_coffee_cookies: boolean
+          p_coffee_station: boolean
+          p_end_date: string
           p_final_price: number
-          p_notes: string | null
+          p_guest_id: string
+          p_menu_id: string
+          p_notes: string
           p_resources: Json
+          p_slot_id: string
+          p_space_id: string
+          p_start_date: string
         }
         Returns: string
       }
@@ -540,30 +608,7 @@ export type Database = {
         Args: never
         Returns: Database["public"]["Enums"]["user_role"]
       }
-      update_salon_reservation: {
-        Args: {
-          p_id: string
-          p_guest_id: string
-          p_space_id: string
-          p_slot_id: string
-          p_start_date: string
-          p_end_date: string
-          p_attendees: number | null
-          p_menu_id: string | null
-          p_coffee_station: boolean
-          p_coffee_cookies: boolean
-          p_base_price: number
-          p_addons_price: number
-          p_final_price: number
-          p_notes: string | null
-          p_resources: Json
-        }
-        Returns: undefined
-      }
-      log_app_event: {
-        Args: { p_path: string }
-        Returns: undefined
-      }
+      log_app_event: { Args: { p_path: string }; Returns: undefined }
       report_kpis: {
         Args: { p_end: string; p_start: string }
         Returns: {
@@ -612,14 +657,36 @@ export type Database = {
         Args: { p_notes?: string; p_room_id: string; p_status: string }
         Returns: undefined
       }
+      unarchive_company: { Args: { p_company_id: string }; Returns: undefined }
       unarchive_guest: { Args: { p_guest_id: string }; Returns: undefined }
       unarchive_room: { Args: { p_room_id: string }; Returns: undefined }
       update_guest_recent: {
         Args: {
+          p_company_id?: string
           p_email: string
           p_guest_id: string
           p_name: string
           p_phone: string
+        }
+        Returns: undefined
+      }
+      update_salon_reservation: {
+        Args: {
+          p_addons_price: number
+          p_attendees: number
+          p_base_price: number
+          p_coffee_cookies: boolean
+          p_coffee_station: boolean
+          p_end_date: string
+          p_final_price: number
+          p_guest_id: string
+          p_id: string
+          p_menu_id: string
+          p_notes: string
+          p_resources: Json
+          p_slot_id: string
+          p_space_id: string
+          p_start_date: string
         }
         Returns: undefined
       }
